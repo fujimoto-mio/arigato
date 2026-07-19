@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand: #b3465a;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #f5f5f4;
+  color: #171717;
+}

@@ -1,0 +1,48 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "back": "返回"
+  },
+  "language": {
+    "japanese": "日本語",
+    "english": "English",
+    "korean": "한국어",
+    "chinese": "中文"
+  },
+  "landing": {
+    "welcome": "感谢您一直以来的支持",
+    "staffHeading": "选择员工",
+    "staffSubheading": "请选择您想要打赏的员工",
+    "tipHeading": "选择打赏金额",
+    "tipSubheading": "请点击选择金额",
+    "tier": {
+      "littleThanks": "一点心意",
+      "generous": "慷慨打赏",
+      "veryGenerous": "非常慷慨",
+      "special": "特别打赏"
+    },
+    "completeButton": "完成",
+    "completeNote": "即将进入支付页面",
+    "errorGeneric": "出现问题，请重试。"
+  },
+  "checkout": {
+    "heading": "支付信息",
+    "subheading": "请输入您的信用卡信息",
+    "tippingLabel": "打赏给 {staffName}",
+    "payButton": "支付",
+    "processingNote": "您的支付将被安全处理",
+    "errorGeneric": "支付过程中出现问题，请重试。"
+  },
+  "thankYou": {
+    "title": "感谢您今天的光临与您的心意。",
+    "subtitle": "您的支持对我们的团队意义重大，期待您的再次光临。",
+    "ratingHeading": "请为您的体验评分",
+    "ratingSubheading": "您的反馈将帮助我们不断改进",
+    "commentLabel": "留下评论（可选）",
+    "commentPlaceholder": "请告诉我们您喜欢的地方...",
+    "completeButton": "完成",
+    "completeNote": "即将返回首页",
+    "privateFeedbackNote": "感谢您的反馈，我们已将其转达给店铺团队。",
+    "errorGeneric": "出现问题，请重试。"
+  }
+}

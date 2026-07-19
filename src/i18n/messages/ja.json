@@ -1,0 +1,48 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "back": "戻る"
+  },
+  "language": {
+    "japanese": "日本語",
+    "english": "English",
+    "korean": "한국어",
+    "chinese": "中文"
+  },
+  "landing": {
+    "welcome": "いつもありがとうございます",
+    "staffHeading": "スタッフを選択",
+    "staffSubheading": "チップを渡したいスタッフをタップしてください",
+    "tipHeading": "チップの金額を選択",
+    "tipSubheading": "金額をタップして選んでください",
+    "tier": {
+      "littleThanks": "気持ちで",
+      "generous": "しっかり",
+      "veryGenerous": "たっぷり",
+      "special": "スペシャル"
+    },
+    "completeButton": "完了する",
+    "completeNote": "決済画面へ進みます",
+    "errorGeneric": "問題が発生しました。もう一度お試しください。"
+  },
+  "checkout": {
+    "heading": "お支払い情報",
+    "subheading": "クレジットカード情報を入力してください",
+    "tippingLabel": "{staffName} さんへのチップ",
+    "payButton": "支払う",
+    "processingNote": "お支払いは安全に処理されます",
+    "errorGeneric": "決済中に問題が発生しました。もう一度お試しください。"
+  },
+  "thankYou": {
+    "title": "本日はご来店いただき、誠にありがとうございました。",
+    "subtitle": "皆様のご支援はスタッフにとって大きな励みになります。またのご来店を心よりお待ちしております。",
+    "ratingHeading": "体験を評価してください",
+    "ratingSubheading": "いただいたご意見は今後の改善に活用させていただきます",
+    "commentLabel": "コメントを残す（任意）",
+    "commentPlaceholder": "良かった点を教えてください...",
+    "completeButton": "完了する",
+    "completeNote": "ホーム画面に戻ります",
+    "privateFeedbackNote": "ありがとうございます。いただいたご意見は店舗スタッフに共有されます。",
+    "errorGeneric": "問題が発生しました。もう一度お試しください。"
+  }
+}

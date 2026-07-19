@@ -1,0 +1,48 @@
+{
+  "common": {
+    "loading": "불러오는 중...",
+    "back": "뒤로"
+  },
+  "language": {
+    "japanese": "日本語",
+    "english": "English",
+    "korean": "한국어",
+    "chinese": "中文"
+  },
+  "landing": {
+    "welcome": "항상 감사합니다",
+    "staffHeading": "직원 선택",
+    "staffSubheading": "팁을 전달할 직원을 선택해 주세요",
+    "tipHeading": "팁 금액 선택",
+    "tipSubheading": "금액을 선택해 주세요",
+    "tier": {
+      "littleThanks": "작은 감사",
+      "generous": "넉넉하게",
+      "veryGenerous": "아주 넉넉하게",
+      "special": "스페셜"
+    },
+    "completeButton": "완료",
+    "completeNote": "결제 화면으로 이동합니다",
+    "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
+  },
+  "checkout": {
+    "heading": "결제 정보",
+    "subheading": "신용카드 정보를 입력해 주세요",
+    "tippingLabel": "{staffName}님에게 팁 전달",
+    "payButton": "결제하기",
+    "processingNote": "결제는 안전하게 처리됩니다",
+    "errorGeneric": "결제 중 문제가 발생했습니다. 다시 시도해 주세요."
+  },
+  "thankYou": {
+    "title": "오늘 방문해 주시고 따뜻한 마음을 전해 주셔서 감사합니다.",
+    "subtitle": "고객님의 성원은 저희 직원들에게 큰 힘이 됩니다. 다시 만나 뵙기를 기대합니다.",
+    "ratingHeading": "이용 경험을 평가해 주세요",
+    "ratingSubheading": "고객님의 의견은 서비스 개선에 활용됩니다",
+    "commentLabel": "코멘트 남기기 (선택)",
+    "commentPlaceholder": "좋았던 점을 알려주세요...",
+    "completeButton": "완료",
+    "completeNote": "홈 화면으로 돌아갑니다",
+    "privateFeedbackNote": "감사합니다. 남겨주신 의견은 매장 직원에게 전달됩니다.",
+    "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
+  }
+}

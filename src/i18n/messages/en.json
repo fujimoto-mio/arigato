@@ -1,0 +1,48 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "back": "Back"
+  },
+  "language": {
+    "japanese": "日本語",
+    "english": "English",
+    "korean": "한국어",
+    "chinese": "中文"
+  },
+  "landing": {
+    "welcome": "Thank you for your support",
+    "staffHeading": "Select a staff member",
+    "staffSubheading": "Tap the staff member you'd like to tip",
+    "tipHeading": "Select tip amount",
+    "tipSubheading": "Tap to choose an amount",
+    "tier": {
+      "littleThanks": "A little thanks",
+      "generous": "Generous",
+      "veryGenerous": "Very generous",
+      "special": "Special"
+    },
+    "completeButton": "Complete",
+    "completeNote": "You'll proceed to payment",
+    "errorGeneric": "Something went wrong. Please try again."
+  },
+  "checkout": {
+    "heading": "Payment details",
+    "subheading": "Enter your credit card information",
+    "tippingLabel": "Tipping {staffName}",
+    "payButton": "Pay",
+    "processingNote": "Your payment will be processed securely",
+    "errorGeneric": "Something went wrong with your payment. Please try again."
+  },
+  "thankYou": {
+    "title": "Thank you for visiting us today, and for your kind gesture.",
+    "subtitle": "Your support means a lot to our team. We hope to welcome you again soon.",
+    "ratingHeading": "Rate your experience",
+    "ratingSubheading": "Your feedback helps us improve",
+    "commentLabel": "Leave a comment (optional)",
+    "commentPlaceholder": "Tell us what you enjoyed...",
+    "completeButton": "Complete",
+    "completeNote": "You'll return to the home screen",
+    "privateFeedbackNote": "Thank you — your feedback has been shared with the store team.",
+    "errorGeneric": "Something went wrong. Please try again."
+  }
+}
