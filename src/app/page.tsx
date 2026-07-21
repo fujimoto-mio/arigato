@@ -298,17 +298,17 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-neutral-200 py-8">
+      <footer className="border-t border-white/10 bg-neutral-900 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 text-xs text-neutral-400 sm:flex-row sm:justify-between">
           <span>© 2026 ARIGATO TiP</span>
           <div className="flex gap-4">
-            <a href="#how" className="hover:text-neutral-600">
+            <a href="#how" className="hover:text-white">
               使い方
             </a>
-            <a href="#features" className="hover:text-neutral-600">
+            <a href="#features" className="hover:text-white">
               特長
             </a>
-            <a href="#faq" className="hover:text-neutral-600">
+            <a href="#faq" className="hover:text-white">
               よくある質問
             </a>
           </div>
