@@ -1,6 +1,6 @@
 import { StoreSettingsForm } from "@/components/admin/StoreSettingsForm";
 import { requireAdmin } from "@/lib/admin/auth";
-import { requestOrigin } from "@/lib/origin";
+import { resolveAppOrigin } from "@/lib/origin";
 import { storeQrDataUrl, storeTipUrl } from "@/lib/qr";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default async function AdminSettingsPage({
   const { table } = await searchParams;
   const tableLabel = table?.trim() || null;
 
-  const origin = await requestOrigin();
+  const origin = await resolveAppOrigin();
   const tipUrl = storeTipUrl(origin, store.slug, tableLabel);
   const qrDataUrl = await storeQrDataUrl(origin, store.slug, tableLabel);
 

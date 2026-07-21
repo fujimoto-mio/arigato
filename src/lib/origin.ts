@@ -1,13 +1,7 @@
 import { headers } from "next/headers";
 
-/**
- * Origin of the incoming request, e.g. `https://tips.example.com`.
- *
- * Derived from headers rather than an env var so QR codes always point at the
- * host the dashboard is actually served from — a misconfigured env var would
- * only surface after the codes had been printed.
- */
-export async function requestOrigin(): Promise<string> {
+/** Origin taken from the incoming request, e.g. `https://tips.example.com`. */
+async function originFromRequest(): Promise<string> {
   const headerList = await headers();
 
   // x-forwarded-* are what Vercel (and most proxies) set; host is the fallback.
@@ -17,4 +11,18 @@ export async function requestOrigin(): Promise<string> {
     forwardedProto ?? (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
 
   return `${protocol}://${host}`;
+}
+
+/**
+ * Origin used to build QR code targets.
+ *
+ * `NEXT_PUBLIC_APP_URL` wins so a store can print codes pointing at its public
+ * domain even when the dashboard is reached some other way (preview deploy,
+ * custom proxy, LAN address). Falls back to the request's own origin when the
+ * variable is unset, so QR codes never silently point at the wrong host.
+ */
+export async function resolveAppOrigin(): Promise<string> {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  return originFromRequest();
 }
