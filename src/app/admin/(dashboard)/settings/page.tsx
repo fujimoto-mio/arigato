@@ -1,5 +1,6 @@
 import { StoreSettingsForm } from "@/components/admin/StoreSettingsForm";
 import { requireAdmin } from "@/lib/admin/auth";
+import { requestOrigin } from "@/lib/origin";
 import { storeQrDataUrl, storeTipUrl } from "@/lib/qr";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +14,9 @@ export default async function AdminSettingsPage({
   const { table } = await searchParams;
   const tableLabel = table?.trim() || null;
 
-  const [qrDataUrl, tipUrl] = await Promise.all([
-    storeQrDataUrl(store.slug, tableLabel),
-    Promise.resolve(storeTipUrl(store.slug, tableLabel)),
-  ]);
+  const origin = await requestOrigin();
+  const tipUrl = storeTipUrl(origin, store.slug, tableLabel);
+  const qrDataUrl = await storeQrDataUrl(origin, store.slug, tableLabel);
 
   const downloadName = tableLabel
     ? `arigato-qr-${store.slug}-table-${tableLabel}.png`
