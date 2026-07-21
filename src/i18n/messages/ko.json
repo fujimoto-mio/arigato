@@ -31,7 +31,9 @@
     "tippingLabel": "{staffName}님에게 팁 전달",
     "payButton": "결제하기",
     "processingNote": "결제는 안전하게 처리됩니다",
-    "errorGeneric": "결제 중 문제가 발생했습니다. 다시 시도해 주세요."
+    "errorGeneric": "결제 중 문제가 발생했습니다. 다시 시도해 주세요.",
+    "errorCard": "카드가 거절되었습니다. 정보를 확인하시거나 다른 카드를 사용해 주세요.",
+    "retryButton": "다시 시도"
   },
   "thankYou": {
     "title": "오늘 방문해 주시고 따뜻한 마음을 전해 주셔서 감사합니다.",

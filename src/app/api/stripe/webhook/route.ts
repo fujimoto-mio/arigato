@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { broadcastTip } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -25,10 +26,30 @@ export async function POST(request: Request) {
   switch (event.type) {
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      await prisma.tip.updateMany({
-        where: { stripePaymentIntentId: paymentIntent.id },
+
+      // Scoped to tips not already succeeded so a Stripe retry can't notify twice.
+      const { count } = await prisma.tip.updateMany({
+        where: { stripePaymentIntentId: paymentIntent.id, status: { not: "succeeded" } },
         data: { status: "succeeded" },
       });
+
+      if (count > 0) {
+        const tip = await prisma.tip.findUnique({
+          where: { stripePaymentIntentId: paymentIntent.id },
+          include: { staff: true },
+        });
+
+        if (tip) {
+          await broadcastTip(tip.storeId, {
+            tipId: tip.id,
+            staffId: tip.staffId,
+            staffName: tip.staff.name,
+            amount: tip.amount,
+            locale: tip.locale,
+            createdAt: tip.createdAt.toISOString(),
+          });
+        }
+      }
       break;
     }
     case "payment_intent.payment_failed": {

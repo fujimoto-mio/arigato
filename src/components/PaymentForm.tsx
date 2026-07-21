@@ -21,7 +21,7 @@ function PayButton({ slug, tipId }: { slug: string; tipId: string }) {
     setIsSubmitting(true);
     setError(null);
 
-    const { error: confirmError } = await stripe.confirmPayment({
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/s/${slug}/thank-you?tipId=${tipId}`,
@@ -30,24 +30,42 @@ function PayButton({ slug, tipId }: { slug: string; tipId: string }) {
     });
 
     if (confirmError) {
-      setError(confirmError.message ?? t("errorGeneric"));
+      // Card/validation errors are the guest's to fix, so surface Stripe's own
+      // wording; anything else is our problem and gets the generic message.
+      const isGuestFixable =
+        confirmError.type === "card_error" || confirmError.type === "validation_error";
+      setError(isGuestFixable ? (confirmError.message ?? t("errorCard")) : t("errorGeneric"));
       setIsSubmitting(false);
       return;
     }
 
-    router.push(`/s/${slug}/thank-you?tipId=${tipId}`);
+    // `processing` still lands on thank-you: the webhook (and the reviews route's
+    // self-heal) resolve the final status before a review can be written.
+    if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "processing") {
+      router.push(`/s/${slug}/thank-you?tipId=${tipId}`);
+      return;
+    }
+
+    setError(t("errorGeneric"));
+    setIsSubmitting(false);
   }
+
+  const hasFailed = error !== null;
 
   return (
     <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4 px-4">
       <PaymentElement />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={!stripe || isSubmitting}
         className="w-full rounded-full bg-neutral-900 py-3 text-center font-semibold text-white disabled:opacity-40"
       >
-        {t("payButton")}
+        {isSubmitting ? t("processingNote") : hasFailed ? t("retryButton") : t("payButton")}
       </button>
       <p className="text-center text-xs text-neutral-400">{t("processingNote")}</p>
     </form>

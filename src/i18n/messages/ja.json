@@ -31,7 +31,9 @@
     "tippingLabel": "{staffName} さんへのチップ",
     "payButton": "支払う",
     "processingNote": "お支払いは安全に処理されます",
-    "errorGeneric": "決済中に問題が発生しました。もう一度お試しください。"
+    "errorGeneric": "決済中に問題が発生しました。もう一度お試しください。",
+    "errorCard": "カードが承認されませんでした。内容をご確認いただくか、別のカードをお試しください。",
+    "retryButton": "もう一度試す"
   },
   "thankYou": {
     "title": "本日はご来店いただき、誠にありがとうございました。",
