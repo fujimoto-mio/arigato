@@ -31,7 +31,9 @@
     "tippingLabel": "打赏给 {staffName}",
     "payButton": "支付",
     "processingNote": "您的支付将被安全处理",
-    "errorGeneric": "支付过程中出现问题，请重试。"
+    "errorGeneric": "支付过程中出现问题，请重试。",
+    "errorCard": "您的卡被拒绝。请检查信息或尝试其他卡片。",
+    "retryButton": "重试"
   },
   "thankYou": {
     "title": "感谢您今天的光临与您的心意。",

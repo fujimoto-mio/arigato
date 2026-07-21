@@ -31,7 +31,9 @@
     "tippingLabel": "Tipping {staffName}",
     "payButton": "Pay",
     "processingNote": "Your payment will be processed securely",
-    "errorGeneric": "Something went wrong with your payment. Please try again."
+    "errorGeneric": "Something went wrong with your payment. Please try again.",
+    "errorCard": "Your card was declined. Please check the details or try another card.",
+    "retryButton": "Try again"
   },
   "thankYou": {
     "title": "Thank you for visiting us today, and for your kind gesture.",

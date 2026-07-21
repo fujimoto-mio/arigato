@@ -93,7 +93,7 @@ model AdminUser {
 
 ## To-do list
 
-Status legend: `[x]` done · `[~]` partial · `[ ]` not started. Last reconciled against `src/` on 2026-07-16.
+Status legend: `[x]` done · `[~]` partial · `[ ]` not started. Last reconciled against `src/` on 2026-07-21.
 
 ### Phase 0 — Project setup ✅
 - [x] Init Next.js (App Router, TS), connect to Vercel _(Vercel deploy not yet verified)_
@@ -110,33 +110,55 @@ Status legend: `[x]` done · `[~]` partial · `[ ]` not started. Last reconciled
 - [x] Decide Connect vs single-account Stripe — shipped **single-account** (no Connect yet; blocks multi-store)
 - [x] Stripe Payment Element integration styled to match wireframe
 - [x] Webhook → mark `Tip.status = succeeded` / `failed`
-- [ ] **Supabase Realtime channel: broadcast on new succeeded tip** — NOT done. Webhook updates status but broadcasts nothing; `lib/supabase/server.ts` is imported nowhere. Core "notify staff" feature.
+- [x] Supabase Realtime channel: broadcast on new succeeded tip (`lib/realtime.ts`, fired from the Stripe webhook; only on the first status transition so retries can't double-notify)
 
-### Phase 3 — Review & Google flow 🚧
+### Phase 3 — Review & Google flow ✅
 - [x] Thank-you screen with 5-star input + comment
 - [x] Branch: rating ≥3 → Google review deep link; <3 → save Review only
-- [ ] **Google Place ID field on Store admin settings** — `Store.googlePlaceId` exists in schema and is used by the redirect, but there is no UI to set it (DB/seed only). Depends on Phase 4 admin.
+- [x] Google Place ID field on Store admin settings (`/admin/settings`; blank = every rating stays private)
 
-### Phase 4 — Store admin dashboard ⛔ (none of this exists yet)
-- [ ] Supabase Auth login for store owners/staff (`AdminUser` model exists but is unused)
-- [ ] Live tip feed (Realtime subscription) — the "notify staff before guest leaves" requirement; pairs with the Phase 2 broadcast
-- [ ] Staff roster CRUD (add/edit/reorder/photo upload to Supabase Storage)
-- [ ] Reviews view, split public (≥3★, sent to Google) vs private (<3★) feedback
-- [ ] Basic tip ledger/totals per staff, per period
-- [ ] Store settings screen (name, logo upload, Google Place ID — see Phase 3)
+### Phase 4 — Store admin dashboard ✅
+- [x] Supabase Auth login for store owners/staff (`/admin/login`, guarded by `src/proxy.ts` + `requireAdmin`)
+- [x] Live tip feed (Realtime subscription) with connection indicator and audible chime — `/admin`
+- [x] Staff roster CRUD — add/rename/reorder/photo upload to Supabase Storage — `/admin/staff`
+- [x] Reviews view, split public (≥3★) vs private (<3★) — `/admin/reviews`
+- [x] Tip ledger: today's total, tip count, per-staff breakdown — `/admin`
+- [x] Store settings screen (name, logo upload, Google Place ID) — `/admin/settings`
 
-### Phase 5 — Polish & launch ⛔
-- [ ] **QR code generation per store** (and optionally per table) — the entry point of the whole flow; nothing exists yet
-- [ ] Error/retry states for failed payments (verify `PaymentForm.tsx` handles declines/retries)
+### Phase 5 — Polish & launch 🚧
+- [x] QR code generation per store, with optional per-table label + PNG download — `/admin/settings`
+- [x] Error/retry states for failed payments (card errors show Stripe's wording, button becomes "Try again")
 - [ ] Confirm real amount tiers + tier labels, translated copy for all 4 languages with a native reviewer per language
-- [ ] Deploy, smoke test end-to-end tip → notification → review on a real device
+- [ ] Deploy to Vercel, smoke test end-to-end tip → notification → review on a real device
 
 ### Cross-cutting / not yet tracked
 - [ ] Automated tests (no test setup in the repo)
-- [ ] Confirm open decisions below are signed off before further build
+- [ ] **Harden the Realtime channel** — `store:{storeId}` is currently a public broadcast topic, so anyone with the anon key and a store id could listen. Move to private channels + RLS before multi-store launch.
+- [ ] Persist the QR table label on `Tip` (needs a schema migration; the label is encoded in the QR URL as `?t=` but is not yet stored)
+- [ ] Confirm open decisions above are signed off (payout model is the expensive one to reverse)
 
-## Build status summary (2026-07-16)
+## Admin dashboard
 
-- **Customer flow (Phase 0–3): essentially complete** — QR-target landing through payment and review branching all work end-to-end.
-- **Two headline gaps remain:** (1) the real-time tip notification is a no-op, and (2) the entire admin dashboard (Phase 4) is unbuilt.
-- **Missing front door:** per-store QR generation (Phase 5) has no implementation.
+Provision the first store admin (creates the Supabase Auth user and links it to a store):
+
+```bash
+npm run db:seed                                        # creates the "kokoro" store
+npm run admin:create -- owner@example.com "s3cret" kokoro
+```
+
+Then sign in at `/admin/login`. Routes:
+
+| Route | Purpose |
+| --- | --- |
+| `/admin` | Live tip feed (Realtime) + today's totals + per-staff breakdown |
+| `/admin/staff` | Roster: add, rename, reorder, photo upload, hide |
+| `/admin/reviews` | Private (<3★) and public (≥3★) feedback |
+| `/admin/settings` | Store name, logo, Google Place ID, table QR codes |
+
+Staff are **deactivated, never deleted** — `Tip.staff` cascades on delete, so a hard delete would erase that person's tip history.
+
+## Build status summary (2026-07-21)
+
+- **Phases 0–4 complete.** Guest flow (QR → staff → amount → payment → review branch) and the full store dashboard are implemented.
+- **Verified against live infrastructure:** production build + lint clean; admin pages redirect when signed out; admin APIs return 401; guest landing renders seeded staff; Supabase Realtime broadcast returns 202; QR encoder produces a valid PNG.
+- **Not yet verified end-to-end:** a real card payment through to a live notification (needs Stripe test keys + `stripe listen`) and a real-device smoke test.
