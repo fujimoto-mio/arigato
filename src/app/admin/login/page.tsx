@@ -4,6 +4,10 @@ import { getAdminContext } from "@/lib/admin/auth";
 
 export const metadata = { title: "Sign in — ARIGATO TiP" };
 
+// Reads the session cookie to bounce already-signed-in admins, so it must never
+// be prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export default async function AdminLoginPage() {
   if (await getAdminContext()) {
     redirect("/admin");

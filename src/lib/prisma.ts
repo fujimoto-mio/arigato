@@ -14,8 +14,26 @@ function createPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function getPrismaClient(): PrismaClient {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  // Cached on globalThis so dev hot reload doesn't exhaust the connection pool.
+  globalForPrisma.prisma = createPrismaClient();
+  return globalForPrisma.prisma;
 }
+
+/**
+ * Lazily constructed Prisma client.
+ *
+ * Connecting at module scope would throw during `next build`, which imports
+ * route modules to collect page data but never queries the database. The proxy
+ * defers construction to first use, so call sites keep using `prisma.model` and
+ * a missing DATABASE_URL fails at request time with a clear message.
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get: (_target, property) => {
+    const instance = getPrismaClient();
+    const value = Reflect.get(instance, property);
+    return typeof value === "function" ? value.bind(instance) : value;
+  },
+});

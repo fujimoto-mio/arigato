@@ -157,6 +157,26 @@ Then sign in at `/admin/login`. Routes:
 
 Staff are **deactivated, never deleted** — `Tip.staff` cascades on delete, so a hard delete would erase that person's tip history.
 
+## Deploying to Vercel
+
+`prisma generate` runs via `postinstall` — without it the build fails with
+`Module '"@prisma/client"' has no exported member 'PrismaClient'`, because a fresh
+`npm install` never generates the client.
+
+The build itself needs **no environment variables**: the Prisma, Stripe and Supabase
+clients are all constructed lazily, so a missing value fails at request time with a
+clear message instead of breaking the build. Set these in Vercel for the app to run:
+
+| Variable | Needed for |
+| --- | --- |
+| `DATABASE_URL` | all database access (pooled connection) |
+| `DIRECT_URL` | `prisma migrate` only — not required to build |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | admin auth, Realtime subscribe |
+| `SUPABASE_SERVICE_ROLE_KEY` | storage uploads, tip broadcast |
+| `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | payments |
+| `STRIPE_WEBHOOK_SECRET` | webhook signature verification |
+| `NEXT_PUBLIC_APP_URL` | QR code targets — set to the public domain, or printed codes point at the wrong host |
+
 ## Build status summary (2026-07-21)
 
 - **Phases 0–4 complete.** Guest flow (QR → staff → amount → payment → review branch) and the full store dashboard are implemented.
