@@ -73,6 +73,7 @@ model AdminUser {
   id             String   @id @default(cuid())
   storeId        String
   supabaseUserId String   @unique
+  email          String   @unique
   role           String   @default("owner")
   createdAt      DateTime @default(now())
   store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)

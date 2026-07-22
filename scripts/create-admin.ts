@@ -67,8 +67,8 @@ async function main() {
 
   await prisma.adminUser.upsert({
     where: { supabaseUserId: userId },
-    update: { storeId: store.id },
-    create: { supabaseUserId: userId, storeId: store.id, role: "owner" },
+    update: { storeId: store.id, email },
+    create: { supabaseUserId: userId, storeId: store.id, email, role: "owner" },
   });
 
   console.log(`✓ ${email} can now sign in at /admin/login and manages "${store.slug}".`);
