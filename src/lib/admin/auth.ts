@@ -12,6 +12,8 @@ export type AdminContext = {
     name: string;
     logoUrl: string | null;
     googlePlaceId: string | null;
+    instagramUrl: string | null;
+    facebookUrl: string | null;
   };
 };
 
@@ -45,6 +47,8 @@ export async function getAdminContext(): Promise<AdminContext | null> {
       name: admin.store.name,
       logoUrl: admin.store.logoUrl,
       googlePlaceId: admin.store.googlePlaceId,
+      instagramUrl: admin.store.instagramUrl,
+      facebookUrl: admin.store.facebookUrl,
     },
   };
 }

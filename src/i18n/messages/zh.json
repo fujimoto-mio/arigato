@@ -1,7 +1,8 @@
 {
   "common": {
     "loading": "加载中...",
-    "back": "返回"
+    "back": "返回",
+    "next": "下一步"
   },
   "language": {
     "japanese": "日本語",
@@ -9,42 +10,92 @@
     "korean": "한국어",
     "chinese": "中文"
   },
-  "landing": {
-    "welcome": "感谢您一直以来的支持",
-    "staffHeading": "选择员工",
-    "staffSubheading": "请选择您想要打赏的员工",
-    "tipHeading": "选择打赏金额",
-    "tipSubheading": "请点击选择金额",
-    "tier": {
-      "littleThanks": "一点心意",
-      "generous": "慷慨打赏",
-      "veryGenerous": "非常慷慨",
-      "special": "特别打赏"
-    },
-    "completeButton": "完成",
-    "completeNote": "即将进入支付页面",
-    "errorGeneric": "出现问题，请重试。"
+  "story": {
+    "tagline": "了解我们餐厅背后的故事。",
+    "takeALook": "快来看看吧！",
+    "cta": "了解我们的故事",
+    "support": "支持我们",
+    "poweredBy": "Powered by ARIGATO TiP",
+    "heading": "我们的故事",
+    "slides": [
+      {
+        "title": "每一道菜都饱含热情。",
+        "body": "我们精选本地食材，用心烹制每一道菜。愿我们的料理与款待，让您的一天更加美好。"
+      },
+      {
+        "title": "用心，注重每个细节。",
+        "body": "从第一杯到最后一口，每个细节都经过精心安排，只为给您留下难忘的时刻。"
+      },
+      {
+        "title": "感谢您的光临。",
+        "body": "您的到来是我们团队最大的喜悦。期待再次与您相见。"
+      },
+      {
+        "title": "来自市场的新鲜。",
+        "body": "每天清晨我们精选当季最好的食材，只为让端上餐桌的每一道都处于最佳状态。"
+      },
+      {
+        "title": "始终热情相迎。",
+        "body": "无论是初次到访还是常来常往，很高兴今天能在这里与您相遇。"
+      }
+    ]
   },
-  "checkout": {
-    "heading": "支付信息",
-    "subheading": "请输入您的信用卡信息",
-    "tippingLabel": "打赏给 {staffName}",
+  "support": {
+    "heading": "支持我们",
+    "intro": "如果您用餐愉快，可以用小费支持我们。谢谢！",
+    "amountLabel": "您的小费金额",
+    "addNote": "点击 +¥100 增加小费",
+    "addNoteSub": "（金额随您心意，从 ¥0 起）",
+    "cardCheckbox": "使用信用卡支付",
+    "cardHint": "支持 Apple Pay、Google Pay 和银行卡。",
+    "cashHint": "不使用银行卡时，将计入账单并在收银台结算。",
+    "secure": "安全支付",
+    "next": "下一步",
+    "errorGeneric": "出了点问题，请重试。"
+  },
+  "payment": {
+    "heading": "完成您的小费",
+    "amountLabel": "您的小费金额",
     "payButton": "支付",
-    "processingNote": "您的支付将被安全处理",
-    "errorGeneric": "支付过程中出现问题，请重试。",
-    "errorCard": "您的卡被拒绝。请检查信息或尝试其他卡片。",
-    "retryButton": "重试"
+    "processingNote": "您的付款由 Stripe 安全处理。",
+    "processing": "处理中…",
+    "retryButton": "重试",
+    "otherOptions": "其他方式",
+    "errorGeneric": "支付时出了点问题，请重试。",
+    "errorCard": "您的卡被拒绝。请检查信息或更换一张卡。",
+    "notConfigured": "目前暂不支持支付。"
+  },
+  "review": {
+    "heading": "写评价",
+    "question": "您的体验如何？",
+    "commentLabel": "分享您的想法",
+    "commentOptional": "（选填）",
+    "commentPlaceholder": "告诉我们您喜欢的地方...",
+    "photoLabel": "添加照片（选填）",
+    "submit": "提交评价",
+    "skip": "跳过",
+    "helper": "您的评价对我们和其他顾客都很有帮助。谢谢！",
+    "errorGeneric": "出了点问题，请重试。"
   },
   "thankYou": {
-    "title": "感谢您今天的光临与您的心意。",
-    "subtitle": "您的支持对我们的团队意义重大，期待您的再次光临。",
-    "ratingHeading": "请为您的体验评分",
-    "ratingSubheading": "您的反馈将帮助我们不断改进",
-    "commentLabel": "留下评论（可选）",
-    "commentPlaceholder": "请告诉我们您喜欢的地方...",
-    "completeButton": "完成",
-    "completeNote": "即将返回首页",
-    "privateFeedbackNote": "感谢您的反馈，我们已将其转达给店铺团队。",
-    "errorGeneric": "出现问题，请重试。"
+    "title": "谢谢您！",
+    "subtitle": "您的支持对我们意义重大。我们会继续努力！",
+    "stayConnected": "保持联系",
+    "backToTop": "返回首页",
+    "viewReviews": "查看评价",
+    "privateNote": "您的反馈已发送给门店团队。"
+  },
+  "connect": {
+    "heading": "保持联系",
+    "subtitle": "关注我们，获取最新动态和新菜单！",
+    "instagram": "在 Instagram 关注",
+    "facebook": "在 Facebook 点赞",
+    "google": "在 Google 关注"
+  },
+  "nav": {
+    "home": "首页",
+    "story": "故事",
+    "reviews": "评价",
+    "support": "支持"
   }
 }

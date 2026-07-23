@@ -1,8 +1,16 @@
 # ARIGATO TiP（アリガトウチップ）
 
-Tipping platform for inbound tourists at Japanese restaurants/bars. Guest scans a table QR code, picks a language, tips a staff member by card, and optionally leaves a review that routes to Google (high ratings) or stays private with the store (low ratings). Store staff get a real-time notification when a tip lands so they can thank the guest before they leave.
+Story-first "thank you" platform for Japanese restaurants/bars. A guest scans a table QR code — no app, no login — reads the restaurant's story, optionally leaves a **tip**, optionally leaves a **review** (rating + comment + photos, linked to the store's Google), and can **follow** the store on social media. The store gets a **real-time notification** and an admin dashboard that aggregates tip amounts and reviews.
 
-Wireframes: [docs/](docs/)
+> ⚠️ **Spec revised (2026-07-23).** New confirmed direction: **story-first flow, no staff selection,
+> no customer login, ¥0-start +¥100 tip counter, 4 languages (ja/en/ko/zh).** On the tip page the
+> **guest ticks a "pay by credit card" checkbox**: checked → **Stripe online payment (Apple Pay /
+> Google Pay / card)**; unchecked → **cash at the register**. Stripe uses a **single platform account
+> for all stores** (not per-store, not Connect), so the existing Stripe integration stays (gated on the
+> checkbox, not removed). The code below still reflects the previous "tip a staff member by card" MVP
+> and is being reworked. Authoritative spec: **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**.
+
+Reference images (client, 2026-07-22 → 2026-07-23): 6-screen `ARIGATO TiP – User Flow`, QR table-stand mockup, Apple-Pay tip screen, and the admin-dashboard mockup, in Slack ([1](https://level-frontier-hq.slack.com/archives/C0BD3UQ138C/p1784702079661999), [2](https://level-frontier-hq.slack.com/archives/C0BJS2090ET/p1784778736422269)). Earlier wireframes: [docs/](docs/)
 
 ## Tech stack
 
@@ -13,64 +21,63 @@ Wireframes: [docs/](docs/)
 - **next-intl** — ja/en/ko/zh UI strings
 - **Vercel** — hosting
 
-## Customer flow (from wireframes)
+## Customer flow (target — 2026-07-22 reference frames)
 
-1. QR scan → language picker (🇯🇵🇺🇸🇰🇷🇨🇳), JA default
-2. Store hero (photo + store name + welcome line)
-3. Staff picker — horizontal scroll of avatars, tap to select
-4. Tip amount grid — ¥1,000 / ¥2,000 / ¥3,000 ("a little thanks"), ¥5,000 ("generous"), ¥10,000 ("very generous"), ¥20,000 ("special")
-5. Payment — card brand icons, card number, expiry, CVV, cardholder name, "Pay"
-6. Thank-you screen — checkmark, message, 5-star rating, optional comment, "Complete"
+6 screens, to be built to match the reference frames. Full detail in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md).
 
-Described in text but not drawn in any wireframe:
-- Star-rating branch logic (≥3 → redirect to Google review; <3 → store-only private feedback)
-- Real-time notification to store admin when a tip lands
-- Admin/dashboard screens (none of the 8 wireframes cover this)
+1. **Landing / QR target** — hero photo, "DISCOVER THE STORY BEHIND OUR RESTAURANT", **Discover Our Story** CTA. No login.
+2. **Our Story** — image + text carousel (~5 slides, dot pagination).
+3. **Support Us (Tip)** — amount display **starting at ¥0**, **+¥100** button adds ¥100/tap, **–** to decrease, any amount from ¥0, a **"pay by credit card" checkbox**, **Next**. Checked → Stripe (Apple Pay / Google Pay / card); unchecked → cash at the register (amount recorded, no charge).
+4. **Review (optional)** — 5-star rating, free-text (optional), add photo (optional), **Submit Review**. Linked to the store's Google.
+5. **Thank You** — heart, thank-you message, **Back to Top**, **View Reviews**.
+6. **Stay Connected** — follow on **Instagram / Facebook / Google**, restaurant photos, bottom nav (Home / Our Story / Reviews / Support).
 
-## Open decisions (blocking before Phase 2)
+## Confirmed decisions (client + 藤本, 2026-07-22 → 07-23)
 
-1. **Tip amount tiers** — wireframe shows 6 tiers (1,000/2,000/3,000/5,000/10,000/20,000), text description says 4 (1,000/3,000/5,000/10,000). Needs confirming.
-2. **Payment/payout model** — does money need to reach each store's own bank account (→ Stripe Connect, Standard or Express), or does the platform collect everything and pay stores out manually for now (→ plain Stripe payments to one account)? Connect scales to multiple stores; plain Stripe ships faster for a single-store pilot.
-3. **Translation approach** — wireframe shows exactly 4 fixed languages, which reads as static pre-translated UI strings (next-intl) rather than live machine translation. Live MT only matters if store owners type custom Japanese text (bios, thank-you messages) that needs on-the-fly translation.
-4. **Google review linking** — default plan: store a Google Place ID per store, deep-link to `search.google.com/local/writereview?placeid=...` for ratings ≥3. No API needed unless review analytics must be pulled back into the dashboard.
+- **4-language support** (ja/en/ko/zh) — confirmed in scope.
+- **Payment: guest chooses via a "pay by credit card" checkbox** on the tip page — checked → Stripe (Apple Pay / Google Pay / card); unchecked → cash at the register (レジ打ち, no in-app charge). **Stripe = one whole platform account for all stores** (not per-store, not Connect).
+- **No staff/member selection** — the tip is for the store as a whole.
+- **No customer login** — the QR opens the story page directly.
+- **Tip amount** = ¥0-start +¥100 counter (¥0 allowed); **table number** tracked per tip (from the QR).
+- **Real-time / push notification** to the store on each new tip+review.
+- **Reviews** = rating + comment + photos, linked to the store's Google. Dashboard shows ¥ + ≈USD.
+- **Stay Connected** buttons need per-store Instagram/Facebook URLs + Google Place ID on admin settings.
 
-Current assumption (revisit if wrong): single-store-first, static i18n, deep-link reviews.
+Still open (see requirements doc): whether "→ Kitchen team" in the Apple-Pay reference means team-level tip destinations (current spec is store-level); Stripe mode global vs per-store; keep the "Secure payment" label in cashless mode; USD fixed rate vs live FX.
 
 ## Data model (Prisma / Supabase Postgres)
 
+See [prisma/schema.prisma](prisma/schema.prisma) for the source of truth. Shape after the 2026-07-23 pivot:
+
 ```prisma
 model Store {
-  id              String   @id @default(cuid())
-  slug            String   @unique   // QR target: /s/{slug}
-  name            String
-  logoUrl         String?
-  googlePlaceId   String?
-  stripeAccountId String?            // if using Connect
-  staff           Staff[]
-  tips            Tip[]
-  admins          AdminUser[]
+  id            String   @id @default(cuid())
+  slug          String   @unique   // QR target: /s/{slug}?t={table}
+  name          String
+  logoUrl       String?
+  googlePlaceId String?             // Google review deep-link + "Follow on Google"
+  instagramUrl  String?             // Stay Connected buttons
+  facebookUrl   String?
+  staff         Staff[]
+  tips          Tip[]
+  admins        AdminUser[]
 }
 
-model Staff {
-  id        String  @id @default(cuid())
-  storeId   String
-  name      String
-  photoUrl  String?
-  active    Boolean @default(true)
-  sortOrder Int     @default(0)
-  tips      Tip[]
-}
+// Staff is retained for the admin roster/history but no longer part of the tip flow.
+model Staff { /* id, storeId, name, photoUrl, active, sortOrder */ }
 
 model Tip {
-  id                     String   @id @default(cuid())
-  storeId                String
-  staffId                String
-  amount                 Int      // JPY
-  locale                 String   // ja/en/ko/zh at time of tip
-  status                 String   // pending | succeeded | failed
-  stripePaymentIntentId  String?
-  createdAt              DateTime @default(now())
-  review                 Review?
+  id                    String        @id @default(cuid())
+  storeId               String
+  staffId               String?       // optional — tips are store-level now
+  amount                Int           // JPY (0 allowed for review-only cash visits)
+  locale                String        // ja/en/ko/zh at time of tip
+  tableLabel            String?       // from the QR ?t= param
+  paymentMethod         PaymentMethod // cash | card
+  status                TipStatus     // pending | succeeded | failed (cash → succeeded at creation)
+  stripePaymentIntentId String?       @unique  // card only
+  createdAt             DateTime      @default(now())
+  review                Review?
 }
 
 model Review {
@@ -79,63 +86,25 @@ model Review {
   storeId            String
   rating             Int      // 1-5
   comment            String?
+  photoUrls          String[] @default([])   // guest-uploaded, shown in the dashboard
   redirectedToGoogle Boolean  @default(false)
   createdAt          DateTime @default(now())
 }
-
-model AdminUser {
-  id             String @id @default(cuid())
-  storeId        String
-  supabaseUserId String @unique
-  role           String // owner | staff
-}
+// AdminUser unchanged: id, storeId, supabaseUserId, email, role.
 ```
 
 ## To-do list
 
-Status legend: `[x]` done · `[~]` partial · `[ ]` not started. Last reconciled against `src/` on 2026-07-21.
+The full, prioritized implementation checklist lives in **[docs/TODO.md](docs/TODO.md)** (single source
+of truth). Milestones:
 
-### Phase 0 — Project setup ✅
-- [x] Init Next.js (App Router, TS), connect to Vercel _(Vercel deploy not yet verified)_
-- [x] Provision Supabase project, connect Prisma, run first migration for schema above
-- [x] Set up next-intl with ja/en/ko/zh message catalogs, language-switcher pill component
+1. **Customer flow rework** — story landing, Our Story carousel, ¥0/+¥100 counter + card checkbox, review with photo, Thank You, Stay Connected. _(highest priority)_
+2. **Payment** — cash path (no charge, notify register) + card path (Stripe Apple Pay / Google Pay / card on one platform account).
+3. **Data & notifications** — schema migration (`tableLabel`, `paymentMethod`, drop `stripeAccountId`), QR table number, notify on submit, review photos.
+4. **Admin dashboard** — match the reference mockup (banner, detail card, today's summary, recent list, ≈USD, nav sections).
+5. **Launch** — Vercel deploy + real-device smoke test, tests, harden the Realtime channel, native-speaker copy review.
 
-### Phase 1 — Customer flow (no payment yet) ✅
-- [x] `/s/[slug]` store landing + language selector
-- [x] Staff picker component (scrollable avatars, Supabase-fetched)
-- [x] Tip amount grid — shipped with **6 tiers** (still needs sign-off vs the 4-tier text, see decisions)
-- [x] Session/local state carrying store + staff + amount + locale into checkout
-
-### Phase 2 — Payment 🚧
-- [x] Decide Connect vs single-account Stripe — shipped **single-account** (no Connect yet; blocks multi-store)
-- [x] Stripe Payment Element integration styled to match wireframe
-- [x] Webhook → mark `Tip.status = succeeded` / `failed`
-- [x] Supabase Realtime channel: broadcast on new succeeded tip (`lib/realtime.ts`, fired from the Stripe webhook; only on the first status transition so retries can't double-notify)
-
-### Phase 3 — Review & Google flow ✅
-- [x] Thank-you screen with 5-star input + comment
-- [x] Branch: rating ≥3 → Google review deep link; <3 → save Review only
-- [x] Google Place ID field on Store admin settings (`/admin/settings`; blank = every rating stays private)
-
-### Phase 4 — Store admin dashboard ✅
-- [x] Supabase Auth login for store owners/staff (`/admin/login`, guarded by `src/proxy.ts` + `requireAdmin`)
-- [x] Live tip feed (Realtime subscription) with connection indicator and audible chime — `/admin`
-- [x] Staff roster CRUD — add/rename/reorder/photo upload to Supabase Storage — `/admin/staff`
-- [x] Reviews view, split public (≥3★) vs private (<3★) — `/admin/reviews`
-- [x] Tip ledger: today's total, tip count, per-staff breakdown — `/admin`
-- [x] Store settings screen (name, logo upload, Google Place ID) — `/admin/settings`
-
-### Phase 5 — Polish & launch 🚧
-- [x] QR code generation per store, with optional per-table label + PNG download — `/admin/settings`
-- [x] Error/retry states for failed payments (card errors show Stripe's wording, button becomes "Try again")
-- [ ] Confirm real amount tiers + tier labels, translated copy for all 4 languages with a native reviewer per language
-- [ ] Deploy to Vercel, smoke test end-to-end tip → notification → review on a real device
-
-### Cross-cutting / not yet tracked
-- [ ] Automated tests (no test setup in the repo)
-- [ ] **Harden the Realtime channel** — `store:{storeId}` is currently a public broadcast topic, so anyone with the anon key and a store id could listen. Move to private channels + RLS before multi-store launch.
-- [ ] Persist the QR table label on `Tip` (needs a schema migration; the label is encoded in the QR URL as `?t=` but is not yet stored)
-- [ ] Confirm open decisions above are signed off (payout model is the expensive one to reverse)
+Confirmed still in scope: 4 languages (ja/en/ko/zh), Google-linked reviews, existing Supabase/Prisma/Vercel wiring. Open questions to confirm with the client are tracked in both docs ("Kitchen team" team-tips?, "Secure payment" label when card off, USD rate).
 
 ## Admin dashboard
 
@@ -177,8 +146,26 @@ clear message instead of breaking the build. Set these in Vercel for the app to 
 | `STRIPE_WEBHOOK_SECRET` | webhook signature verification |
 | `NEXT_PUBLIC_APP_URL` | QR code targets — set to the public domain, or printed codes point at the wrong host |
 
-## Build status summary (2026-07-21)
+## Build status summary
 
-- **Phases 0–4 complete.** Guest flow (QR → staff → amount → payment → review branch) and the full store dashboard are implemented.
-- **Verified against live infrastructure:** production build + lint clean; admin pages redirect when signed out; admin APIs return 401; guest landing renders seeded staff; Supabase Realtime broadcast returns 202; QR encoder produces a valid PNG.
-- **Not yet verified end-to-end:** a real card payment through to a live notification (needs Stripe test keys + `stripe listen`) and a real-device smoke test.
+**Old-spec MVP (2026-07-21):** guest flow (QR → staff → amount → Stripe payment → review branch) and the
+full store dashboard were implemented and verified against live infrastructure (build + lint clean; admin
+auth guards; Realtime broadcast 202; QR PNG valid). A real card payment through to a live notification and a
+real-device smoke test were never verified end-to-end.
+
+**New spec (2026-07-23):** story-first flow, no staff selection, no login, ¥0/+¥100 counter, 4 languages
+(see the banner up top and [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)). On the tip page the **guest ticks a "pay
+by credit card" checkbox** — checked → **Stripe (Apple Pay / Google Pay / card)** on a single platform
+account, unchecked → **cash at the register** — so Stripe and the Realtime notification stay (gated on
+the checkbox / fired on submit).
+Reworks: staff picker and tier grid come out; Our Story + Stay Connected screens, the ¥0/+¥100 counter,
+table-number tracking, review photos, and the reference-matching dashboard go in. Track progress in the
+[to-do list](#to-do-list).
+
+**Implemented 2026-07-23 (build + typecheck + lint green):** the rework is code-complete. The guest flow
+is now the 6-screen story-first journey (single `/s/[slug]` client); the staff picker, tier grid, and the
+separate `/checkout` + `/thank-you` routes are removed; Stripe is gated behind the guest's card checkbox on
+one platform account, with cash tips recorded and notified on submit. **Still pending:** run the DB
+migration against Supabase (`prisma migrate deploy`, needs `DIRECT_URL`; SQL under
+`prisma/migrations/20260723000000_arigato_tip_pivot`), a real-device smoke test, and the open questions in
+[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md).

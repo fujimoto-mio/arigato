@@ -36,16 +36,15 @@ export async function POST(request: Request) {
       if (count > 0) {
         const tip = await prisma.tip.findUnique({
           where: { stripePaymentIntentId: paymentIntent.id },
-          include: { staff: true },
         });
 
         if (tip) {
           await broadcastTip(tip.storeId, {
             tipId: tip.id,
-            staffId: tip.staffId,
-            staffName: tip.staff.name,
             amount: tip.amount,
             locale: tip.locale,
+            tableLabel: tip.tableLabel,
+            paymentMethod: "card",
             createdAt: tip.createdAt.toISOString(),
           });
         }

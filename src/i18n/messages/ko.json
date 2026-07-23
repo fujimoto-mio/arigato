@@ -1,7 +1,8 @@
 {
   "common": {
     "loading": "불러오는 중...",
-    "back": "뒤로"
+    "back": "뒤로",
+    "next": "다음"
   },
   "language": {
     "japanese": "日本語",
@@ -9,42 +10,92 @@
     "korean": "한국어",
     "chinese": "中文"
   },
-  "landing": {
-    "welcome": "항상 감사합니다",
-    "staffHeading": "직원 선택",
-    "staffSubheading": "팁을 전달할 직원을 선택해 주세요",
-    "tipHeading": "팁 금액 선택",
-    "tipSubheading": "금액을 선택해 주세요",
-    "tier": {
-      "littleThanks": "작은 감사",
-      "generous": "넉넉하게",
-      "veryGenerous": "아주 넉넉하게",
-      "special": "스페셜"
-    },
-    "completeButton": "완료",
-    "completeNote": "결제 화면으로 이동합니다",
+  "story": {
+    "tagline": "저희 가게의 이야기를 만나보세요.",
+    "takeALook": "한번 살펴보세요!",
+    "cta": "이야기 보기",
+    "support": "응원하기",
+    "poweredBy": "Powered by ARIGATO TiP",
+    "heading": "우리의 이야기",
+    "slides": [
+      {
+        "title": "한 접시 한 접시에 정성을.",
+        "body": "지역 식재료를 엄선하여 정성껏 한 접시씩 준비합니다. 저희의 요리와 정성이 당신의 하루를 조금 더 특별하게 만들기를 바랍니다."
+      },
+      {
+        "title": "세심하게, 정성껏.",
+        "body": "첫 잔부터 마지막 한 입까지, 기억에 남는 순간이 되도록 모든 것에 신경 씁니다."
+      },
+      {
+        "title": "찾아주셔서 감사합니다.",
+        "body": "당신의 방문은 저희 팀에게 큰 기쁨입니다. 다시 만나 뵐 수 있기를 기대합니다."
+      },
+      {
+        "title": "시장에서 갓 가져온 신선함.",
+        "body": "매일 아침 제철의 가장 좋은 재료를 골라, 가장 맛있는 상태로 상에 올립니다."
+      },
+      {
+        "title": "언제나 따뜻한 환영.",
+        "body": "처음 오셨든 자주 오셨든, 오늘 이곳에서 만나 뵙게 되어 기쁩니다."
+      }
+    ]
+  },
+  "support": {
+    "heading": "응원하기",
+    "intro": "즐거우셨다면 팁으로 응원해 주세요. 감사합니다!",
+    "amountLabel": "팁 금액",
+    "addNote": "+¥100을 눌러 팁 추가",
+    "addNoteSub": "(¥0부터 원하는 금액까지)",
+    "cardCheckbox": "신용카드로 결제",
+    "cardHint": "Apple Pay·Google Pay·카드 지원.",
+    "cashHint": "카드를 사용하지 않으면 계산 시 카운터에서 정산합니다.",
+    "secure": "안전한 결제",
+    "next": "다음",
     "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
   },
-  "checkout": {
-    "heading": "결제 정보",
-    "subheading": "신용카드 정보를 입력해 주세요",
-    "tippingLabel": "{staffName}님에게 팁 전달",
-    "payButton": "결제하기",
-    "processingNote": "결제는 안전하게 처리됩니다",
+  "payment": {
+    "heading": "팁 결제 완료",
+    "amountLabel": "팁 금액",
+    "payButton": "결제",
+    "processingNote": "결제는 Stripe를 통해 안전하게 처리됩니다.",
+    "processing": "처리 중…",
+    "retryButton": "다시 시도",
+    "otherOptions": "다른 방법",
     "errorGeneric": "결제 중 문제가 발생했습니다. 다시 시도해 주세요.",
-    "errorCard": "카드가 거절되었습니다. 정보를 확인하시거나 다른 카드를 사용해 주세요.",
-    "retryButton": "다시 시도"
+    "errorCard": "카드가 거절되었습니다. 정보를 확인하거나 다른 카드를 사용해 주세요.",
+    "notConfigured": "현재 결제를 이용할 수 없습니다."
+  },
+  "review": {
+    "heading": "리뷰 남기기",
+    "question": "이용은 어떠셨나요?",
+    "commentLabel": "의견을 들려주세요",
+    "commentOptional": "(선택)",
+    "commentPlaceholder": "좋았던 점을 알려주세요...",
+    "photoLabel": "사진 추가 (선택)",
+    "submit": "리뷰 보내기",
+    "skip": "건너뛰기",
+    "helper": "당신의 리뷰가 저희와 다른 손님에게 큰 도움이 됩니다. 감사합니다!",
+    "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
   },
   "thankYou": {
-    "title": "오늘 방문해 주시고 따뜻한 마음을 전해 주셔서 감사합니다.",
-    "subtitle": "고객님의 성원은 저희 직원들에게 큰 힘이 됩니다. 다시 만나 뵙기를 기대합니다.",
-    "ratingHeading": "이용 경험을 평가해 주세요",
-    "ratingSubheading": "고객님의 의견은 서비스 개선에 활용됩니다",
-    "commentLabel": "코멘트 남기기 (선택)",
-    "commentPlaceholder": "좋았던 점을 알려주세요...",
-    "completeButton": "완료",
-    "completeNote": "홈 화면으로 돌아갑니다",
-    "privateFeedbackNote": "감사합니다. 남겨주신 의견은 매장 직원에게 전달됩니다.",
-    "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
+    "title": "감사합니다!",
+    "subtitle": "여러분의 응원이 큰 힘이 됩니다. 앞으로도 최선을 다하겠습니다!",
+    "stayConnected": "함께해요",
+    "backToTop": "처음으로",
+    "viewReviews": "리뷰 보기",
+    "privateNote": "의견이 매장 팀에 전달되었습니다."
+  },
+  "connect": {
+    "heading": "함께해요",
+    "subtitle": "새로운 소식과 메뉴를 팔로우하세요!",
+    "instagram": "Instagram 팔로우",
+    "facebook": "Facebook 좋아요",
+    "google": "Google 팔로우"
+  },
+  "nav": {
+    "home": "홈",
+    "story": "이야기",
+    "reviews": "리뷰",
+    "support": "응원"
   }
 }

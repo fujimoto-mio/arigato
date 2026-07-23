@@ -10,8 +10,9 @@ type ReviewRow = {
   comment: string | null;
   createdAt: Date;
   redirectedToGoogle: boolean;
-  staffName: string;
+  tableLabel: string | null;
   amount: number;
+  photoUrls: string[];
 };
 
 function Stars({ rating }: { rating: number }) {
@@ -37,10 +38,19 @@ function ReviewList({ reviews, emptyLabel }: { reviews: ReviewRow[]; emptyLabel:
             <span className="text-xs text-neutral-400">{formatTokyoTime(review.createdAt)}</span>
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            {review.staffName} · {formatYen(review.amount)}
+            {review.tableLabel ? `Table ${review.tableLabel} · ` : ""}
+            {formatYen(review.amount)}
             {review.redirectedToGoogle ? " · sent to Google" : ""}
           </p>
           {review.comment ? <p className="mt-2 text-sm text-neutral-800">{review.comment}</p> : null}
+          {review.photoUrls.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {review.photoUrls.map((url) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={url} src={url} alt="review" className="h-16 w-16 rounded-lg object-cover" />
+              ))}
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>
@@ -52,7 +62,7 @@ export default async function AdminReviewsPage() {
 
   const reviews = await prisma.review.findMany({
     where: { storeId: store.id },
-    include: { tip: { include: { staff: true } } },
+    include: { tip: true },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
@@ -63,8 +73,9 @@ export default async function AdminReviewsPage() {
     comment: review.comment,
     createdAt: review.createdAt,
     redirectedToGoogle: review.redirectedToGoogle,
-    staffName: review.tip.staff.name,
+    tableLabel: review.tip.tableLabel,
     amount: review.tip.amount,
+    photoUrls: review.photoUrls,
   }));
 
   // Same threshold the guest flow branches on (see /api/reviews).
