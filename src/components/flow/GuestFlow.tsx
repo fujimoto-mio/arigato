@@ -213,6 +213,7 @@ export function GuestFlow({
           tipId={tipId}
           clientSecret={clientSecret}
           amount={amount}
+          locale={locale}
           onPaid={() => setStep("review")}
           onBack={() => setStep("support")}
         />

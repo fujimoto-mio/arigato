@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Elements,
-  ExpressCheckoutElement,
-  PaymentElement,
-  useElements,
-  useStripe,
-} from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 import { LogoBadge } from "@/components/flow/brand";
@@ -18,12 +12,14 @@ function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; on
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [walletReady, setWalletReady] = useState(false);
 
-  // One confirm path shared by the Apple Pay / Google Pay buttons and the card form.
-  async function confirm() {
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     if (!stripe || !elements) return;
+
+    setIsSubmitting(true);
     setError(null);
+
     const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
@@ -38,6 +34,7 @@ function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; on
       const isGuestFixable =
         confirmError.type === "card_error" || confirmError.type === "validation_error";
       setError(isGuestFixable ? (confirmError.message ?? t("errorCard")) : t("errorGeneric"));
+      setIsSubmitting(false);
       return;
     }
 
@@ -48,50 +45,30 @@ function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; on
       return;
     }
     setError(t("errorGeneric"));
-  }
-
-  async function handleCardSubmit(event: FormEvent) {
-    event.preventDefault();
-    setIsSubmitting(true);
-    await confirm();
     setIsSubmitting(false);
   }
 
   const hasFailed = error !== null;
 
   return (
-    <div className="mt-6 flex flex-col gap-4">
-      {/* Apple Pay / Google Pay / Link — renders only where a wallet is available
-          (HTTPS + supported device/browser, and Apple Pay domain registered). */}
-      <ExpressCheckoutElement
-        onReady={({ availablePaymentMethods }) => setWalletReady(Boolean(availablePaymentMethods))}
-        onConfirm={() => void confirm()}
-      />
-      {walletReady ? (
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest text-neutral-400">
-          <span className="h-px flex-1 bg-neutral-200" />
-          {t("otherOptions")}
-          <span className="h-px flex-1 bg-neutral-200" />
-        </div>
+    <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+      {/* Card + Apple Pay / Google Pay wallets (shown automatically where available).
+          The PaymentIntent is card-only, so no Link / "stripe" branding appears. */}
+      <PaymentElement options={{ layout: "tabs", wallets: { applePay: "auto", googlePay: "auto" } }} />
+      {error ? (
+        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+          {error}
+        </p>
       ) : null}
-
-      <form onSubmit={handleCardSubmit} className="flex flex-col gap-4">
-        <PaymentElement options={{ layout: "tabs" }} />
-        {error ? (
-          <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-            {error}
-          </p>
-        ) : null}
-        <button
-          type="submit"
-          disabled={!stripe || isSubmitting}
-          className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
-        >
-          {isSubmitting ? t("processing") : hasFailed ? t("retryButton") : t("payButton")}
-        </button>
-        <p className="text-center text-xs text-neutral-400">🔒 {t("processingNote")}</p>
-      </form>
-    </div>
+      <button
+        type="submit"
+        disabled={!stripe || isSubmitting}
+        className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
+      >
+        {isSubmitting ? t("processing") : hasFailed ? t("retryButton") : t("payButton")}
+      </button>
+      <p className="text-center text-xs text-neutral-400">🔒 {t("processingNote")}</p>
+    </form>
   );
 }
 
@@ -100,6 +77,7 @@ export function CardPayment({
   tipId,
   clientSecret,
   amount,
+  locale,
   onPaid,
   onBack,
 }: {
@@ -107,6 +85,7 @@ export function CardPayment({
   tipId: string;
   clientSecret: string;
   amount: number;
+  locale: "ja" | "en" | "ko" | "zh";
   onPaid: () => void;
   onBack: () => void;
 }) {
@@ -130,7 +109,23 @@ export function CardPayment({
         </div>
 
         {stripePromise ? (
-          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
+          <Elements
+            stripe={stripePromise}
+            options={{
+              clientSecret,
+              locale,
+              appearance: {
+                theme: "stripe",
+                variables: {
+                  colorPrimary: "#b0895a",
+                  colorText: "#171717",
+                  colorDanger: "#dc2626",
+                  borderRadius: "12px",
+                  fontFamily: "system-ui, -apple-system, sans-serif",
+                },
+              },
+            }}
+          >
             <PaymentInner slug={slug} tipId={tipId} onPaid={onPaid} />
           </Elements>
         ) : (
