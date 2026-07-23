@@ -4,6 +4,7 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 import { LogoBadge } from "@/components/flow/brand";
+import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { stripePromise } from "@/lib/stripeClient";
 
 function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; onPaid: () => void }) {
@@ -95,9 +96,12 @@ export function CardPayment({
   return (
     <div className="flex flex-1 flex-col pb-10">
       <header className="flex items-start justify-between px-5 pt-5">
-        <button type="button" onClick={onBack} aria-label={tc("back")} className="text-3xl leading-none text-neutral-400">
-          ‹
-        </button>
+        <div className="flex min-h-11 items-center gap-3">
+          <button type="button" onClick={onBack} aria-label={tc("back")} className="text-3xl leading-none text-neutral-400">
+            ‹
+          </button>
+          <LanguageMenu />
+        </div>
         <LogoBadge />
       </header>
 

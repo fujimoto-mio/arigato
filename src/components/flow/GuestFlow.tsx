@@ -11,7 +11,7 @@ import {
   Wordmark,
 } from "@/components/flow/brand";
 import { CardPayment } from "@/components/flow/CardPayment";
-import { LOCALES } from "@/i18n/messages";
+import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { TIP_STEP } from "@/lib/tip";
 
@@ -35,10 +35,15 @@ function googleMapsUrl(placeId: string) {
 
 /* ---------- Header + shared controls ---------- */
 
-function Header({ left }: { left?: ReactNode }) {
+// Language selection is available on every screen: the back button (when
+// present) and the language switcher share the header's left side.
+function Header({ onBack }: { onBack?: () => void }) {
   return (
     <header className="flex items-start justify-between px-5 pt-5">
-      <div className="min-h-11 min-w-11">{left}</div>
+      <div className="flex min-h-11 items-center gap-3">
+        {onBack ? <BackButton onClick={onBack} /> : null}
+        <LanguageMenu />
+      </div>
       <LogoBadge />
     </header>
   );
@@ -50,56 +55,6 @@ function BackButton({ onClick }: { onClick: () => void }) {
     <button type="button" onClick={onClick} aria-label={tc("back")} className="text-3xl leading-none text-neutral-400">
       ‹
     </button>
-  );
-}
-
-const FLAGS: Record<(typeof LOCALES)[number], string> = { ja: "🇯🇵", en: "🇺🇸", ko: "🇰🇷", zh: "🇨🇳" };
-const LANG_LABEL: Record<(typeof LOCALES)[number], "japanese" | "english" | "korean" | "chinese"> = {
-  ja: "japanese",
-  en: "english",
-  ko: "korean",
-  zh: "chinese",
-};
-
-/** Language picker kept off the main visuals — a globe on the landing, the ☰ menu on Our Story. */
-function LanguageMenu({ variant }: { variant: "globe" | "menu" }) {
-  const t = useTranslations("language");
-  const { locale, setLocale } = useLocaleSwitcher();
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Language"
-        className={
-          variant === "menu"
-            ? "text-2xl leading-none text-neutral-700"
-            : "flex items-center gap-1 text-neutral-500"
-        }
-      >
-        {variant === "menu" ? "☰" : <><span className="text-lg">🌐</span><span className="text-xs font-semibold uppercase">{locale}</span></>}
-      </button>
-      {open ? (
-        <ul className="absolute left-0 top-10 z-30 w-36 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
-          {LOCALES.map((code) => (
-            <li key={code}>
-              <button
-                type="button"
-                onClick={() => {
-                  setLocale(code);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-sm ${code === locale ? "bg-neutral-50 font-semibold" : ""}`}
-              >
-                <span>{FLAGS[code]}</span>
-                {t(LANG_LABEL[code])}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
   );
 }
 
@@ -145,6 +100,9 @@ export function GuestFlow({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set when the just-submitted review qualifies for the store's Google review
+  // page (rating high enough + store has a Place ID); offered on Stay Connected.
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
 
   function reset() {
     setAmount(0);
@@ -152,6 +110,7 @@ export function GuestFlow({
     setTipId(null);
     setClientSecret(null);
     setError(null);
+    setGoogleReviewUrl(null);
     setStep("landing");
   }
 
@@ -219,12 +178,20 @@ export function GuestFlow({
         />
       )}
       {step === "review" && tipId && (
-        <Review tipId={tipId} onDone={() => setStep("thankyou")} onBack={() => setStep("support")} />
+        <Review
+          tipId={tipId}
+          onDone={(reviewUrl) => {
+            setGoogleReviewUrl(reviewUrl);
+            setStep("thankyou");
+          }}
+          onBack={() => setStep("support")}
+        />
       )}
-      {step === "thankyou" && <ThankYou onHome={reset} onReviews={goReviews} />}
+      {step === "thankyou" && <ThankYou onHome={reset} onReviews={() => setStep("connect")} />}
       {step === "connect" && (
         <Connect
           store={store}
+          reviewUrl={googleReviewUrl}
           onBack={() => setStep("thankyou")}
           onHome={reset}
           onStory={() => setStep("story")}
@@ -242,7 +209,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
   const t = useTranslations("story");
   return (
     <div className="flex flex-1 flex-col">
-      <Header left={<LanguageMenu variant="globe" />} />
+      <Header />
       <div className="px-8 pt-6 text-center">
         <Wordmark className="text-4xl tracking-tight" />
         <p className="mx-auto mt-5 max-w-[16rem] text-xs font-semibold uppercase leading-relaxed tracking-[0.14em] text-neutral-800">
@@ -286,7 +253,7 @@ function Story({ onNext }: { onNext: () => void }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Header left={<LanguageMenu variant="menu" />} />
+      <Header />
       <div className="px-6 pt-4">
         <h2 className="inline-block border-b-2 border-[var(--color-accent)] pb-1 text-lg font-bold uppercase tracking-wide text-neutral-900">
           {t("heading")}
@@ -364,7 +331,7 @@ function Support({
 
   return (
     <div className="flex flex-1 flex-col pb-8">
-      <Header left={<BackButton onClick={onBack} />} />
+      <Header onBack={onBack} />
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
         <p className="mt-2 max-w-xs text-sm text-neutral-500">{t("intro")}</p>
@@ -434,7 +401,9 @@ function Review({
   onBack,
 }: {
   tipId: string;
-  onDone: () => void;
+  // googleReviewUrl is non-null when the rating qualifies for the store's Google
+  // review page — offered later on the Stay Connected screen, not jumped to here.
+  onDone: (googleReviewUrl: string | null) => void;
   onBack: () => void;
 }) {
   const t = useTranslations("review");
@@ -481,11 +450,9 @@ function Review({
       });
       if (!res.ok) throw new Error("review_failed");
       const { redirectUrl } = (await res.json()) as { redirectUrl: string | null };
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-        return;
-      }
-      onDone();
+      // Always continue to Thank You / Stay Connected in-app; the Google review
+      // link (if any) is offered as a button there, not an automatic redirect.
+      onDone(redirectUrl);
     } catch {
       setError(t("errorGeneric"));
       setIsSubmitting(false);
@@ -494,7 +461,7 @@ function Review({
 
   return (
     <div className="flex flex-1 flex-col pb-8">
-      <Header left={<BackButton onClick={onBack} />} />
+      <Header onBack={onBack} />
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
         <p className="mt-2 text-sm text-neutral-500">{t("question")}</p>
@@ -601,6 +568,7 @@ function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: () => 
 
 function Connect({
   store,
+  reviewUrl,
   onBack,
   onHome,
   onStory,
@@ -608,6 +576,9 @@ function Connect({
   onSupport,
 }: {
   store: GuestStore;
+  // The store's Google "write a review" link when the guest just left a
+  // qualifying rating; falls back to the general Maps listing otherwise.
+  reviewUrl: string | null;
   onBack: () => void;
   onHome: () => void;
   onStory: () => void;
@@ -615,19 +586,18 @@ function Connect({
   onSupport: () => void;
 }) {
   const t = useTranslations("connect");
+  const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
   const links = [
     store.instagramUrl
       ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon /> }
       : null,
     store.facebookUrl ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon /> } : null,
-    store.googlePlaceId
-      ? { key: "google", label: t("google"), href: googleMapsUrl(store.googlePlaceId), icon: <GoogleIcon /> }
-      : null,
+    googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon /> } : null,
   ].filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
 
   return (
     <div className="flex flex-1 flex-col pb-20">
-      <Header left={<BackButton onClick={onBack} />} />
+      <Header onBack={onBack} />
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
         <p className="mt-2 text-sm text-neutral-500">{t("subtitle")}</p>
