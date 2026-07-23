@@ -69,10 +69,12 @@ export async function POST(request: Request) {
   });
 
   // Single platform account (no Connect) — all card tips settle to one account.
+  // `card` covers the card form plus the Apple Pay / Google Pay wallets; Link is
+  // intentionally excluded so no "stripe"/Link branding shows to guests.
   const paymentIntent = await stripe.paymentIntents.create({
     amount,
     currency: "jpy",
-    automatic_payment_methods: { enabled: true },
+    payment_method_types: ["card"],
     metadata: { tipId: tip.id, storeSlug: store.slug, tableLabel: tableLabel ?? "" },
   });
 
