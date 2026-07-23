@@ -33,7 +33,7 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
       <label className="block text-sm font-medium text-neutral-700">
-        Email
+        メールアドレス
         <input
           type="email"
           required
@@ -45,7 +45,7 @@ export function LoginForm() {
       </label>
 
       <label className="block text-sm font-medium text-neutral-700">
-        Password
+        パスワード
         <input
           type="password"
           required
@@ -63,7 +63,7 @@ export function LoginForm() {
         disabled={isSubmitting}
         className="w-full rounded-full bg-neutral-900 py-3 font-semibold text-white disabled:opacity-40"
       >
-        {isSubmitting ? "Signing in…" : "Sign in"}
+        {isSubmitting ? "ログイン中…" : "ログイン"}
       </button>
     </form>
   );

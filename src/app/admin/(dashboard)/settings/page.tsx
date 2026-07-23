@@ -24,9 +24,10 @@ export default async function AdminSettingsPage({
 
   return (
     <div className="flex flex-col gap-10">
+      <h1 className="text-xl font-bold">設定</h1>
       <section>
-        <h2 className="text-lg font-bold">Store settings</h2>
-        <p className="mb-4 text-sm text-neutral-500">Shown to guests on the tip screen.</p>
+        <h2 className="text-lg font-bold">店舗情報</h2>
+        <p className="mb-4 text-sm text-neutral-500">お客様の画面に表示されます。</p>
         <StoreSettingsForm
           initialName={store.name}
           initialGooglePlaceId={store.googlePlaceId}
@@ -37,18 +38,18 @@ export default async function AdminSettingsPage({
       </section>
 
       <section>
-        <h2 className="text-lg font-bold">Table QR code</h2>
+        <h2 className="text-lg font-bold">テーブルQRコード</h2>
         <p className="mb-4 text-sm text-neutral-500">
-          Print this and place it on the table. Scanning it opens your tip screen.
+          印刷してテーブルに置いてください。読み取るとお客様のチップ画面が開きます。
         </p>
 
         <form method="get" className="mb-4 flex items-end gap-2">
           <label className="text-sm font-medium text-neutral-700">
-            Table label (optional)
+            テーブル番号（任意）
             <input
               name="table"
               defaultValue={tableLabel ?? ""}
-              placeholder="e.g. 5"
+              placeholder="例：5"
               className="mt-1 w-40 rounded-lg border border-neutral-300 p-2 text-sm"
             />
           </label>
@@ -56,7 +57,7 @@ export default async function AdminSettingsPage({
             type="submit"
             className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
           >
-            Generate
+            生成
           </button>
         </form>
 
@@ -76,7 +77,7 @@ export default async function AdminSettingsPage({
             download={downloadName}
             className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white"
           >
-            Download PNG
+            PNGをダウンロード
           </a>
         </div>
       </section>

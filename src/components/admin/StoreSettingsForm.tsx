@@ -47,7 +47,7 @@ export function StoreSettingsForm({
       router.refresh();
       setTimeout(() => setStatus("idle"), 2000);
     } catch {
-      setError("Could not save. Please try again.");
+      setError("保存できませんでした。もう一度お試しください。");
       setStatus("idle");
     }
   }
@@ -70,14 +70,14 @@ export function StoreSettingsForm({
       setLogoUrl(url);
       router.refresh();
     } catch {
-      setError("Could not upload the logo. Please try again.");
+      setError("ロゴをアップロードできませんでした。もう一度お試しください。");
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <label className="block text-sm font-medium text-neutral-700">
-        Store name
+        店舗名
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -96,8 +96,7 @@ export function StoreSettingsForm({
           className="mt-1 w-full rounded-lg border border-neutral-300 p-3 font-mono text-sm"
         />
         <span className="mt-1 block text-xs font-normal text-neutral-500">
-          Guests who rate 3★ or higher are sent to your Google review page. Leave this blank and every
-          rating stays private instead.
+          3★以上のお客様はGoogleのレビューページに案内されます。空欄の場合は、すべての評価が非公開のままになります。
         </span>
       </label>
 
@@ -110,7 +109,7 @@ export function StoreSettingsForm({
           className="mt-1 w-full rounded-lg border border-neutral-300 p-3 text-sm"
         />
         <span className="mt-1 block text-xs font-normal text-neutral-500">
-          Shown as a &ldquo;Follow&rdquo; button on the guest&apos;s Stay Connected screen. Leave blank to hide.
+          お客様の「つながる」画面にフォローボタンとして表示されます。空欄にすると非表示になります。
         </span>
       </label>
 
@@ -125,7 +124,7 @@ export function StoreSettingsForm({
       </label>
 
       <div className="text-sm font-medium text-neutral-700">
-        Store logo
+        店舗ロゴ
         <div className="mt-2 flex items-center gap-3">
           <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-neutral-100">
             {logoUrl ? (
@@ -135,7 +134,7 @@ export function StoreSettingsForm({
             )}
           </div>
           <label className="cursor-pointer rounded-full border border-neutral-300 px-4 py-2 text-xs font-medium hover:bg-neutral-100">
-            Upload
+            アップロード
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -158,9 +157,9 @@ export function StoreSettingsForm({
           disabled={status === "saving"}
           className="rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white disabled:opacity-40"
         >
-          {status === "saving" ? "Saving…" : "Save"}
+          {status === "saving" ? "保存中…" : "保存"}
         </button>
-        {status === "saved" ? <span className="text-sm text-green-600">Saved</span> : null}
+        {status === "saved" ? <span className="text-sm text-green-600">保存しました</span> : null}
       </div>
     </form>
   );
