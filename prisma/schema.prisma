@@ -7,16 +7,17 @@ datasource db {
 }
 
 model Store {
-  id              String      @id @default(cuid())
-  slug            String      @unique
-  name            String
-  logoUrl         String?
-  googlePlaceId   String?
-  stripeAccountId String?
-  createdAt       DateTime    @default(now())
-  staff           Staff[]
-  tips            Tip[]
-  admins          AdminUser[]
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  logoUrl       String?
+  googlePlaceId String?
+  instagramUrl  String?
+  facebookUrl   String?
+  createdAt     DateTime    @default(now())
+  staff         Staff[]
+  tips          Tip[]
+  admins        AdminUser[]
 }
 
 model Staff {
@@ -39,17 +40,24 @@ enum TipStatus {
   failed
 }
 
+enum PaymentMethod {
+  cash
+  card
+}
+
 model Tip {
-  id                    String    @id @default(cuid())
+  id                    String        @id @default(cuid())
   storeId               String
-  staffId               String
+  staffId               String?
   amount                Int
   locale                String
-  status                TipStatus @default(pending)
-  stripePaymentIntentId String?   @unique
-  createdAt             DateTime  @default(now())
-  store                 Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  staff                 Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  tableLabel            String?
+  paymentMethod         PaymentMethod @default(cash)
+  status                TipStatus     @default(pending)
+  stripePaymentIntentId String?       @unique
+  createdAt             DateTime      @default(now())
+  store                 Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  staff                 Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
   review                Review?
 
   @@index([storeId])
@@ -62,6 +70,7 @@ model Review {
   storeId            String
   rating             Int
   comment            String?
+  photoUrls          String[] @default([])
   redirectedToGoogle Boolean  @default(false)
   createdAt          DateTime @default(now())
   tip                Tip      @relation(fields: [tipId], references: [id], onDelete: Cascade)
@@ -73,6 +82,7 @@ model AdminUser {
   id             String   @id @default(cuid())
   storeId        String
   supabaseUserId String   @unique
+  email          String   @unique
   role           String   @default("owner")
   createdAt      DateTime @default(now())
   store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)

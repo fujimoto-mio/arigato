@@ -3,17 +3,32 @@ import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
-const settingsSchema = z.object({
-  name: z.string().trim().min(1).max(80).optional(),
-  // Empty string clears the field: with no Place ID the review flow keeps every
-  // rating private instead of deep-linking to Google.
-  googlePlaceId: z
+// Empty string clears an optional field back to null.
+const emptyToNull = (max: number) =>
+  z
     .string()
     .trim()
-    .max(200)
+    .max(max)
     .transform((value) => (value.length === 0 ? null : value))
     .nullable()
-    .optional(),
+    .optional();
+
+const urlOrEmpty = z
+  .string()
+  .trim()
+  .max(300)
+  .transform((value) => (value.length === 0 ? null : value))
+  .nullable()
+  .optional()
+  .refine((value) => value == null || /^https?:\/\//.test(value), "invalid_url");
+
+const settingsSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  // With no Place ID the review flow keeps every rating private instead of
+  // deep-linking to Google.
+  googlePlaceId: emptyToNull(200),
+  instagramUrl: urlOrEmpty,
+  facebookUrl: urlOrEmpty,
   logoUrl: z.string().url().nullable().optional(),
 });
 
@@ -38,6 +53,8 @@ export async function PATCH(request: Request) {
       name: store.name,
       logoUrl: store.logoUrl,
       googlePlaceId: store.googlePlaceId,
+      instagramUrl: store.instagramUrl,
+      facebookUrl: store.facebookUrl,
     },
   });
 }

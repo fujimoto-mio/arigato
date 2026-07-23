@@ -1,29 +1,46 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatTokyoTime, formatYen } from "@/lib/admin/period";
-import { TIP_EVENT, type TipEvent, storeChannelName } from "@/lib/realtime";
+import { formatTokyoTime, formatUsdApprox, formatYen } from "@/lib/admin/period";
+import {
+  REVIEW_EVENT,
+  TIP_EVENT,
+  type ReviewEvent,
+  type TipEvent,
+  storeChannelName,
+} from "@/lib/realtime";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type FeedTip = {
   tipId: string;
-  staffName: string;
   amount: number;
+  tableLabel: string | null;
+  paymentMethod: "cash" | "card";
   locale: string;
   createdAt: string;
+  rating: number | null;
+  comment: string | null;
+  photoUrls: string[];
 };
 
 type ConnectionState = "connecting" | "live" | "error";
 
+function Stars({ rating }: { rating: number }) {
+  return (
+    <span aria-label={`${rating} out of 5`} className="text-sm text-amber-500">
+      {"★".repeat(rating)}
+      <span className="text-neutral-300">{"★".repeat(5 - rating)}</span>
+    </span>
+  );
+}
+
 export function LiveTipFeed({ storeId, initialTips }: { storeId: string; initialTips: FeedTip[] }) {
   const [tips, setTips] = useState<FeedTip[]>(initialTips);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
-  // Tips that arrived via Realtime this session, highlighted so staff can spot them.
   const [freshIds, setFreshIds] = useState<Set<string>>(() => new Set());
   const audioRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // Short chime so staff notice a tip without watching the screen.
     audioRef.current = () => {
       try {
         const Ctor =
@@ -58,16 +75,32 @@ export function LiveTipFeed({ storeId, initialTips }: { storeId: string; initial
           return [
             {
               tipId: tip.tipId,
-              staffName: tip.staffName,
               amount: tip.amount,
+              tableLabel: tip.tableLabel,
+              paymentMethod: tip.paymentMethod,
               locale: tip.locale,
               createdAt: tip.createdAt,
+              rating: null,
+              comment: null,
+              photoUrls: [],
             },
             ...current,
           ].slice(0, 50);
         });
         setFreshIds((current) => new Set(current).add(tip.tipId));
         audioRef.current?.();
+      })
+      .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
+        // A review lands after its tip — merge it into the matching row.
+        const review = payload as ReviewEvent;
+        setTips((current) =>
+          current.map((tip) =>
+            tip.tipId === review.tipId
+              ? { ...tip, rating: review.rating, comment: review.comment, photoUrls: review.photoUrls }
+              : tip,
+          ),
+        );
+        setFreshIds((current) => new Set(current).add(review.tipId));
       })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") setConnection("live");
@@ -82,7 +115,7 @@ export function LiveTipFeed({ storeId, initialTips }: { storeId: string; initial
   return (
     <section>
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Live tips</h2>
+        <h2 className="text-lg font-bold">Recent tips &amp; reviews</h2>
         <span className="flex items-center gap-2 text-xs text-neutral-500">
           <span
             className={`inline-block h-2 w-2 rounded-full ${
@@ -99,26 +132,45 @@ export function LiveTipFeed({ storeId, initialTips }: { storeId: string; initial
 
       {tips.length === 0 ? (
         <p className="mt-6 rounded-xl bg-neutral-50 p-6 text-center text-sm text-neutral-500">
-          No tips yet. This list updates the moment a payment succeeds.
+          No tips yet. This list updates the moment a tip is submitted.
         </p>
       ) : (
         <ul className="mt-4 flex flex-col gap-2">
           {tips.map((tip) => (
             <li
               key={tip.tipId}
-              className={`flex items-center justify-between rounded-xl border p-4 transition ${
-                freshIds.has(tip.tipId)
-                  ? "border-green-300 bg-green-50"
-                  : "border-neutral-200 bg-white"
+              className={`rounded-xl border p-4 transition ${
+                freshIds.has(tip.tipId) ? "border-green-300 bg-green-50" : "border-neutral-200 bg-white"
               }`}
             >
-              <div>
-                <p className="font-semibold">{tip.staffName}</p>
-                <p className="text-xs text-neutral-500">
-                  {formatTokyoTime(tip.createdAt)} · {tip.locale.toUpperCase()}
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs text-neutral-500">
+                    {tip.tableLabel ? `Table ${tip.tableLabel} · ` : ""}
+                    {formatTokyoTime(tip.createdAt)} · {tip.locale.toUpperCase()} ·{" "}
+                    {tip.paymentMethod === "card" ? "Card" : "Cash"}
+                  </p>
+                  {tip.rating ? (
+                    <div className="mt-1">
+                      <Stars rating={tip.rating} />
+                    </div>
+                  ) : null}
+                  {tip.comment ? <p className="mt-1 text-sm text-neutral-800">{tip.comment}</p> : null}
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold">{formatYen(tip.amount)}</p>
+                  <p className="text-xs text-neutral-400">{formatUsdApprox(tip.amount)}</p>
+                </div>
               </div>
-              <p className="text-lg font-bold">{formatYen(tip.amount)}</p>
+              {tip.photoUrls.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tip.photoUrls.map((url) => (
+                    // Guest-uploaded Supabase URLs; plain img avoids remote-loader config.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={url} src={url} alt="review" className="h-16 w-16 rounded-lg object-cover" />
+                  ))}
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

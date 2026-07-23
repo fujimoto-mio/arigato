@@ -2,6 +2,11 @@
 
 :root {
   --color-brand: #b3465a;
+  /* Gold accent used for CTAs / active states (matches the ARIGATO TiP frames). */
+  --color-accent: #b0895a;
+  --color-accent-dark: #997848;
+  /* Japanese-red circular logo badge. */
+  --color-logo: #c8102e;
 }
 
 html,

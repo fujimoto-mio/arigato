@@ -1,7 +1,8 @@
 {
   "common": {
     "loading": "読み込み中...",
-    "back": "戻る"
+    "back": "戻る",
+    "next": "次へ"
   },
   "language": {
     "japanese": "日本語",
@@ -9,42 +10,92 @@
     "korean": "한국어",
     "chinese": "中文"
   },
-  "landing": {
-    "welcome": "いつもありがとうございます",
-    "staffHeading": "スタッフを選択",
-    "staffSubheading": "チップを渡したいスタッフをタップしてください",
-    "tipHeading": "チップの金額を選択",
-    "tipSubheading": "金額をタップして選んでください",
-    "tier": {
-      "littleThanks": "気持ちで",
-      "generous": "しっかり",
-      "veryGenerous": "たっぷり",
-      "special": "スペシャル"
-    },
-    "completeButton": "完了する",
-    "completeNote": "決済画面へ進みます",
-    "errorGeneric": "問題が発生しました。もう一度お試しください。"
+  "story": {
+    "tagline": "私たちのお店の物語をご覧ください。",
+    "takeALook": "ぜひご覧ください！",
+    "cta": "ストーリーを見る",
+    "support": "応援する",
+    "poweredBy": "Powered by ARIGATO TiP",
+    "heading": "私たちのストーリー",
+    "slides": [
+      {
+        "title": "一皿一皿に、情熱を。",
+        "body": "地元の食材を厳選し、心を込めて一皿ずつお作りしています。私たちの料理とおもてなしが、あなたの一日を少しでも豊かにできますように。"
+      },
+      {
+        "title": "細部まで、丁寧に。",
+        "body": "最初の一杯から最後の一口まで、記憶に残るひとときになるよう、すべてにこだわっています。"
+      },
+      {
+        "title": "ご来店ありがとうございます。",
+        "body": "あなたのご来店は、私たちスタッフにとって何よりの喜びです。またお会いできる日を楽しみにしています。"
+      },
+      {
+        "title": "市場から、新鮮なままに。",
+        "body": "毎朝その日いちばんの旬を選び、いちばんおいしい状態でお届けします。"
+      },
+      {
+        "title": "いつでも、心からのおもてなし。",
+        "body": "初めてのご来店も、いつものご来店も。今日ここでお会いできて嬉しいです。"
+      }
+    ]
   },
-  "checkout": {
-    "heading": "お支払い情報",
-    "subheading": "クレジットカード情報を入力してください",
-    "tippingLabel": "{staffName} さんへのチップ",
+  "support": {
+    "heading": "応援する",
+    "intro": "ご満足いただけましたら、チップで応援いただけます。ありがとうございます！",
+    "amountLabel": "チップの金額",
+    "addNote": "「+¥100」を押してチップを追加",
+    "addNoteSub": "（¥0からお好きな金額まで）",
+    "cardCheckbox": "クレジットカードで支払う",
+    "cardHint": "Apple Pay・Google Pay・カードに対応。",
+    "cashHint": "カードを使わない場合は、お会計時にレジで精算します。",
+    "secure": "安全なお支払い",
+    "next": "次へ",
+    "errorGeneric": "エラーが発生しました。もう一度お試しください。"
+  },
+  "payment": {
+    "heading": "チップのお支払い",
+    "amountLabel": "チップの金額",
     "payButton": "支払う",
-    "processingNote": "お支払いは安全に処理されます",
-    "errorGeneric": "決済中に問題が発生しました。もう一度お試しください。",
+    "processingNote": "お支払いはStripeにより安全に処理されます。",
+    "processing": "処理中…",
+    "retryButton": "もう一度試す",
+    "otherOptions": "その他の方法",
+    "errorGeneric": "お支払いでエラーが発生しました。もう一度お試しください。",
     "errorCard": "カードが承認されませんでした。内容をご確認いただくか、別のカードをお試しください。",
-    "retryButton": "もう一度試す"
+    "notConfigured": "現在お支払いはご利用いただけません。"
+  },
+  "review": {
+    "heading": "レビューを書く",
+    "question": "ご体験はいかがでしたか？",
+    "commentLabel": "ご感想をお聞かせください",
+    "commentOptional": "（任意）",
+    "commentPlaceholder": "よかった点などをお書きください...",
+    "photoLabel": "写真を追加（任意）",
+    "submit": "レビューを送信",
+    "skip": "スキップ",
+    "helper": "あなたのレビューが、私たちと他のお客様の助けになります。ありがとうございます！",
+    "errorGeneric": "エラーが発生しました。もう一度お試しください。"
   },
   "thankYou": {
-    "title": "本日はご来店いただき、誠にありがとうございました。",
-    "subtitle": "皆様のご支援はスタッフにとって大きな励みになります。またのご来店を心よりお待ちしております。",
-    "ratingHeading": "体験を評価してください",
-    "ratingSubheading": "いただいたご意見は今後の改善に活用させていただきます",
-    "commentLabel": "コメントを残す（任意）",
-    "commentPlaceholder": "良かった点を教えてください...",
-    "completeButton": "完了する",
-    "completeNote": "ホーム画面に戻ります",
-    "privateFeedbackNote": "ありがとうございます。いただいたご意見は店舗スタッフに共有されます。",
-    "errorGeneric": "問題が発生しました。もう一度お試しください。"
+    "title": "ありがとうございます！",
+    "subtitle": "あなたの応援が私たちの力になります。これからも精一杯がんばります！",
+    "stayConnected": "つながる",
+    "backToTop": "トップに戻る",
+    "viewReviews": "レビューを見る",
+    "privateNote": "ご意見は店舗スタッフに共有されました。"
+  },
+  "connect": {
+    "heading": "つながる",
+    "subtitle": "最新情報や新メニューはこちらから！",
+    "instagram": "Instagramをフォロー",
+    "facebook": "Facebookでいいね",
+    "google": "Googleでフォロー"
+  },
+  "nav": {
+    "home": "ホーム",
+    "story": "ストーリー",
+    "reviews": "レビュー",
+    "support": "応援"
   }
 }

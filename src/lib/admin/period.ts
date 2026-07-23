@@ -24,6 +24,17 @@ export function formatYen(amount: number): string {
   return `¥${amount.toLocaleString("ja-JP")}`;
 }
 
+// Fixed reference rate for the dashboard's ≈USD hint (the mockup shows ¥2,000 ≈
+// $13.50). Display-only — not used for any charge — so a static rate is fine.
+const JPY_PER_USD = 150;
+
+export function formatUsdApprox(yen: number): string {
+  return `≈ $${(yen / JPY_PER_USD).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function formatTokyoTime(value: Date | string): string {
   return new Date(value).toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo",

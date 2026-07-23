@@ -31,6 +31,8 @@ export default async function AdminSettingsPage({
           initialName={store.name}
           initialGooglePlaceId={store.googlePlaceId}
           initialLogoUrl={store.logoUrl}
+          initialInstagramUrl={store.instagramUrl}
+          initialFacebookUrl={store.facebookUrl}
         />
       </section>
 

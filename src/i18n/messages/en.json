@@ -1,7 +1,8 @@
 {
   "common": {
     "loading": "Loading...",
-    "back": "Back"
+    "back": "Back",
+    "next": "Next"
   },
   "language": {
     "japanese": "日本語",
@@ -9,42 +10,92 @@
     "korean": "한국어",
     "chinese": "中文"
   },
-  "landing": {
-    "welcome": "Thank you for your support",
-    "staffHeading": "Select a staff member",
-    "staffSubheading": "Tap the staff member you'd like to tip",
-    "tipHeading": "Select tip amount",
-    "tipSubheading": "Tap to choose an amount",
-    "tier": {
-      "littleThanks": "A little thanks",
-      "generous": "Generous",
-      "veryGenerous": "Very generous",
-      "special": "Special"
-    },
-    "completeButton": "Complete",
-    "completeNote": "You'll proceed to payment",
+  "story": {
+    "tagline": "Discover the story behind our restaurant.",
+    "takeALook": "Take a look!",
+    "cta": "Discover Our Story",
+    "support": "Support Us",
+    "poweredBy": "Powered by ARIGATO TiP",
+    "heading": "Our Story",
+    "slides": [
+      {
+        "title": "Passion in every dish.",
+        "body": "We carefully select local ingredients and prepare each dish with love. We hope our food and hospitality make your day a little better."
+      },
+      {
+        "title": "Crafted with care.",
+        "body": "From the first pour to the last bite, every detail is chosen to give you a moment worth remembering."
+      },
+      {
+        "title": "Thank you for visiting.",
+        "body": "Your presence means the world to our team. We hope to welcome you back again soon."
+      },
+      {
+        "title": "Fresh from the market.",
+        "body": "Every morning we choose the best of the season, so what reaches your table is always at its peak."
+      },
+      {
+        "title": "A warm welcome, always.",
+        "body": "Whether it's your first visit or your hundredth, we're so glad you're here with us today."
+      }
+    ]
+  },
+  "support": {
+    "heading": "Support Us",
+    "intro": "If you enjoyed your experience, you can support us with a tip. Thank you!",
+    "amountLabel": "Your tip amount",
+    "addNote": "Tap +¥100 to add tip",
+    "addNoteSub": "(Up to the amount you like.)",
+    "cardCheckbox": "Pay by credit card",
+    "cardHint": "Apple Pay, Google Pay, or card.",
+    "cashHint": "No card — it's added to your bill and settled at the register.",
+    "secure": "Secure payment",
+    "next": "Next",
     "errorGeneric": "Something went wrong. Please try again."
   },
-  "checkout": {
-    "heading": "Payment details",
-    "subheading": "Enter your credit card information",
-    "tippingLabel": "Tipping {staffName}",
+  "payment": {
+    "heading": "Complete Your Tip",
+    "amountLabel": "Your tip amount",
     "payButton": "Pay",
-    "processingNote": "Your payment will be processed securely",
+    "processingNote": "Your payment is processed securely by Stripe.",
+    "processing": "Processing…",
+    "retryButton": "Try again",
+    "otherOptions": "Other options",
     "errorGeneric": "Something went wrong with your payment. Please try again.",
     "errorCard": "Your card was declined. Please check the details or try another card.",
-    "retryButton": "Try again"
+    "notConfigured": "Payment is not available right now."
+  },
+  "review": {
+    "heading": "Leave a Review",
+    "question": "How was your experience?",
+    "commentLabel": "Share your thoughts",
+    "commentOptional": "(Optional)",
+    "commentPlaceholder": "Tell us what you enjoyed...",
+    "photoLabel": "Add a photo (Optional)",
+    "submit": "Submit Review",
+    "skip": "Skip for now",
+    "helper": "Your review helps us and other guests. Thank you!",
+    "errorGeneric": "Something went wrong. Please try again."
   },
   "thankYou": {
-    "title": "Thank you for visiting us today, and for your kind gesture.",
-    "subtitle": "Your support means a lot to our team. We hope to welcome you again soon.",
-    "ratingHeading": "Rate your experience",
-    "ratingSubheading": "Your feedback helps us improve",
-    "commentLabel": "Leave a comment (optional)",
-    "commentPlaceholder": "Tell us what you enjoyed...",
-    "completeButton": "Complete",
-    "completeNote": "You'll return to the home screen",
-    "privateFeedbackNote": "Thank you — your feedback has been shared with the store team.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "title": "Thank You!",
+    "subtitle": "Your support means a lot to us. We'll keep doing our best for you!",
+    "stayConnected": "Stay Connected",
+    "backToTop": "Back to Top",
+    "viewReviews": "View Reviews",
+    "privateNote": "Your feedback has been shared with the store team."
+  },
+  "connect": {
+    "heading": "Stay Connected",
+    "subtitle": "Follow us for updates, new menus, and more!",
+    "instagram": "Follow on Instagram",
+    "facebook": "Like on Facebook",
+    "google": "Follow on Google"
+  },
+  "nav": {
+    "home": "Home",
+    "story": "Our Story",
+    "reviews": "Reviews",
+    "support": "Support"
   }
 }

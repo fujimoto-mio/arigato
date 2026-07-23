@@ -4,7 +4,7 @@ import { createSupabaseSessionClient } from "@/lib/supabase/session";
 
 export type AdminContext = {
   supabaseUserId: string;
-  email: string | null;
+  email: string;
   role: string;
   store: {
     id: string;
@@ -12,6 +12,8 @@ export type AdminContext = {
     name: string;
     logoUrl: string | null;
     googlePlaceId: string | null;
+    instagramUrl: string | null;
+    facebookUrl: string | null;
   };
 };
 
@@ -37,7 +39,7 @@ export async function getAdminContext(): Promise<AdminContext | null> {
 
   return {
     supabaseUserId: user.id,
-    email: user.email ?? null,
+    email: admin.email,
     role: admin.role,
     store: {
       id: admin.store.id,
@@ -45,6 +47,8 @@ export async function getAdminContext(): Promise<AdminContext | null> {
       name: admin.store.name,
       logoUrl: admin.store.logoUrl,
       googlePlaceId: admin.store.googlePlaceId,
+      instagramUrl: admin.store.instagramUrl,
+      facebookUrl: admin.store.facebookUrl,
     },
   };
 }

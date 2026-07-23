@@ -8,14 +8,20 @@ export function StoreSettingsForm({
   initialName,
   initialGooglePlaceId,
   initialLogoUrl,
+  initialInstagramUrl,
+  initialFacebookUrl,
 }: {
   initialName: string;
   initialGooglePlaceId: string | null;
   initialLogoUrl: string | null;
+  initialInstagramUrl: string | null;
+  initialFacebookUrl: string | null;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [googlePlaceId, setGooglePlaceId] = useState(initialGooglePlaceId ?? "");
+  const [instagramUrl, setInstagramUrl] = useState(initialInstagramUrl ?? "");
+  const [facebookUrl, setFacebookUrl] = useState(initialFacebookUrl ?? "");
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +35,12 @@ export function StoreSettingsForm({
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), googlePlaceId: googlePlaceId.trim() }),
+        body: JSON.stringify({
+          name: name.trim(),
+          googlePlaceId: googlePlaceId.trim(),
+          instagramUrl: instagramUrl.trim(),
+          facebookUrl: facebookUrl.trim(),
+        }),
       });
       if (!res.ok) throw new Error("save_failed");
       setStatus("saved");
@@ -88,6 +99,29 @@ export function StoreSettingsForm({
           Guests who rate 3★ or higher are sent to your Google review page. Leave this blank and every
           rating stays private instead.
         </span>
+      </label>
+
+      <label className="block text-sm font-medium text-neutral-700">
+        Instagram URL
+        <input
+          value={instagramUrl}
+          onChange={(event) => setInstagramUrl(event.target.value)}
+          placeholder="https://instagram.com/yourstore"
+          className="mt-1 w-full rounded-lg border border-neutral-300 p-3 text-sm"
+        />
+        <span className="mt-1 block text-xs font-normal text-neutral-500">
+          Shown as a &ldquo;Follow&rdquo; button on the guest&apos;s Stay Connected screen. Leave blank to hide.
+        </span>
+      </label>
+
+      <label className="block text-sm font-medium text-neutral-700">
+        Facebook URL
+        <input
+          value={facebookUrl}
+          onChange={(event) => setFacebookUrl(event.target.value)}
+          placeholder="https://facebook.com/yourstore"
+          className="mt-1 w-full rounded-lg border border-neutral-300 p-3 text-sm"
+        />
       </label>
 
       <div className="text-sm font-medium text-neutral-700">

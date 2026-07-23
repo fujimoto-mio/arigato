@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { broadcastReview } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 
 const bodySchema = z.object({
   tipId: z.string().min(1),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(1000).optional(),
+  photoUrls: z.array(z.string().url()).max(6).optional(),
 });
 
 export async function POST(request: Request) {
@@ -14,7 +16,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
-  const { tipId, rating, comment } = parsed.data;
+  const { tipId, rating, comment, photoUrls } = parsed.data;
 
   const tip = await prisma.tip.findUnique({
     where: { id: tipId },
@@ -29,9 +31,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "review_already_submitted" }, { status: 409 });
   }
 
+  // Card tips must have actually succeeded before we accept a review. The webhook
+  // may not have landed yet, so self-heal by checking Stripe directly. Cash tips
+  // are recorded as succeeded at creation and skip this entirely.
   let status = tip.status;
   if (status !== "succeeded" && tip.stripePaymentIntentId) {
-    // The webhook may not have landed yet — self-heal by checking Stripe directly.
     const paymentIntent = await stripe.paymentIntents.retrieve(tip.stripePaymentIntentId);
     if (paymentIntent.status === "succeeded") {
       await prisma.tip.update({ where: { id: tip.id }, data: { status: "succeeded" } });
@@ -45,14 +49,23 @@ export async function POST(request: Request) {
 
   const redirectedToGoogle = rating >= 3 && Boolean(tip.store.googlePlaceId);
 
-  await prisma.review.create({
+  const review = await prisma.review.create({
     data: {
       tipId: tip.id,
       storeId: tip.storeId,
       rating,
       comment,
+      photoUrls: photoUrls ?? [],
       redirectedToGoogle,
     },
+  });
+
+  void broadcastReview(tip.storeId, {
+    tipId: tip.id,
+    rating: review.rating,
+    comment: review.comment,
+    photoUrls: review.photoUrls,
+    createdAt: review.createdAt.toISOString(),
   });
 
   return NextResponse.json({
