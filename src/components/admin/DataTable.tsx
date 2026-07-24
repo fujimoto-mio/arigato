@@ -73,12 +73,6 @@ export function DataTable<T>({
     typeof pageSize === "number" &&
     typeof basePath === "string";
 
-  const pageCount = hasPagination ? Math.max(1, Math.ceil(total! / pageSize!)) : 1;
-  const currentPage = hasPagination ? Math.min(Math.max(1, page!), pageCount) : 1;
-  const firstRow = hasPagination && total! > 0 ? (currentPage - 1) * pageSize! + 1 : 0;
-  const lastRow = hasPagination ? (currentPage - 1) * pageSize! + rows.length : rows.length;
-  const showFooter = hasPagination && total! > pageSize!;
-
   return (
     <div className="flex flex-col gap-3">
       {/* Header + pagination stay visible during a page change; TableBody swaps
@@ -116,28 +110,60 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {showFooter ? (
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <p className="text-neutral-500">
-            {firstRow}–{lastRow} / {total} 件
-          </p>
-          <div className="flex items-center gap-2">
-            <TablePager
-              href={pageHref(basePath!, query, currentPage - 1, pageParam)}
-              disabled={currentPage <= 1}
-              label="前へ"
-            />
-            <span className="text-neutral-500">
-              {currentPage} / {pageCount}
-            </span>
-            <TablePager
-              href={pageHref(basePath!, query, currentPage + 1, pageParam)}
-              disabled={currentPage >= pageCount}
-              label="次へ"
-            />
-          </div>
-        </div>
+      {hasPagination ? (
+        <Pagination page={page!} pageSize={pageSize!} total={total!} basePath={basePath!} pageParam={pageParam} query={query} />
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Standalone pagination footer — reusable for non-table lists (e.g. a card
+ * feed) that paginate server-side. Renders nothing when everything fits on one
+ * page. Pass the same page/pageSize/total/basePath the data was fetched with.
+ */
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  basePath,
+  pageParam = "page",
+  query,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  basePath: string;
+  pageParam?: string;
+  query?: Record<string, string | undefined>;
+}) {
+  if (total <= pageSize) return null;
+
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(Math.max(1, page), pageCount);
+  const firstRow = total > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const lastRow = Math.min(currentPage * pageSize, total);
+
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <p className="text-neutral-500">
+        {firstRow}–{lastRow} / {total} 件
+      </p>
+      <div className="flex items-center gap-2">
+        <TablePager
+          href={pageHref(basePath, query, currentPage - 1, pageParam)}
+          disabled={currentPage <= 1}
+          label="前へ"
+        />
+        <span className="text-neutral-500">
+          {currentPage} / {pageCount}
+        </span>
+        <TablePager
+          href={pageHref(basePath, query, currentPage + 1, pageParam)}
+          disabled={currentPage >= pageCount}
+          label="次へ"
+        />
+      </div>
     </div>
   );
 }

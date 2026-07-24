@@ -58,6 +58,33 @@ export function TableBody({ colSpan, children }: { colSpan: number; children: Re
   return <tbody>{children}</tbody>;
 }
 
+/**
+ * Non-table version of TableBody: swaps arbitrary children (e.g. a card list)
+ * for a centered spinner while a page loads. Wrap the list, keep any header /
+ * pagination outside so they stay visible.
+ */
+export function PendingSwap({ children }: { children: ReactNode }) {
+  const nav = useContext(TableNavContext);
+  if (nav?.isPending) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white py-20">
+        <svg
+          className="h-8 w-8 animate-spin text-[var(--color-accent)]"
+          viewBox="0 0 24 24"
+          fill="none"
+          role="status"
+          aria-label="読み込み中"
+        >
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4z" />
+        </svg>
+        <p className="text-sm text-neutral-500">読み込み中…</p>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 /** Pagination button: navigates through the shared transition when available. */
 export function TablePager({ href, disabled, label }: { href: string; disabled: boolean; label: string }) {
   const nav = useContext(TableNavContext);
