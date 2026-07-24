@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AdminSidebar, type AdminSummary } from "@/components/admin/AdminSidebar";
+import { AdminMobileLogout, AdminSidebar, type AdminSummary } from "@/components/admin/AdminSidebar";
 import { requireAdmin } from "@/lib/admin/auth";
 import { startOfTokyoDay } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
@@ -43,23 +43,26 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
               {email ? ` · ${email}` : ""}
             </p>
           </div>
-          <Link
-            href="/admin/notifications"
-            aria-label="通知"
-            className="relative shrink-0 rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
-          >
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-              <path d="M10 20a2 2 0 0 0 4 0" />
-            </svg>
-            {summary.tipCount > 0 ? (
-              <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
-                {summary.tipCount > 99 ? "99+" : summary.tipCount}
-              </span>
-            ) : null}
-          </Link>
+          <div className="flex shrink-0 items-center gap-1">
+            <Link
+              href="/admin/notifications"
+              aria-label="通知"
+              className="relative rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+                <path d="M10 20a2 2 0 0 0 4 0" />
+              </svg>
+              {summary.tipCount > 0 ? (
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                  {summary.tipCount > 99 ? "99+" : summary.tipCount}
+                </span>
+              ) : null}
+            </Link>
+            <AdminMobileLogout />
+          </div>
         </header>
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">{children}</main>
       </div>
     </div>
   );
