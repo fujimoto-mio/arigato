@@ -5,23 +5,28 @@ const ARIGATO_LETTERS = "ARIGATO".split("");
  * inside, and "TIP" / "JAPAN" stacked as two rows beneath it. Built with CSS
  * text rather than a raster image so it stays crisp at any size.
  */
+/** Just the red circle with "ARIGATO" set vertically — reusable on its own. */
+export function LogoMark({ size = 56 }: { size?: number }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center rounded-full bg-[var(--color-logo)]"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label="ARIGATO TiP JAPAN"
+    >
+      {ARIGATO_LETTERS.map((letter, index) => (
+        <span key={index} className="font-bold text-white" style={{ fontSize: size * 0.125, lineHeight: 1.05 }}>
+          {letter}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function LogoBadge({ size = 56 }: { size?: number }) {
   return (
     <div className="flex flex-col items-center" style={{ width: size }} role="img" aria-label="ARIGATO TiP JAPAN">
-      <div
-        className="flex flex-col items-center justify-center rounded-full bg-[var(--color-logo)]"
-        style={{ width: size, height: size }}
-      >
-        {ARIGATO_LETTERS.map((letter, index) => (
-          <span
-            key={index}
-            className="font-bold text-white"
-            style={{ fontSize: size * 0.125, lineHeight: 1.05 }}
-          >
-            {letter}
-          </span>
-        ))}
-      </div>
+      <LogoMark size={size} />
       <p
         className="mt-1 text-center font-bold leading-[1.05] text-[var(--color-logo)]"
         style={{ fontSize: size * 0.29 }}

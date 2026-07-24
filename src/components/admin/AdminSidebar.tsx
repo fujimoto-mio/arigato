@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ComponentType, useState } from "react";
+import { LogoMark } from "@/components/flow/brand";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type AdminSummary = {
@@ -142,7 +142,7 @@ export function AdminSidebar({ summary, notifCount }: { summary: AdminSummary; n
         className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-6 self-start overflow-y-auto bg-neutral-900 px-4 py-5 text-white md:flex"
       >
         <div className="flex items-center gap-2 px-2">
-          <Image src="/arigato-logo.png" alt="ARIGATO TiP JAPAN" width={36} height={36} className="object-contain" />
+          <LogoMark size={40} />
           <div className="leading-tight">
             <p className="text-sm font-bold">
               <span className="text-white">ARIGATO </span>

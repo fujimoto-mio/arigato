@@ -51,7 +51,6 @@ model Tip {
   staffId               String?
   amount                Int
   locale                String
-  tableLabel            String?
   paymentMethod         PaymentMethod @default(cash)
   status                TipStatus     @default(pending)
   stripePaymentIntentId String?       @unique
@@ -59,6 +58,7 @@ model Tip {
   store                 Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   staff                 Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
   review                Review?
+  notificationReads     NotificationRead[]
 
   @@index([storeId])
   @@index([staffId])
@@ -79,13 +79,27 @@ model Review {
 }
 
 model AdminUser {
-  id             String   @id @default(cuid())
-  storeId        String
-  supabaseUserId String   @unique
-  email          String   @unique
-  role           String   @default("owner")
-  createdAt      DateTime @default(now())
-  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id                String             @id @default(cuid())
+  storeId           String
+  supabaseUserId    String             @unique
+  email             String             @unique
+  role              String             @default("owner")
+  createdAt         DateTime           @default(now())
+  store             Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  notificationReads NotificationRead[]
 
   @@index([storeId])
+}
+
+/** Per-admin "this notification has been read" marker (set when its modal opens). */
+model NotificationRead {
+  id          String    @id @default(cuid())
+  adminUserId String
+  tipId       String
+  createdAt   DateTime  @default(now())
+  admin       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tip         Tip       @relation(fields: [tipId], references: [id], onDelete: Cascade)
+
+  @@unique([adminUserId, tipId])
+  @@index([adminUserId])
 }

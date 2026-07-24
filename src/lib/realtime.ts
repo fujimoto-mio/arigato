@@ -7,7 +7,6 @@ export type TipEvent = {
   tipId: string;
   amount: number;
   locale: Locale | string;
-  tableLabel: string | null;
   paymentMethod: "cash" | "card";
   createdAt: string;
 };
