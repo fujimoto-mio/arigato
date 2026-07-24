@@ -40,7 +40,7 @@ function googleMapsUrl(placeId: string) {
 function Header({ onBack }: { onBack?: () => void }) {
   return (
     <header className="flex items-start justify-between px-5 pt-5">
-      <div className="flex min-h-11 items-center gap-3">
+      <div className="flex min-h-11 items-center gap-5">
         {onBack ? <BackButton onClick={onBack} /> : null}
         <LanguageMenu />
       </div>
@@ -52,7 +52,7 @@ function Header({ onBack }: { onBack?: () => void }) {
 function BackButton({ onClick }: { onClick: () => void }) {
   const tc = useTranslations("common");
   return (
-    <button type="button" onClick={onClick} aria-label={tc("back")} className="text-3xl leading-none text-neutral-400">
+    <button type="button" onClick={onClick} aria-label={tc("back")} className="text-5xl leading-none text-neutral-400">
       ‹
     </button>
   );
@@ -242,7 +242,7 @@ function Story({ onNext }: { onNext: () => void }) {
   const t = useTranslations("story");
   const slides = t.raw("slides") as { title: string; body: string }[];
   const [index, setIndex] = useState(0);
-  const [touchX, setTouchX] = useState<number | null>(null);
+  const [dragX, setDragX] = useState<number | null>(null);
   const slide = slides[index];
 
   function advance() {
@@ -251,6 +251,28 @@ function Story({ onNext }: { onNext: () => void }) {
   }
   function back() {
     if (index > 0) setIndex((i) => i - 1);
+  }
+
+  // One handler for mouse, touch, and pen: a horizontal drag past the threshold
+  // moves prev/next; a small movement counts as a tap and advances.
+  const SWIPE_THRESHOLD = 40;
+  function onPointerDown(e: React.PointerEvent) {
+    setDragX(e.clientX);
+    // Capture the pointer so we still get pointerup even if the finger drifts
+    // off this element mid-swipe (common on mobile).
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* setPointerCapture can throw if the pointer is already gone; ignore. */
+    }
+  }
+  function onPointerUp(e: React.PointerEvent) {
+    if (dragX === null) return;
+    const dx = e.clientX - dragX;
+    setDragX(null);
+    if (dx <= -SWIPE_THRESHOLD) advance();
+    else if (dx >= SWIPE_THRESHOLD) back();
+    else advance();
   }
 
   return (
@@ -262,16 +284,10 @@ function Story({ onNext }: { onNext: () => void }) {
       </div>
 
       <div
-        className="mt-5 flex-1 cursor-pointer select-none"
-        onClick={advance}
-        onTouchStart={(e) => setTouchX(e.changedTouches[0].clientX)}
-        onTouchEnd={(e) => {
-          if (touchX === null) return;
-          const dx = e.changedTouches[0].clientX - touchX;
-          if (dx < -40) advance();
-          else if (dx > 40) back();
-          setTouchX(null);
-        }}
+        className="mt-5 flex-1 cursor-pointer touch-pan-y select-none"
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => setDragX(null)}
       >
         <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
           <Image
