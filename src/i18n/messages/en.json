@@ -15,7 +15,7 @@
     "takeALook": "Take a look!",
     "cta": "Discover Our Story",
     "support": "Support Us",
-    "poweredBy": "Powered by ARIGATO TiP",
+    "poweredByPrefix": "Powered by",
     "heading": "Our Story",
     "slides": [
       {
@@ -74,12 +74,14 @@
     "photoLabel": "Add a photo (Optional)",
     "submit": "Submit Review",
     "skip": "Skip for now",
-    "helper": "Your review helps us and other guests. Thank you!",
+    "helperLine1": "Your review helps us",
+    "helperLine2": "and other guests. Thank you!",
     "errorGeneric": "Something went wrong. Please try again."
   },
   "thankYou": {
     "title": "Thank You!",
-    "subtitle": "Your support means a lot to us. We'll keep doing our best for you!",
+    "subtitlePart1": "Your support means a lot to us.",
+    "subtitlePart2": "We'll keep doing our best for you!",
     "stayConnected": "Stay Connected",
     "backToTop": "Back to Top",
     "viewReviews": "View Reviews",
@@ -87,7 +89,8 @@
   },
   "connect": {
     "heading": "Stay Connected",
-    "subtitle": "Follow us for updates, new menus, and more!",
+    "subtitleLine1": "Follow us for updates,",
+    "subtitleLine2": "new menus, and more!",
     "instagram": "Follow on Instagram",
     "facebook": "Like on Facebook",
     "google": "Follow on Google"
