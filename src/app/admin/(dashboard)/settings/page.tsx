@@ -35,14 +35,15 @@ export default async function AdminSettingsPage() {
           印刷してテーブルに置いてください。読み取るとお客様のチップ画面が開きます。
         </p>
 
-        <div className="flex flex-col items-start gap-3 rounded-xl border border-neutral-200 p-4">
+        <div className="flex max-w-xs flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-base font-bold text-neutral-900">{store.name}</p>
           {/* Data URL, so next/image optimisation is neither possible nor useful here. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={qrDataUrl}
             alt={`QR code for ${store.name}`}
-            width={240}
-            height={240}
+            width={220}
+            height={220}
             className="rounded-lg"
           />
           <p className="break-all font-mono text-xs text-neutral-500">{tipUrl}</p>
