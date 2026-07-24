@@ -1,6 +1,12 @@
 "use client";
 
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  ExpressCheckoutElement,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 import { LogoBadge } from "@/components/flow/brand";
@@ -13,9 +19,12 @@ function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; on
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Apple Pay / Google Pay only render where the browser + device support them
+  // (Safari with a Wallet card, Chrome signed in with a Google Pay card). Track
+  // availability so the "other options" divider only appears when a wallet shows.
+  const [walletAvailable, setWalletAvailable] = useState(false);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function confirm() {
     if (!stripe || !elements) return;
 
     setIsSubmitting(true);
@@ -49,13 +58,40 @@ function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; on
     setIsSubmitting(false);
   }
 
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    await confirm();
+  }
+
   const hasFailed = error !== null;
 
   return (
     <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-      {/* Card + Apple Pay / Google Pay wallets (shown automatically where available).
-          The PaymentIntent is card-only, so no Link / "stripe" branding appears. */}
-      <PaymentElement options={{ layout: "tabs", wallets: { applePay: "auto", googlePay: "auto" } }} />
+      {/* Apple Pay / Google Pay buttons. Link is disabled so no "stripe"/Link
+          branding appears; the card form below covers everyone else. */}
+      <ExpressCheckoutElement
+        onConfirm={() => void confirm()}
+        onReady={({ availablePaymentMethods }) => setWalletAvailable(Boolean(availablePaymentMethods))}
+        options={{
+          paymentMethods: {
+            applePay: "auto",
+            googlePay: "auto",
+            link: "never",
+            amazonPay: "never",
+            paypal: "never",
+          },
+        }}
+      />
+      {walletAvailable ? (
+        <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-400">
+          <span className="h-px flex-1 bg-neutral-200" />
+          {t("otherOptions")}
+          <span className="h-px flex-1 bg-neutral-200" />
+        </div>
+      ) : null}
+      {/* Card entry. Wallets are handled by the Express element above, so keep them
+          off here to avoid a duplicate button. */}
+      <PaymentElement options={{ layout: "tabs", wallets: { applePay: "never", googlePay: "never" } }} />
       {error ? (
         <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
           {error}
@@ -111,8 +147,8 @@ export function CardPayment({
   return (
     <div className="flex flex-1 flex-col pb-10">
       <header className="flex items-start justify-between px-5 pt-5">
-        <div className="flex min-h-11 items-center gap-3">
-          <button type="button" onClick={onBack} aria-label={tc("back")} className="text-3xl leading-none text-neutral-400">
+        <div className="flex min-h-11 items-center gap-5">
+          <button type="button" onClick={onBack} aria-label={tc("back")} className="text-5xl leading-none text-neutral-400">
             ‹
           </button>
           <LanguageMenu />
