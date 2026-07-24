@@ -23,6 +23,11 @@ async function originFromRequest(): Promise<string> {
  */
 export async function resolveAppOrigin(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configured) return configured.replace(/\/+$/, "");
+  if (configured) {
+    const cleaned = configured.replace(/\/+$/, "");
+    // Guard against a malformed value (e.g. a stray character in .env): a bad
+    // origin would otherwise crash every page that builds a URL from it.
+    if (URL.canParse(cleaned)) return cleaned;
+  }
   return originFromRequest();
 }

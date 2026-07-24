@@ -75,19 +75,50 @@ function GearIcon({ className }: IconProps) {
 type NavItem = {
   href: string;
   label: string;
+  // Shorter label for the mobile bottom bar, where width per item is tight.
+  short: string;
   Icon: ComponentType<IconProps>;
   badge?: boolean;
   exact?: boolean;
 };
 
 const NAV: NavItem[] = [
-  { href: "/admin", label: "ダッシュボード", Icon: GridIcon, exact: true },
-  { href: "/admin/notifications", label: "通知", Icon: BellIcon, badge: true },
-  { href: "/admin/tips", label: "チップ履歴", Icon: YenIcon },
-  { href: "/admin/reviews", label: "口コミ一覧", Icon: StarIcon },
-  { href: "/admin/reports", label: "レポート", Icon: ChartIcon },
-  { href: "/admin/settings", label: "設定", Icon: GearIcon },
+  { href: "/admin", label: "ダッシュボード", short: "ホーム", Icon: GridIcon, exact: true },
+  { href: "/admin/notifications", label: "通知", short: "通知", Icon: BellIcon, badge: true },
+  { href: "/admin/tips", label: "チップ履歴", short: "チップ", Icon: YenIcon },
+  { href: "/admin/reviews", label: "口コミ一覧", short: "口コミ", Icon: StarIcon },
+  { href: "/admin/reports", label: "レポート", short: "レポート", Icon: ChartIcon },
+  { href: "/admin/settings", label: "設定", short: "設定", Icon: GearIcon },
 ];
+
+function useSignOut() {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+  async function signOut() {
+    setSigningOut(true);
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.replace("/admin/login");
+    router.refresh();
+  }
+  return { signOut, signingOut };
+}
+
+/** Icon-only logout for the mobile top bar (desktop uses the sidebar button). */
+export function AdminMobileLogout() {
+  const { signOut, signingOut } = useSignOut();
+  return (
+    <button
+      type="button"
+      onClick={signOut}
+      disabled={signingOut}
+      aria-label="ログアウト"
+      className="shrink-0 rounded-full p-2 text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 disabled:opacity-50 md:hidden"
+    >
+      <LogoutIcon className="h-6 w-6" />
+    </button>
+  );
+}
 
 function SummaryStars({ rating }: { rating: number }) {
   const rounded = Math.round(rating);
@@ -101,97 +132,120 @@ function SummaryStars({ rating }: { rating: number }) {
 
 export function AdminSidebar({ summary, notifCount }: { summary: AdminSummary; notifCount: number }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
-
-  async function signOut() {
-    setSigningOut(true);
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    router.replace("/admin/login");
-    router.refresh();
-  }
+  const { signOut, signingOut } = useSignOut();
 
   return (
-    <aside
-      style={{ backgroundColor: "#171717" }}
-      className="sticky top-0 flex h-screen w-16 shrink-0 flex-col gap-6 self-start overflow-y-auto bg-neutral-900 px-2 py-5 text-white md:w-64 md:px-4"
-    >
-      <div className="flex items-center gap-2 px-1 md:px-2">
-        <Image src="/arigato-logo.png" alt="ARIGATO TiP JAPAN" width={36} height={36} className="object-contain" />
-        <div className="hidden leading-tight md:block">
-          <p className="text-sm font-bold">
-            <span className="text-white">ARIGATO </span>
-            <span className="text-[var(--color-accent)]">TiP</span>
-          </p>
-          <p className="text-[9px] tracking-[0.3em] text-neutral-400">JAPAN</p>
+    <>
+      {/* Desktop rail */}
+      <aside
+        style={{ backgroundColor: "#171717" }}
+        className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-6 self-start overflow-y-auto bg-neutral-900 px-4 py-5 text-white md:flex"
+      >
+        <div className="flex items-center gap-2 px-2">
+          <Image src="/arigato-logo.png" alt="ARIGATO TiP JAPAN" width={36} height={36} className="object-contain" />
+          <div className="leading-tight">
+            <p className="text-sm font-bold">
+              <span className="text-white">ARIGATO </span>
+              <span className="text-[var(--color-accent)]">TiP</span>
+            </p>
+            <p className="text-[9px] tracking-[0.3em] text-neutral-400">JAPAN</p>
+          </div>
         </div>
-      </div>
 
-      <nav className="flex flex-col gap-1">
-        {NAV.map(({ href, label, Icon, badge, exact }) => {
+        <nav className="flex flex-col gap-1">
+          {NAV.map(({ href, label, Icon, badge, exact }) => {
+            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-[var(--color-accent)] text-white"
+                    : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                }`}
+              >
+                <Icon className="h-5 w-5 shrink-0" />
+                <span>{label}</span>
+                {badge && notifCount > 0 ? (
+                  <span className="ml-auto min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
+                    {notifCount > 99 ? "99+" : notifCount}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+          <p className="text-sm font-bold text-white">本日のサマリー</p>
+          <dl className="mt-3 flex flex-col gap-2 text-xs">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <dt className="text-neutral-400">チップ件数</dt>
+              <dd className="font-semibold text-white">{summary.tipCount} 件</dd>
+            </div>
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <dt className="text-neutral-400">チップ合計金額</dt>
+              <dd className="font-semibold text-white">¥{summary.tipTotal.toLocaleString("ja-JP")}</dd>
+            </div>
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <dt className="text-neutral-400">口コミ件数</dt>
+              <dd className="font-semibold text-white">{summary.reviewCount} 件</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-neutral-400">平均評価</dt>
+              <dd className="flex items-center gap-1 font-semibold text-white">
+                {summary.avgRating ? (
+                  <>
+                    <SummaryStars rating={summary.avgRating} /> {summary.avgRating.toFixed(1)}
+                  </>
+                ) : (
+                  "—"
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <button
+          type="button"
+          onClick={signOut}
+          disabled={signingOut}
+          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800 hover:text-white disabled:opacity-50"
+        >
+          <LogoutIcon className="h-5 w-5 shrink-0" />
+          <span>{signingOut ? "ログアウト中…" : "ログアウト"}</span>
+        </button>
+      </aside>
+
+      {/* Mobile bottom tab bar */}
+      <nav
+        style={{ backgroundColor: "#171717" }}
+        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-white/10 bg-neutral-900 px-1 pb-[env(safe-area-inset-bottom)] text-white md:hidden"
+      >
+        {NAV.map(({ href, short, Icon, badge, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                isActive
-                  ? "bg-[var(--color-accent)] text-white"
-                  : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
+              className={`relative flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium transition ${
+                isActive ? "text-[var(--color-accent)]" : "text-neutral-400"
               }`}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span className="hidden md:inline">{label}</span>
-              {badge && notifCount > 0 ? (
-                <span className="ml-auto hidden min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold text-white md:inline">
-                  {notifCount > 99 ? "99+" : notifCount}
-                </span>
-              ) : null}
+              <span className="relative">
+                <Icon className="h-5 w-5" />
+                {badge && notifCount > 0 ? (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                    {notifCount > 99 ? "99+" : notifCount}
+                  </span>
+                ) : null}
+              </span>
+              {short}
             </Link>
           );
         })}
       </nav>
-
-      <div className="hidden rounded-xl border border-white/10 bg-white/[0.04] p-4 md:block">
-        <p className="text-sm font-bold text-white">本日のサマリー</p>
-        <dl className="mt-3 flex flex-col gap-2 text-xs">
-          <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <dt className="text-neutral-400">チップ件数</dt>
-            <dd className="font-semibold text-white">{summary.tipCount} 件</dd>
-          </div>
-          <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <dt className="text-neutral-400">チップ合計金額</dt>
-            <dd className="font-semibold text-white">¥{summary.tipTotal.toLocaleString("ja-JP")}</dd>
-          </div>
-          <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <dt className="text-neutral-400">口コミ件数</dt>
-            <dd className="font-semibold text-white">{summary.reviewCount} 件</dd>
-          </div>
-          <div className="flex items-center justify-between">
-            <dt className="text-neutral-400">平均評価</dt>
-            <dd className="flex items-center gap-1 font-semibold text-white">
-              {summary.avgRating ? (
-                <>
-                  <SummaryStars rating={summary.avgRating} /> {summary.avgRating.toFixed(1)}
-                </>
-              ) : (
-                "—"
-              )}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      <button
-        type="button"
-        onClick={signOut}
-        disabled={signingOut}
-        className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800 hover:text-white disabled:opacity-50"
-      >
-        <LogoutIcon className="h-5 w-5 shrink-0" />
-        <span className="hidden md:inline">{signingOut ? "ログアウト中…" : "ログアウト"}</span>
-      </button>
-    </aside>
+    </>
   );
 }
