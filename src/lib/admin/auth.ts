@@ -4,6 +4,7 @@ import { createSupabaseSessionClient } from "@/lib/supabase/session";
 
 export type AdminContext = {
   supabaseUserId: string;
+  adminUserId: string;
   email: string;
   role: string;
   store: {
@@ -39,6 +40,7 @@ export async function getAdminContext(): Promise<AdminContext | null> {
 
   return {
     supabaseUserId: user.id,
+    adminUserId: admin.id,
     email: admin.email,
     role: admin.role,
     store: {
