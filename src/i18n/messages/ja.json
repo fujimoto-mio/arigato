@@ -15,7 +15,7 @@
     "takeALook": "ぜひご覧ください！",
     "cta": "ストーリーを見る",
     "support": "応援する",
-    "poweredBy": "Powered by ARIGATO TiP",
+    "poweredByPrefix": "Powered by",
     "heading": "私たちのストーリー",
     "slides": [
       {
@@ -74,12 +74,14 @@
     "photoLabel": "写真を追加（任意）",
     "submit": "レビューを送信",
     "skip": "スキップ",
-    "helper": "あなたのレビューが、私たちと他のお客様の助けになります。ありがとうございます！",
+    "helperLine1": "あなたのレビューが、私たちと他のお客様の助けになります。",
+    "helperLine2": "ありがとうございます！",
     "errorGeneric": "エラーが発生しました。もう一度お試しください。"
   },
   "thankYou": {
     "title": "ありがとうございます！",
-    "subtitle": "あなたの応援が私たちの力になります。これからも精一杯がんばります！",
+    "subtitlePart1": "あなたの応援が私たちの力になります。",
+    "subtitlePart2": "これからも精一杯がんばります！",
     "stayConnected": "つながる",
     "backToTop": "トップに戻る",
     "viewReviews": "レビューを見る",
@@ -87,7 +89,8 @@
   },
   "connect": {
     "heading": "つながる",
-    "subtitle": "最新情報や新メニューはこちらから！",
+    "subtitleLine1": "最新情報や新メニューは",
+    "subtitleLine2": "こちらからチェック！",
     "instagram": "Instagramをフォロー",
     "facebook": "Facebookでいいね",
     "google": "Googleでフォロー"

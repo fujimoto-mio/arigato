@@ -15,7 +15,7 @@
     "takeALook": "한번 살펴보세요!",
     "cta": "이야기 보기",
     "support": "응원하기",
-    "poweredBy": "Powered by ARIGATO TiP",
+    "poweredByPrefix": "Powered by",
     "heading": "우리의 이야기",
     "slides": [
       {
@@ -74,12 +74,14 @@
     "photoLabel": "사진 추가 (선택)",
     "submit": "리뷰 보내기",
     "skip": "건너뛰기",
-    "helper": "당신의 리뷰가 저희와 다른 손님에게 큰 도움이 됩니다. 감사합니다!",
+    "helperLine1": "당신의 리뷰가 저희와 다른 손님에게 큰 도움이 됩니다.",
+    "helperLine2": "감사합니다!",
     "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
   },
   "thankYou": {
     "title": "감사합니다!",
-    "subtitle": "여러분의 응원이 큰 힘이 됩니다. 앞으로도 최선을 다하겠습니다!",
+    "subtitlePart1": "여러분의 응원이 큰 힘이 됩니다.",
+    "subtitlePart2": "앞으로도 최선을 다하겠습니다!",
     "stayConnected": "함께해요",
     "backToTop": "처음으로",
     "viewReviews": "리뷰 보기",
@@ -87,7 +89,8 @@
   },
   "connect": {
     "heading": "함께해요",
-    "subtitle": "새로운 소식과 메뉴를 팔로우하세요!",
+    "subtitleLine1": "새로운 소식과 메뉴 정보를",
+    "subtitleLine2": "팔로우하고 받아보세요!",
     "instagram": "Instagram 팔로우",
     "facebook": "Facebook 좋아요",
     "google": "Google 팔로우"

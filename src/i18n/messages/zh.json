@@ -15,7 +15,7 @@
     "takeALook": "快来看看吧！",
     "cta": "了解我们的故事",
     "support": "支持我们",
-    "poweredBy": "Powered by ARIGATO TiP",
+    "poweredByPrefix": "Powered by",
     "heading": "我们的故事",
     "slides": [
       {
@@ -74,12 +74,14 @@
     "photoLabel": "添加照片（选填）",
     "submit": "提交评价",
     "skip": "跳过",
-    "helper": "您的评价对我们和其他顾客都很有帮助。谢谢！",
+    "helperLine1": "您的评价对我们和其他顾客都很有帮助。",
+    "helperLine2": "谢谢！",
     "errorGeneric": "出了点问题，请重试。"
   },
   "thankYou": {
     "title": "谢谢您！",
-    "subtitle": "您的支持对我们意义重大。我们会继续努力！",
+    "subtitlePart1": "您的支持对我们意义重大。",
+    "subtitlePart2": "我们会继续努力！",
     "stayConnected": "保持联系",
     "backToTop": "返回首页",
     "viewReviews": "查看评价",
@@ -87,7 +89,8 @@
   },
   "connect": {
     "heading": "保持联系",
-    "subtitle": "关注我们，获取最新动态和新菜单！",
+    "subtitleLine1": "关注我们获取最新动态，",
+    "subtitleLine2": "抢先了解新菜单！",
     "instagram": "在 Instagram 关注",
     "facebook": "在 Facebook 点赞",
     "google": "在 Google 关注"

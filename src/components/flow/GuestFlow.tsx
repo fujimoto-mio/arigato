@@ -72,7 +72,7 @@ function AccentButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
+      className="w-full rounded-2xl bg-[var(--color-accent)] py-4 text-center font-bold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
     >
       {children}
     </button>
@@ -211,15 +211,15 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
     <div className="flex flex-1 flex-col">
       <Header />
       <div className="px-8 pt-6 text-center">
-        <Wordmark className="text-4xl tracking-tight" />
-        <p className="mx-auto mt-5 max-w-[16rem] text-xs font-semibold uppercase leading-relaxed tracking-[0.14em] text-neutral-800">
+        <Wordmark className="text-5xl tracking-tight" />
+        <p className="mx-auto mt-7 max-w-[15rem] text-[15px] font-semibold uppercase leading-relaxed tracking-[0.1em] text-neutral-800">
           {t("tagline")}
         </p>
-        <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+        <p className="mt-3 text-[15px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)]">
           {t("takeALook")}
         </p>
       </div>
-      <div className="relative mx-6 mt-6 aspect-[5/3] overflow-hidden rounded-2xl bg-neutral-100">
+      <div className="relative mt-10 aspect-[4/3] overflow-hidden bg-neutral-100">
         <Image src={STORY_IMAGES[0]} alt={store.name} fill sizes="(max-width: 448px) 100vw, 448px" className="object-cover" />
       </div>
       <div className="mt-auto px-6 pb-8 pt-8">
@@ -228,7 +228,9 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
             {t("cta")} <span className="text-lg">›</span>
           </span>
         </AccentButton>
-        <p className="mt-4 text-center text-[10px] tracking-wide text-neutral-400">{t("poweredBy")}</p>
+        <p className="mt-4 text-center text-xs tracking-wide text-neutral-400">
+          {t("poweredByPrefix")} <span className="font-bold text-neutral-600">ARIGATO TiP</span>
+        </p>
       </div>
     </div>
   );
@@ -254,14 +256,13 @@ function Story({ onNext }: { onNext: () => void }) {
   return (
     <div className="flex flex-1 flex-col">
       <Header />
-      <div className="px-6 pt-4">
-        <h2 className="inline-block border-b-2 border-[var(--color-accent)] pb-1 text-lg font-bold uppercase tracking-wide text-neutral-900">
-          {t("heading")}
-        </h2>
+      <div className="px-6 pt-2">
+        <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{t("heading")}</h2>
+        <div className="mt-1.5 h-1 w-12 rounded-full bg-[var(--color-accent)]" />
       </div>
 
       <div
-        className="mt-4 flex-1 cursor-pointer select-none"
+        className="mt-5 flex-1 cursor-pointer select-none"
         onClick={advance}
         onTouchStart={(e) => setTouchX(e.changedTouches[0].clientX)}
         onTouchEnd={(e) => {
@@ -272,7 +273,7 @@ function Story({ onNext }: { onNext: () => void }) {
           setTouchX(null);
         }}
       >
-        <div className="relative mx-6 aspect-[4/3] overflow-hidden rounded-2xl bg-neutral-100">
+        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
           <Image
             src={STORY_IMAGES[index % STORY_IMAGES.length]}
             alt={slide.title}
@@ -281,13 +282,13 @@ function Story({ onNext }: { onNext: () => void }) {
             className="object-cover"
           />
         </div>
-        <div className="px-6 pt-6">
-          <h3 className="text-2xl font-bold">{slide.title}</h3>
-          <p className="mt-3 text-sm leading-relaxed text-neutral-600">{slide.body}</p>
+        <div className="px-6 pt-7">
+          <h3 className="text-3xl font-bold">{slide.title}</h3>
+          <p className="mt-4 text-lg leading-loose text-neutral-500">{slide.body}</p>
         </div>
       </div>
 
-      <div className="flex justify-center gap-2 py-7">
+      <div className="flex justify-center gap-2.5 py-8">
         {slides.map((s, i) => (
           <button
             key={s.title}
@@ -297,7 +298,7 @@ function Story({ onNext }: { onNext: () => void }) {
               e.stopPropagation();
               setIndex(i);
             }}
-            className={`h-2 rounded-full transition-all ${i === index ? "w-6 bg-[var(--color-accent)]" : "w-2 bg-neutral-300"}`}
+            className={`h-2.5 w-2.5 rounded-full transition-colors ${i === index ? "bg-[var(--color-accent)]" : "bg-neutral-200"}`}
           />
         ))}
       </div>
@@ -334,13 +335,13 @@ function Support({
       <Header onBack={onBack} />
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
-        <p className="mt-2 max-w-xs text-sm text-neutral-500">{t("intro")}</p>
+        <p className="mt-3 max-w-[17rem] text-[15px] leading-relaxed text-neutral-600">{t("intro")}</p>
       </div>
 
       <div className="mx-6 mt-6 rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
         <div className="text-center">
           <p className="text-5xl font-bold text-neutral-900">¥{amount.toLocaleString()}</p>
-          <p className="mt-1 text-xs text-neutral-400">{t("amountLabel")}</p>
+          <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
         </div>
         <hr className="my-5 border-neutral-200" />
         <div className="flex items-center justify-between">
@@ -349,21 +350,21 @@ function Support({
             aria-label="decrease"
             disabled={amount <= 0}
             onClick={() => setAmount((prev) => Math.max(0, prev - TIP_STEP))}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-neutral-300 text-3xl leading-none text-neutral-500 disabled:opacity-30"
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
           >
-            −
+            <span className="h-0.5 w-4 rounded-full bg-current" />
           </button>
-          <span className="text-2xl font-semibold">{amount.toLocaleString()}</span>
+          <span className="text-3xl font-bold text-neutral-900">{amount.toLocaleString()}</span>
           <button
             type="button"
             onClick={() => setAmount((prev) => prev + TIP_STEP)}
-            className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-sm font-bold text-white"
+            className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
           >
             +¥{TIP_STEP}
           </button>
         </div>
       </div>
-      <div className="mt-4 text-center text-xs leading-relaxed text-neutral-400">
+      <div className="mt-4 text-center text-sm leading-relaxed text-neutral-400">
         <p>{t("addNote")}</p>
         <p>{t("addNoteSub")}</p>
       </div>
@@ -387,7 +388,22 @@ function Support({
         <AccentButton onClick={onNext} disabled={!canSubmit}>
           {t("next")}
         </AccentButton>
-        <p className="mt-4 text-center text-xs text-neutral-400">🔒 {t("secure")}</p>
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          </svg>
+          {t("secure")}
+        </p>
       </div>
     </div>
   );
@@ -464,9 +480,9 @@ function Review({
       <Header onBack={onBack} />
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
-        <p className="mt-2 text-sm text-neutral-500">{t("question")}</p>
+        <p className="mt-3 text-[15px] text-neutral-600">{t("question")}</p>
 
-        <div className="mt-4 flex gap-2" onMouseLeave={() => setHover(0)}>
+        <div className="mx-auto mt-6 flex max-w-[19rem] justify-between" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((star) => {
             const active = star <= (hover || rating);
             return (
@@ -476,9 +492,19 @@ function Review({
                 aria-label={`${star} star`}
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHover(star)}
-                className="text-4xl leading-none text-[var(--color-accent)]"
+                className="text-[var(--color-accent)]"
               >
-                {active ? "★" : "☆"}
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-12 w-12"
+                  fill={active ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 3.2l2.6 5.28 5.83.85-4.22 4.11.996 5.81L12 16.9l-5.21 2.74.996-5.81-4.22-4.11 5.83-.85z" />
+                </svg>
               </button>
             );
           })}
@@ -488,19 +514,35 @@ function Review({
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder={`${t("commentLabel")} ${t("commentOptional")}`}
-          rows={4}
-          className="mt-6 w-full rounded-xl border border-neutral-300 p-3 text-sm"
+          rows={5}
+          className="mt-7 w-full rounded-2xl border border-neutral-200 p-4 text-[15px] leading-relaxed placeholder:text-neutral-400 focus:border-[var(--color-accent)] focus:outline-none"
         />
 
-        <p className="mt-5 text-sm font-medium text-neutral-700">{t("photoLabel")}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <p className="mt-6 text-sm font-medium text-neutral-700">{t("photoLabel")}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
           {photoUrls.map((url) => (
-            <div key={url} className="relative h-16 w-16 overflow-hidden rounded-lg bg-neutral-100">
+            <div key={url} className="relative h-16 w-16 overflow-hidden rounded-xl bg-neutral-100">
               <Image src={url} alt="review" fill sizes="64px" className="object-cover" />
             </div>
           ))}
-          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border border-neutral-300 text-2xl text-neutral-400">
-            {uploading ? "…" : "📷"}
+          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-xl bg-neutral-100 text-[var(--color-accent)]">
+            {uploading ? (
+              "…"
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 7.5h3l1.4-2h7.2L17 7.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z" />
+                <circle cx="12" cy="13" r="3.4" />
+              </svg>
+            )}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -522,7 +564,11 @@ function Review({
         <AccentButton onClick={submit} disabled={rating === 0 || isSubmitting}>
           {t("submit")}
         </AccentButton>
-        <p className="mt-3 text-center text-xs text-neutral-400">{t("helper")}</p>
+        <p className="mt-4 text-center text-sm leading-relaxed text-neutral-500">
+          {t("helperLine1")}
+          <br />
+          {t("helperLine2")}
+        </p>
       </div>
     </div>
   );
@@ -536,27 +582,51 @@ function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: () => 
     <div className="flex flex-1 flex-col">
       <Header />
       <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16 text-center">
-        <div className="mb-2 flex items-end gap-1.5 text-[var(--color-accent)]">
-          <span className="h-3 w-0.5 -rotate-[25deg] rounded bg-current" />
-          <span className="h-4 w-0.5 rounded bg-current" />
-          <span className="h-3 w-0.5 rotate-[25deg] rounded bg-current" />
+        <div className="relative text-[var(--color-accent)]">
+          <span className="flex h-24 w-24 items-center justify-center rounded-full border-[3px] border-current">
+            <svg viewBox="0 0 24 24" className="h-11 w-11" fill="currentColor" aria-hidden="true">
+              <path d="M12 21.3s-7.6-4.6-10.2-9.4C.4 8.9 1.8 5.1 5.5 5.1c2.1 0 3.7 1.3 4.7 2.9 1-1.6 2.6-2.9 4.7-2.9 3.7 0 5.1 3.8 3.7 6.8-2.6 4.8-10.2 9.4-10.2 9.4z" />
+            </svg>
+          </span>
+          <div className="absolute -right-1 -top-2 flex items-end gap-1">
+            <span className="h-3.5 w-1 -rotate-[8deg] rounded-full bg-current" />
+            <span className="h-4 w-1 rotate-[18deg] rounded-full bg-current" />
+            <span className="h-3 w-1 rotate-[44deg] rounded-full bg-current" />
+          </div>
         </div>
-        <span className="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--color-accent)] text-5xl text-white">
-          ♥
-        </span>
-        <h1 className="mt-6 text-3xl font-bold">{t("title")}</h1>
-        <p className="mt-4 max-w-[15rem] text-sm leading-relaxed text-neutral-500">{t("subtitle")}</p>
+        <h1 className="mt-8 text-4xl font-bold uppercase tracking-tight">{t("title")}</h1>
+        <p className="mt-5 max-w-[13rem] text-base leading-relaxed text-neutral-500">
+          {t("subtitlePart1")}
+          <br />
+          {t("subtitlePart2")}
+        </p>
 
-        <div className="mt-10 w-full max-w-xs">
+        <div className="mt-12 w-full max-w-xs">
           <button
             type="button"
             onClick={onHome}
-            className="w-full rounded-xl border border-[var(--color-accent)] py-4 text-center font-semibold text-[var(--color-accent)]"
+            className="w-full rounded-xl border border-[var(--color-accent)] py-4 text-center text-base font-semibold text-[var(--color-accent)]"
           >
             {t("backToTop")}
           </button>
-          <button type="button" onClick={onReviews} className="mt-5 text-sm font-semibold text-[var(--color-accent)]">
-            {t("viewReviews")} ›
+          <button
+            type="button"
+            onClick={onReviews}
+            className="mt-6 flex w-full items-center justify-center gap-1.5 text-base font-semibold text-[var(--color-accent)]"
+          >
+            {t("viewReviews")}
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
           </button>
         </div>
       </div>
@@ -589,10 +659,12 @@ function Connect({
   const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
   const links = [
     store.instagramUrl
-      ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon /> }
+      ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
       : null,
-    store.facebookUrl ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon /> } : null,
-    googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon /> } : null,
+    store.facebookUrl
+      ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
+      : null,
+    googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
   ].filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
 
   return (
@@ -600,7 +672,11 @@ function Connect({
       <Header onBack={onBack} />
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
-        <p className="mt-2 text-sm text-neutral-500">{t("subtitle")}</p>
+        <p className="mt-2 text-base leading-snug text-neutral-500">
+          {t("subtitleLine1")}
+          <br />
+          {t("subtitleLine2")}
+        </p>
 
         <div className="mt-6 flex flex-col gap-3">
           {links.length === 0 ? (
@@ -612,24 +688,27 @@ function Connect({
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-3.5 text-sm font-medium hover:bg-neutral-50"
+                className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium hover:bg-neutral-50"
               >
                 <span className="flex items-center gap-3">
                   {link.icon}
                   {link.label}
                 </span>
-                <span className="text-neutral-300">›</span>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
               </a>
             ))
           )}
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 px-6">
-        <div className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100">
+      {/* Full-bleed, edge-to-edge — anchored just above the bottom nav. */}
+      <div className="mt-auto grid grid-cols-2 gap-0.5">
+        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
           <Image src={STORY_IMAGES[0]} alt={store.name} fill sizes="224px" className="object-cover" />
         </div>
-        <div className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100">
+        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
           <Image src={STORY_IMAGES[2]} alt={store.name} fill sizes="224px" className="object-cover" />
         </div>
       </div>
@@ -655,11 +734,60 @@ function BottomNav({
   onSupport: () => void;
 }) {
   const t = useTranslations("nav");
-  const items: { key: "home" | "story" | "reviews" | "support"; label: string; icon: string; go: () => void }[] = [
-    { key: "home", label: t("home"), icon: "⌂", go: onHome },
-    { key: "story", label: t("story"), icon: "▤", go: onStory },
-    { key: "reviews", label: t("reviews"), icon: "☆", go: onReviews },
-    { key: "support", label: t("support"), icon: "♡", go: onSupport },
+  const iconProps = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className: "h-5 w-5",
+  };
+  const items: { key: "home" | "story" | "reviews" | "support"; label: string; icon: ReactNode; go: () => void }[] = [
+    {
+      key: "home",
+      label: t("home"),
+      go: onHome,
+      icon: (
+        <svg {...iconProps}>
+          <path d="M3 11.5 12 4l9 7.5" />
+          <path d="M5.5 10v9.5h13V10" />
+        </svg>
+      ),
+    },
+    {
+      key: "story",
+      label: t("story"),
+      go: onStory,
+      icon: (
+        <svg {...iconProps}>
+          <rect x="4" y="5" width="16" height="14" rx="2" />
+          <circle cx="9" cy="10" r="1.4" />
+          <path d="M4.5 16l4.5-3.5 3 2.5 3.5-4 4.5 5" />
+        </svg>
+      ),
+    },
+    {
+      key: "reviews",
+      label: t("reviews"),
+      go: onReviews,
+      icon: (
+        <svg {...iconProps}>
+          <path d="M12 4l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z" />
+        </svg>
+      ),
+    },
+    {
+      key: "support",
+      label: t("support"),
+      go: onSupport,
+      icon: (
+        <svg {...iconProps}>
+          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5z" />
+          <path d="M8 9h8M8 12.5h5" />
+        </svg>
+      ),
+    },
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md items-center justify-around border-t border-neutral-200 bg-white py-2">
@@ -668,11 +796,11 @@ function BottomNav({
           key={item.key}
           type="button"
           onClick={item.go}
-          className={`flex flex-1 flex-col items-center gap-0.5 py-1 text-[10px] ${
-            item.key === active ? "text-[var(--color-accent)]" : "text-neutral-400"
+          className={`flex flex-1 flex-col items-center gap-1 py-1 text-[10px] ${
+            item.key === active ? "font-semibold text-[var(--color-accent)]" : "text-neutral-400"
           }`}
         >
-          <span className="text-base leading-none">{item.icon}</span>
+          {item.icon}
           {item.label}
         </button>
       ))}

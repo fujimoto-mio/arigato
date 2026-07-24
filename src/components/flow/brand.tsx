@@ -1,22 +1,39 @@
-import Image from "next/image";
+const ARIGATO_LETTERS = "ARIGATO".split("");
 
 /**
- * ARIGATO TiP JAPAN logo — the platform's fixed header branding: the logo image
- * plus the "TiP JAPAN" name beneath it. The image lives at LOGO_SRC in /public
- * (drop the artwork there). If your artwork already includes the "TiP JAPAN"
- * text, render with showName={false}.
+ * ARIGATO TiP JAPAN logo — a red circle with "ARIGATO" spelled vertically
+ * inside, and "TIP" / "JAPAN" stacked as two rows beneath it. Built with CSS
+ * text rather than a raster image so it stays crisp at any size.
  */
-const LOGO_SRC = "/arigato-logo.png";
-
-export function LogoBadge({ size = 48, showName = true }: { size?: number; showName?: boolean }) {
+export function LogoBadge({ size = 56 }: { size?: number }) {
   return (
-    <div className="flex flex-col items-center leading-none">
-      <div className="relative" style={{ width: size, height: size }}>
-        <Image src={LOGO_SRC} alt="ARIGATO TiP JAPAN" fill sizes={`${size}px`} className="object-contain" priority />
+    <div className="flex flex-col items-center" style={{ width: size }} role="img" aria-label="ARIGATO TiP JAPAN">
+      <div
+        className="flex flex-col items-center justify-center rounded-full bg-[var(--color-logo)]"
+        style={{ width: size, height: size }}
+      >
+        {ARIGATO_LETTERS.map((letter, index) => (
+          <span
+            key={index}
+            className="font-bold text-white"
+            style={{ fontSize: size * 0.125, lineHeight: 1.05 }}
+          >
+            {letter}
+          </span>
+        ))}
       </div>
-      {showName ? (
-        <span className="mt-1 text-[9px] font-bold tracking-[0.18em] text-[var(--color-logo)]">TiP JAPAN</span>
-      ) : null}
+      <p
+        className="mt-1 text-center font-bold leading-[1.05] text-[var(--color-logo)]"
+        style={{ fontSize: size * 0.29 }}
+      >
+        TiP
+      </p>
+      <p
+        className="text-center font-bold leading-[1.1] text-[var(--color-logo)]"
+        style={{ fontSize: size * 0.29, letterSpacing: "0.02em" }}
+      >
+        JAPAN
+      </p>
     </div>
   );
 }
@@ -25,8 +42,8 @@ export function LogoBadge({ size = 48, showName = true }: { size?: number; showN
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
     <span className={className}>
-      <span className="font-bold text-neutral-900">ARIGATO </span>
-      <span className="font-bold text-[var(--color-accent)]">TiP</span>
+      <span className="font-extrabold text-neutral-900">ARIGATO </span>
+      <span className="font-extrabold text-[var(--color-accent)]">TiP</span>
     </span>
   );
 }
