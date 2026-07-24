@@ -21,6 +21,8 @@ export type DataTableProps<T> = {
   emptyLabel: string;
   /** Minimum table width so columns stay readable while the wrapper scrolls. */
   minWidthClass?: string;
+  /** Extra classes applied to every body cell (e.g. "align-top" for tall rows). */
+  bodyCellClassName?: string;
 
   // --- Pagination (server-side). Omit `total` to render without a footer. ---
   page?: number;
@@ -28,17 +30,24 @@ export type DataTableProps<T> = {
   total?: number;
   /** Path the page links point at, e.g. "/admin/tips". */
   basePath?: string;
-  /** Query params to preserve across page links (filters, etc.). */
+  /** Query param name for the page number (override so two tables can coexist). */
+  pageParam?: string;
+  /** Query params to preserve across page links (filters, other table's page). */
   query?: Record<string, string | undefined>;
 };
 
-function pageHref(basePath: string, query: Record<string, string | undefined> | undefined, page: number) {
+function pageHref(
+  basePath: string,
+  query: Record<string, string | undefined> | undefined,
+  page: number,
+  pageParam: string,
+) {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(query ?? {})) {
     if (v) params.set(k, v);
   }
   // Keep page 1 clean (no ?page=1) so the canonical URL stays tidy.
-  if (page > 1) params.set("page", String(page));
+  if (page > 1) params.set(pageParam, String(page));
   const qs = params.toString();
   return qs ? `${basePath}?${qs}` : basePath;
 }
@@ -50,10 +59,12 @@ export function DataTable<T>({
   rowClassName,
   emptyLabel,
   minWidthClass = "min-w-[640px]",
+  bodyCellClassName = "",
   page,
   pageSize,
   total,
   basePath,
+  pageParam = "page",
   query,
 }: DataTableProps<T>) {
   const hasPagination =
@@ -94,7 +105,7 @@ export function DataTable<T>({
               rows.map((row, index) => (
                 <tr key={rowKey(row)} className={`border-b border-neutral-50 ${rowClassName?.(row, index) ?? ""}`}>
                   {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 ${col.className ?? ""}`}>
+                    <td key={col.key} className={`px-4 py-3 ${bodyCellClassName} ${col.className ?? ""}`}>
                       {col.render(row)}
                     </td>
                   ))}
@@ -112,7 +123,7 @@ export function DataTable<T>({
           </p>
           <div className="flex items-center gap-2">
             <TablePager
-              href={pageHref(basePath!, query, currentPage - 1)}
+              href={pageHref(basePath!, query, currentPage - 1, pageParam)}
               disabled={currentPage <= 1}
               label="前へ"
             />
@@ -120,7 +131,7 @@ export function DataTable<T>({
               {currentPage} / {pageCount}
             </span>
             <TablePager
-              href={pageHref(basePath!, query, currentPage + 1)}
+              href={pageHref(basePath!, query, currentPage + 1, pageParam)}
               disabled={currentPage >= pageCount}
               label="次へ"
             />
