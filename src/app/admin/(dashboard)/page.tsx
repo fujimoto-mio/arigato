@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { DashboardLive } from "@/components/admin/DashboardLive";
 import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
+import { GoogleIcon } from "@/components/flow/brand";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatUsdApprox, formatYen, startOfTokyoDay } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
@@ -14,13 +15,22 @@ type TipWithReview = Prisma.TipGetPayload<{ include: { review: true } }>;
 export default async function AdminDashboardPage() {
   const { store } = await requireAdmin();
   const todayStart = startOfTokyoDay();
+  const todayWhere = { storeId: store.id, status: "succeeded" as const, createdAt: { gte: todayStart } };
 
-  const tips = await prisma.tip.findMany({
-    where: { storeId: store.id, status: "succeeded" },
-    include: { review: true },
-    orderBy: { createdAt: "desc" },
-    take: 12,
-  });
+  const [tips, tipsAgg, reviewsAgg] = await Promise.all([
+    prisma.tip.findMany({
+      where: { storeId: store.id, status: "succeeded" },
+      include: { review: true },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+    prisma.tip.aggregate({ where: todayWhere, _sum: { amount: true }, _count: true }),
+    prisma.review.aggregate({
+      where: { storeId: store.id, createdAt: { gte: todayStart } },
+      _count: true,
+      _avg: { rating: true },
+    }),
+  ]);
 
   const latest = tips[0] ?? null;
   const latestIsToday = latest ? latest.createdAt >= todayStart : false;
@@ -28,6 +38,16 @@ export default async function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <DashboardLive storeId={store.id} />
+
+      <section>
+        <h2 className="text-sm font-bold text-neutral-700">本日のサマリー</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCard label="本日のチップ件数" value={`${tipsAgg._count} 件`} />
+          <KpiCard label="本日の合計金額" value={formatYen(tipsAgg._sum.amount ?? 0)} accent />
+          <KpiCard label="本日の口コミ件数" value={`${reviewsAgg._count} 件`} />
+          <KpiCard label="本日の平均評価" value={reviewsAgg._avg.rating ? reviewsAgg._avg.rating.toFixed(1) : "—"} />
+        </div>
+      </section>
 
       {latest ? (
         <>
@@ -45,11 +65,23 @@ export default async function AdminDashboardPage() {
   );
 }
 
+function KpiCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+      <p className="text-xs text-neutral-500">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>{value}</p>
+    </div>
+  );
+}
+
 function NewArrivalBanner({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
   return (
     <div className="flex items-start gap-4">
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-accent)] text-2xl text-[var(--color-accent)]">
-        🔔
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[var(--color-accent)] text-[var(--color-accent)]">
+        <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+          <path d="M10 20a2 2 0 0 0 4 0" />
+        </svg>
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-3">
@@ -96,7 +128,7 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
             "—"
           )}
         </StatCol>
-        <StatCol label="口コミ">{review?.comment ? "💬" : "—"}</StatCol>
+        <StatCol label="口コミ">{review?.comment ? "あり" : "—"}</StatCol>
       </div>
 
       {review?.comment ? (
@@ -162,6 +194,19 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       header: "口コミ",
       className: "max-w-[220px] truncate text-neutral-600",
       render: (tip) => tip.review?.comment ?? "—",
+    },
+    {
+      key: "guide",
+      header: "口コミ誘導",
+      className: "whitespace-nowrap",
+      render: (tip) =>
+        tip.review?.redirectedToGoogle ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--color-accent)]">
+            <GoogleIcon size={14} /> Googleに誘導
+          </span>
+        ) : (
+          <span className="text-neutral-400">—</span>
+        ),
     },
   ];
 
