@@ -51,7 +51,6 @@ model Tip {
   staffId               String?
   amount                Int
   locale                String
-  tableLabel            String?
   paymentMethod         PaymentMethod @default(cash)
   status                TipStatus     @default(pending)
   stripePaymentIntentId String?       @unique

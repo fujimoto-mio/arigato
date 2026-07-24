@@ -6,10 +6,6 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-function tableText(label: string | null) {
-  return label ? `${label}番` : "—";
-}
-
 export default async function AdminNotificationsPage() {
   const { store } = await requireAdmin();
   const todayStart = startOfTokyoDay();
@@ -44,9 +40,7 @@ export default async function AdminNotificationsPage() {
                     {isNew ? (
                       <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">新着</span>
                     ) : null}
-                    <span className="text-xs text-neutral-500">
-                      {tableText(tip.tableLabel)} ・ {formatTokyoTime(tip.createdAt)}
-                    </span>
+                    <span className="text-xs text-neutral-500">{formatTokyoTime(tip.createdAt)}</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-[var(--color-accent)]">{formatYen(tip.amount)}</span>

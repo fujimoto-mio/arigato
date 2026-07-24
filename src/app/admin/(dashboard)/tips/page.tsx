@@ -14,16 +14,11 @@ const PAGE_SIZE = 10;
 type TipRow = {
   id: string;
   createdAt: Date;
-  tableLabel: string | null;
   paymentMethod: "cash" | "card";
   amount: number;
   rating: number | null;
   comment: string | null;
 };
-
-function tableText(label: string | null) {
-  return label ? `${label}番` : "—";
-}
 
 function parsePage(value: string | undefined): number {
   const n = Number.parseInt(value ?? "1", 10);
@@ -43,10 +38,7 @@ export default async function AdminTipsPage({
 
   const term = q?.trim();
   if (term) {
-    where.OR = [
-      { tableLabel: { contains: term, mode: "insensitive" } },
-      { review: { comment: { contains: term, mode: "insensitive" } } },
-    ];
+    where.review = { comment: { contains: term, mode: "insensitive" } };
   }
 
   // Count first so we can clamp an out-of-range page before fetching rows.
@@ -68,7 +60,6 @@ export default async function AdminTipsPage({
   const rows: TipRow[] = tips.map((tip) => ({
     id: tip.id,
     createdAt: tip.createdAt,
-    tableLabel: tip.tableLabel,
     paymentMethod: tip.paymentMethod,
     amount: tip.amount,
     rating: tip.review?.rating ?? null,
@@ -81,12 +72,6 @@ export default async function AdminTipsPage({
       header: "受信日時",
       className: "whitespace-nowrap text-neutral-600",
       render: (row) => formatTokyoTime(row.createdAt),
-    },
-    {
-      key: "table",
-      header: "テーブル番号",
-      className: "whitespace-nowrap",
-      render: (row) => tableText(row.tableLabel),
     },
     {
       key: "method",
@@ -140,7 +125,7 @@ export default async function AdminTipsPage({
       <TableNavProvider>
         <TableToolbar
           searchParam="q"
-          searchPlaceholder="テーブル番号・口コミで検索"
+          searchPlaceholder="口コミで検索"
           filters={[
             {
               param: "method",

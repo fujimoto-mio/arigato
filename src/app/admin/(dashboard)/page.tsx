@@ -11,10 +11,6 @@ export const dynamic = "force-dynamic";
 
 type TipWithReview = Prisma.TipGetPayload<{ include: { review: true } }>;
 
-function tableText(label: string | null) {
-  return label ? `${label}番` : "—";
-}
-
 export default async function AdminDashboardPage() {
   const { store } = await requireAdmin();
   const todayStart = startOfTokyoDay();
@@ -85,8 +81,7 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
         <span className="text-xs text-neutral-500">受信日時：{formatTokyoTime(tip.createdAt)}</span>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-4 border-y border-neutral-100 py-5 sm:grid-cols-4 sm:divide-x sm:divide-neutral-100">
-        <StatCol label="テーブル番号">{tableText(tip.tableLabel)}</StatCol>
+      <div className="mt-5 grid grid-cols-3 gap-4 border-y border-neutral-100 py-5 sm:divide-x sm:divide-neutral-100">
         <StatCol label="チップ金額">
           <span className="text-[var(--color-accent)]">{formatYen(tip.amount)}</span>
           <span className="mt-0.5 block text-[11px] font-normal text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
@@ -137,12 +132,6 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       header: "受信日時",
       className: "whitespace-nowrap text-neutral-600",
       render: (tip) => formatTokyoTime(tip.createdAt),
-    },
-    {
-      key: "table",
-      header: "テーブル番号",
-      className: "whitespace-nowrap",
-      render: (tip) => tableText(tip.tableLabel),
     },
     {
       key: "amount",

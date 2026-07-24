@@ -11,7 +11,6 @@ type ReviewRow = {
   comment: string | null;
   createdAt: Date;
   redirectedToGoogle: boolean;
-  tableLabel: string | null;
   amount: number;
   photoUrls: string[];
 };
@@ -32,7 +31,6 @@ function ReviewList({ reviews, emptyLabel }: { reviews: ReviewRow[]; emptyLabel:
             <span className="text-xs text-neutral-400">{formatTokyoTime(review.createdAt)}</span>
           </div>
           <p className="mt-2 text-xs text-neutral-500">
-            {review.tableLabel ? `${review.tableLabel}番 ・ ` : ""}
             {formatYen(review.amount)}
             {review.redirectedToGoogle ? " ・ Googleへ誘導" : ""}
           </p>
@@ -67,7 +65,6 @@ export default async function AdminReviewsPage() {
     comment: review.comment,
     createdAt: review.createdAt,
     redirectedToGoogle: review.redirectedToGoogle,
-    tableLabel: review.tip.tableLabel,
     amount: review.tip.amount,
     photoUrls: review.photoUrls,
   }));

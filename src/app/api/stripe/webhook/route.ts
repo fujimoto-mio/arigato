@@ -43,7 +43,6 @@ export async function POST(request: Request) {
             tipId: tip.id,
             amount: tip.amount,
             locale: tip.locale,
-            tableLabel: tip.tableLabel,
             paymentMethod: "card",
             createdAt: tip.createdAt.toISOString(),
           });
