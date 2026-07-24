@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { DashboardLive } from "@/components/admin/DashboardLive";
+import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatUsdApprox, formatYen, startOfTokyoDay } from "@/lib/admin/period";
@@ -130,6 +131,51 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
 }
 
 function RecentList({ tips }: { tips: TipWithReview[] }) {
+  const columns: Column<TipWithReview>[] = [
+    {
+      key: "createdAt",
+      header: "受信日時",
+      className: "whitespace-nowrap text-neutral-600",
+      render: (tip) => formatTokyoTime(tip.createdAt),
+    },
+    {
+      key: "table",
+      header: "テーブル番号",
+      className: "whitespace-nowrap",
+      render: (tip) => tableText(tip.tableLabel),
+    },
+    {
+      key: "amount",
+      header: "チップ金額",
+      className: "whitespace-nowrap",
+      render: (tip) => (
+        <>
+          <span className="font-bold">{formatYen(tip.amount)}</span>
+          <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
+        </>
+      ),
+    },
+    {
+      key: "rating",
+      header: "評価",
+      className: "whitespace-nowrap",
+      render: (tip) =>
+        tip.review ? (
+          <span className="flex items-center gap-1">
+            <Stars rating={tip.review.rating} /> <span className="text-xs">{tip.review.rating.toFixed(1)}</span>
+          </span>
+        ) : (
+          <span className="text-neutral-400">—</span>
+        ),
+    },
+    {
+      key: "comment",
+      header: "口コミ",
+      className: "max-w-[220px] truncate text-neutral-600",
+      render: (tip) => tip.review?.comment ?? "—",
+    },
+  ];
+
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
@@ -139,41 +185,13 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
         </Link>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-neutral-100 text-xs text-neutral-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">受信日時</th>
-              <th className="px-4 py-3 font-medium">テーブル番号</th>
-              <th className="px-4 py-3 font-medium">チップ金額</th>
-              <th className="px-4 py-3 font-medium">評価</th>
-              <th className="px-4 py-3 font-medium">口コミ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tips.map((tip, index) => (
-              <tr key={tip.id} className={`border-b border-neutral-50 ${index === 0 ? "bg-[var(--color-accent)]/5" : ""}`}>
-                <td className="whitespace-nowrap px-4 py-3 text-neutral-600">{formatTokyoTime(tip.createdAt)}</td>
-                <td className="whitespace-nowrap px-4 py-3">{tableText(tip.tableLabel)}</td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  <span className="font-bold">{formatYen(tip.amount)}</span>
-                  <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
-                </td>
-                <td className="whitespace-nowrap px-4 py-3">
-                  {tip.review ? (
-                    <span className="flex items-center gap-1">
-                      <Stars rating={tip.review.rating} /> <span className="text-xs">{tip.review.rating.toFixed(1)}</span>
-                    </span>
-                  ) : (
-                    <span className="text-neutral-400">—</span>
-                  )}
-                </td>
-                <td className="max-w-[220px] truncate px-4 py-3 text-neutral-600">{tip.review?.comment ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        rows={tips}
+        rowKey={(tip) => tip.id}
+        rowClassName={(_, index) => (index === 0 ? "bg-[var(--color-accent)]/5" : "")}
+        emptyLabel="まだチップ・口コミはありません。"
+      />
     </section>
   );
 }
