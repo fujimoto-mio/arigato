@@ -5,6 +5,7 @@ import { GoogleIcon } from "@/components/flow/brand";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatYen } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 
 export const dynamic = "force-dynamic";
 
@@ -126,8 +127,8 @@ export default async function AdminReviewsPage({
   const { pubPage: pubParam, privPage: privParam } = await searchParams;
 
   // Same threshold the guest flow branches on (see /api/reviews).
-  const publicWhere = { storeId: store.id, rating: { gte: 3 } };
-  const privateWhere = { storeId: store.id, rating: { lt: 3 } };
+  const publicWhere = { storeId: store.id, rating: { gte: PUBLIC_REVIEW_MIN_RATING } };
+  const privateWhere = { storeId: store.id, rating: { lt: PUBLIC_REVIEW_MIN_RATING } };
 
   const [publicCount, privateCount, avgAgg] = await Promise.all([
     prisma.review.count({ where: publicWhere }),
@@ -168,19 +169,19 @@ export default async function AdminReviewsPage({
           <p className="mt-1 text-2xl font-bold">{average}</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs text-neutral-500">公開（3★以上）</p>
+          <p className="text-xs text-neutral-500">公開（4★以上）</p>
           <p className="mt-1 text-2xl font-bold">{publicCount}</p>
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="text-xs text-neutral-500">非公開（3★未満）</p>
+          <p className="text-xs text-neutral-500">非公開（3★以下）</p>
           <p className="mt-1 text-2xl font-bold">{privateCount}</p>
         </div>
       </section>
 
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-lg font-bold">要対応（3★未満）</h2>
-          <p className="text-sm text-neutral-500">公開もGoogleへの誘導もされません。店舗チームだけが確認できます。</p>
+          <h2 className="text-lg font-bold">要対応（3★以下）</h2>
+          <p className="text-sm text-neutral-500">公開もGoogle・SNSへの誘導もされません。店舗チームだけが確認できます。</p>
         </div>
         <TableNavProvider>
           <DataTable
@@ -202,7 +203,7 @@ export default async function AdminReviewsPage({
 
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-lg font-bold">公開（3★以上）</h2>
+          <h2 className="text-lg font-bold">公開（4★以上）</h2>
           <p className="text-sm text-neutral-500">
             これらのお客様にはGoogleレビューやSNS（Facebook・Instagram）フォローをご案内しました。
           </p>

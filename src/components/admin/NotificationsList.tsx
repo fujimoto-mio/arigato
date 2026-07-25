@@ -1,5 +1,6 @@
 "use client";
 
+import { Armchair, Clock, Coins, CreditCard, Share2, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { markNotificationRead } from "@/app/admin/(dashboard)/notifications/actions";
@@ -130,7 +131,8 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button type="button" aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-black/40" />
+      {/* Backdrop is non-interactive — closing is only via the ✕ button or Esc. */}
+      <div className="absolute inset-0 bg-black/40" />
       <div className="relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <button
           type="button"
@@ -151,10 +153,20 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
         </div>
 
         <dl className="mt-4 divide-y divide-neutral-100 text-sm">
-          <InfoRow label="テーブル番号" value={item.tableText} />
-          <InfoRow label="受信日時" value={item.createdAtLabel} />
-          <InfoRow label="支払方法" value={item.paymentLabel} />
-          <InfoRow label="評価">
+          <InfoRow label="テーブル番号" icon={<Armchair className="h-4 w-4" strokeWidth={1.75} />} value={item.tableText} />
+          <InfoRow label="受信日時" icon={<Clock className="h-4 w-4" strokeWidth={1.75} />} value={item.createdAtLabel} />
+          <InfoRow
+            label="支払方法"
+            icon={
+              item.paymentLabel === "カード" ? (
+                <CreditCard className="h-4 w-4" strokeWidth={1.75} />
+              ) : (
+                <Coins className="h-4 w-4" strokeWidth={1.75} />
+              )
+            }
+            value={item.paymentLabel}
+          />
+          <InfoRow label="評価" icon={<Star className="h-4 w-4" strokeWidth={1.75} />}>
             {item.rating !== null ? (
               <span className="flex items-center justify-end gap-1">
                 <Stars rating={item.rating} /> {item.rating.toFixed(1)}
@@ -163,7 +175,7 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
               <span className="text-neutral-400">—</span>
             )}
           </InfoRow>
-          <InfoRow label="口コミ誘導">
+          <InfoRow label="口コミ誘導" icon={<Share2 className="h-4 w-4" strokeWidth={1.75} />}>
             {item.redirectedToGoogle ? (
               <span className="inline-flex items-center gap-1.5 text-[var(--color-accent)]">
                 <GoogleIcon size={14} /> Googleに誘導
@@ -200,10 +212,23 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
   );
 }
 
-function InfoRow({ label, value, children }: { label: string; value?: string; children?: ReactNode }) {
+function InfoRow({
+  label,
+  icon,
+  value,
+  children,
+}: {
+  label: string;
+  icon: ReactNode;
+  value?: string;
+  children?: ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 py-2.5">
-      <dt className="text-neutral-500">{label}</dt>
+      <dt className="flex items-center gap-2 text-neutral-500">
+        <span className="text-neutral-400">{icon}</span>
+        {label}
+      </dt>
       <dd className="text-right font-medium text-neutral-900">{children ?? value}</dd>
     </div>
   );

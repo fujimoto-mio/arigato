@@ -1,3 +1,4 @@
+import { PushToggle } from "@/components/admin/PushToggle";
 import { StoreSettingsForm } from "@/components/admin/StoreSettingsForm";
 import { requireAdmin } from "@/lib/admin/auth";
 import { resolveAppOrigin } from "@/lib/origin";
@@ -38,24 +39,32 @@ export default async function AdminSettingsPage({
       </section>
 
       <section>
+        <h2 className="text-lg font-bold">通知設定</h2>
+        <p className="mb-4 text-sm text-neutral-500">
+          新しいチップ・口コミが届いたときに、この端末へプッシュ通知を送ります。端末ごとに設定が必要です。
+        </p>
+        <PushToggle variant="switch" />
+      </section>
+
+      <section>
         <h2 className="text-lg font-bold">テーブルQRコード</h2>
         <p className="mb-4 text-sm text-neutral-500">
           印刷してテーブルに置いてください。読み取るとお客様のチップ画面が開きます。
         </p>
 
-        <form method="get" className="mb-4 flex items-end gap-2">
+        <form method="get" className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end">
           <label className="text-sm font-medium text-neutral-700">
             テーブル番号（任意）
             <input
               name="table"
               defaultValue={tableLabel ?? ""}
               placeholder="例：5"
-              className="mt-1 w-40 rounded-lg border border-neutral-300 p-2 text-sm"
+              className="mt-1 block w-full rounded-lg border border-neutral-300 p-2 text-sm sm:w-40"
             />
           </label>
           <button
             type="submit"
-            className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
+            className="shrink-0 whitespace-nowrap rounded-full border border-neutral-300 px-6 py-2 text-sm font-medium hover:bg-neutral-100"
           >
             生成
           </button>

@@ -41,20 +41,21 @@ export async function POST(request: Request) {
       },
     });
 
-    void broadcastTip(store.id, {
-      tipId: tip.id,
-      amount: tip.amount,
-      locale: tip.locale,
-      tableLabel: tip.tableLabel,
-      paymentMethod: "cash",
-      createdAt: tip.createdAt.toISOString(),
-    });
-
-    void sendStorePush(store.id, {
-      title: "新しいチップが届きました",
-      body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
-      tag: `tip-${tip.id}`,
-    });
+    await Promise.all([
+      broadcastTip(store.id, {
+        tipId: tip.id,
+        amount: tip.amount,
+        locale: tip.locale,
+        tableLabel: tip.tableLabel,
+        paymentMethod: "cash",
+        createdAt: tip.createdAt.toISOString(),
+      }),
+      sendStorePush(store.id, {
+        title: "新しいチップが届きました",
+        body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
+        tag: `tip-${tip.id}`,
+      }),
+    ]);
 
     return NextResponse.json({ tipId: tip.id, mode: "cash" });
   }

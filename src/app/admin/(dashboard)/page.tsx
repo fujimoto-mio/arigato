@@ -1,7 +1,6 @@
 import { Armchair, Coins, HandCoins, MessageSquareText, Star, Wallet } from "lucide-react";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { DashboardLive } from "@/components/admin/DashboardLive";
 import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
 import { GoogleIcon } from "@/components/flow/brand";
@@ -42,8 +41,6 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <DashboardLive storeId={store.id} />
-
       <section>
         <h2 className="text-sm font-bold text-neutral-700">本日のサマリー</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">

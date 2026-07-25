@@ -49,7 +49,7 @@ export async function POST(request: Request) {
             createdAt: tip.createdAt.toISOString(),
           });
 
-          void sendStorePush(tip.storeId, {
+          await sendStorePush(tip.storeId, {
             title: "新しいチップが届きました",
             body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
             tag: `tip-${tip.id}`,

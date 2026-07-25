@@ -1,3 +1,4 @@
+import { Coins, CreditCard } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
@@ -92,7 +93,16 @@ export default async function AdminTipsPage({
       key: "method",
       header: "支払方法",
       className: "whitespace-nowrap text-neutral-600",
-      render: (row) => (row.paymentMethod === "card" ? "カード" : "現金"),
+      render: (row) =>
+        row.paymentMethod === "card" ? (
+          <span className="flex items-center gap-1.5">
+            <CreditCard className="h-4 w-4 text-[var(--color-accent)]" strokeWidth={1.75} /> カード
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5">
+            <Coins className="h-4 w-4 text-neutral-500" strokeWidth={1.75} /> 現金
+          </span>
+        ),
     },
     {
       key: "amount",

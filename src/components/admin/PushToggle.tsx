@@ -18,7 +18,7 @@ function urlBase64ToUint8Array(base64String: string) {
  * "Enable notifications" control — subscribes this admin device to Web Push so
  * new tips/reviews notify the admin even when the panel is closed.
  */
-export function PushToggle() {
+export function PushToggle({ variant = "button" }: { variant?: "button" | "switch" }) {
   const [supported, setSupported] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [denied, setDenied] = useState(false);
@@ -89,6 +89,39 @@ export function PushToggle() {
   }
 
   if (!supported) return null;
+
+  if (variant === "switch") {
+    return (
+      <div className="flex items-start justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-neutral-900">プッシュ通知</p>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            {subscribed ? "この端末で通知を受け取ります。" : "オンにすると新着を通知します。"}
+          </p>
+          {denied ? (
+            <p className="mt-1 text-[11px] text-red-500">ブラウザの設定で通知がブロックされています。</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={subscribed}
+          aria-label="プッシュ通知"
+          onClick={subscribed ? disable : enable}
+          disabled={busy || (denied && !subscribed)}
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+            subscribed ? "bg-[var(--color-accent)]" : "bg-neutral-300"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+              subscribed ? "left-[1.375rem]" : "left-0.5"
+            }`}
+          />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-start gap-1">

@@ -13,6 +13,7 @@ import {
 import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
+import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 import { TIP_STEP } from "@/lib/tip";
 
 export type GuestStore = {
@@ -103,6 +104,9 @@ export function GuestFlow({
   // Set when the just-submitted review qualifies for the store's Google review
   // page (rating high enough + store has a Place ID); offered on Stay Connected.
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
+  // Whether to show the follow/review buttons on Stay Connected. Positive by
+  // default; a low-rating review (1–3★) turns it off so we never promote it.
+  const [promote, setPromote] = useState(true);
 
   function reset() {
     setAmount(0);
@@ -111,6 +115,7 @@ export function GuestFlow({
     setClientSecret(null);
     setError(null);
     setGoogleReviewUrl(null);
+    setPromote(true);
     setStep("landing");
   }
 
@@ -180,18 +185,22 @@ export function GuestFlow({
       {step === "review" && tipId && (
         <Review
           tipId={tipId}
-          onDone={(reviewUrl) => {
+          onDone={(reviewUrl, promoteFlag) => {
             setGoogleReviewUrl(reviewUrl);
+            setPromote(promoteFlag);
             setStep("thankyou");
           }}
           onBack={() => setStep("support")}
         />
       )}
-      {step === "thankyou" && <ThankYou onHome={reset} onReviews={() => setStep("connect")} />}
+      {step === "thankyou" && (
+        <ThankYou onHome={reset} onReviews={promote ? () => setStep("connect") : null} />
+      )}
       {step === "connect" && (
         <Connect
           store={store}
           reviewUrl={googleReviewUrl}
+          promote={promote}
           onBack={() => setStep("thankyou")}
           onHome={reset}
           onStory={() => setStep("story")}
@@ -344,7 +353,8 @@ function Support({
   hasError: boolean;
 }) {
   const t = useTranslations("support");
-  const canSubmit = !isSubmitting && (payByCard ? amount >= TIP_STEP : true);
+  // Require at least one tip step — the Next button is disabled at ¥0.
+  const canSubmit = !isSubmitting && amount >= TIP_STEP;
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -435,7 +445,9 @@ function Review({
   tipId: string;
   // googleReviewUrl is non-null when the rating qualifies for the store's Google
   // review page — offered later on the Stay Connected screen, not jumped to here.
-  onDone: (googleReviewUrl: string | null) => void;
+  // `promote` is true only for positive ratings (>= PUBLIC_REVIEW_MIN_RATING);
+  // low ratings are kept private and never shown the follow/review buttons.
+  onDone: (googleReviewUrl: string | null, promote: boolean) => void;
   onBack: () => void;
 }) {
   const t = useTranslations("review");
@@ -484,7 +496,7 @@ function Review({
       const { redirectUrl } = (await res.json()) as { redirectUrl: string | null };
       // Always continue to Thank You / Stay Connected in-app; the Google review
       // link (if any) is offered as a button there, not an automatic redirect.
-      onDone(redirectUrl);
+      onDone(redirectUrl, rating >= PUBLIC_REVIEW_MIN_RATING);
     } catch {
       setError(t("errorGeneric"));
       setIsSubmitting(false);
@@ -592,7 +604,7 @@ function Review({
 
 /* ---------- Screen 5: Thank You ---------- */
 
-function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: () => void }) {
+function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: (() => void) | null }) {
   const t = useTranslations("thankYou");
   return (
     <div className="flex flex-1 flex-col">
@@ -625,25 +637,27 @@ function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: () => 
           >
             {t("backToTop")}
           </button>
-          <button
-            type="button"
-            onClick={onReviews}
-            className="mt-6 flex w-full items-center justify-center gap-1.5 text-base font-semibold text-[var(--color-accent)]"
-          >
-            {t("viewReviews")}
-            <svg
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          {onReviews ? (
+            <button
+              type="button"
+              onClick={onReviews}
+              className="mt-6 flex w-full items-center justify-center gap-1.5 text-base font-semibold text-[var(--color-accent)]"
             >
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </button>
+              {t("viewReviews")}
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -655,6 +669,7 @@ function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: () => 
 function Connect({
   store,
   reviewUrl,
+  promote,
   onBack,
   onHome,
   onStory,
@@ -665,6 +680,9 @@ function Connect({
   // The store's Google "write a review" link when the guest just left a
   // qualifying rating; falls back to the general Maps listing otherwise.
   reviewUrl: string | null;
+  // Only positive reviewers (and neutral guests) see the follow/review buttons;
+  // a 1–3★ review turns this off so we never publicly promote it.
+  promote: boolean;
   onBack: () => void;
   onHome: () => void;
   onStory: () => void;
@@ -673,15 +691,19 @@ function Connect({
 }) {
   const t = useTranslations("connect");
   const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
-  const links = [
-    store.instagramUrl
-      ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
-      : null,
-    store.facebookUrl
-      ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
-      : null,
-    googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
-  ].filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
+  const links = (
+    promote
+      ? [
+          store.instagramUrl
+            ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
+            : null,
+          store.facebookUrl
+            ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
+            : null,
+          googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
+        ]
+      : []
+  ).filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
 
   return (
     <div className="flex flex-1 flex-col pb-20">
