@@ -14,11 +14,16 @@ const PAGE_SIZE = 10;
 type TipRow = {
   id: string;
   createdAt: Date;
+  tableLabel: string | null;
   paymentMethod: "cash" | "card";
   amount: number;
   rating: number | null;
   comment: string | null;
 };
+
+function tableText(label: string | null) {
+  return label ? `${label}番` : "—";
+}
 
 function parsePage(value: string | undefined): number {
   const n = Number.parseInt(value ?? "1", 10);
@@ -38,7 +43,10 @@ export default async function AdminTipsPage({
 
   const term = q?.trim();
   if (term) {
-    where.review = { comment: { contains: term, mode: "insensitive" } };
+    where.OR = [
+      { tableLabel: { contains: term, mode: "insensitive" } },
+      { review: { comment: { contains: term, mode: "insensitive" } } },
+    ];
   }
 
   // Count first so we can clamp an out-of-range page before fetching rows.
@@ -60,6 +68,7 @@ export default async function AdminTipsPage({
   const rows: TipRow[] = tips.map((tip) => ({
     id: tip.id,
     createdAt: tip.createdAt,
+    tableLabel: tip.tableLabel,
     paymentMethod: tip.paymentMethod,
     amount: tip.amount,
     rating: tip.review?.rating ?? null,
@@ -72,6 +81,12 @@ export default async function AdminTipsPage({
       header: "受信日時",
       className: "whitespace-nowrap text-neutral-600",
       render: (row) => formatTokyoTime(row.createdAt),
+    },
+    {
+      key: "table",
+      header: "テーブル番号",
+      className: "whitespace-nowrap",
+      render: (row) => tableText(row.tableLabel),
     },
     {
       key: "method",
@@ -106,8 +121,8 @@ export default async function AdminTipsPage({
     {
       key: "comment",
       header: "口コミ",
-      className: "max-w-[220px] truncate text-neutral-600",
-      render: (row) => row.comment ?? "—",
+      className: "min-w-[200px] max-w-[340px] whitespace-pre-line leading-relaxed text-neutral-700",
+      render: (row) => row.comment ?? <span className="text-neutral-400">—</span>,
     },
   ];
 
@@ -125,7 +140,7 @@ export default async function AdminTipsPage({
       <TableNavProvider>
         <TableToolbar
           searchParam="q"
-          searchPlaceholder="口コミで検索"
+          searchPlaceholder="テーブル番号・口コミで検索"
           filters={[
             {
               param: "method",
@@ -144,7 +159,8 @@ export default async function AdminTipsPage({
           rows={rows}
           rowKey={(row) => row.id}
           emptyLabel={term || method ? "条件に一致するチップはありません。" : "まだチップはありません。"}
-          minWidthClass="min-w-[680px]"
+          minWidthClass="min-w-[760px]"
+          bodyCellClassName="align-top"
           page={page}
           pageSize={PAGE_SIZE}
           total={total}

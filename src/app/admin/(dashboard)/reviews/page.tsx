@@ -16,6 +16,7 @@ type ReviewRow = {
   comment: string | null;
   createdAt: Date;
   redirectedToGoogle: boolean;
+  tableLabel: string | null;
   amount: number;
   photoUrls: string[];
 };
@@ -31,6 +32,12 @@ const baseColumns: Column<ReviewRow>[] = [
     header: "受信日時",
     className: "whitespace-nowrap text-neutral-600",
     render: (row) => formatTokyoTime(row.createdAt),
+  },
+  {
+    key: "table",
+    header: "テーブル番号",
+    className: "whitespace-nowrap",
+    render: (row) => (row.tableLabel ? `${row.tableLabel}番` : "—"),
   },
   {
     key: "rating",
@@ -96,7 +103,7 @@ function toRow(review: {
   createdAt: Date;
   redirectedToGoogle: boolean;
   photoUrls: string[];
-  tip: { amount: number };
+  tip: { amount: number; tableLabel: string | null };
 }): ReviewRow {
   return {
     id: review.id,
@@ -104,6 +111,7 @@ function toRow(review: {
     comment: review.comment,
     createdAt: review.createdAt,
     redirectedToGoogle: review.redirectedToGoogle,
+    tableLabel: review.tip.tableLabel,
     amount: review.tip.amount,
     photoUrls: review.photoUrls,
   };

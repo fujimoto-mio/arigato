@@ -11,6 +11,7 @@ export type NotificationItem = {
   amountYen: string;
   amountUsd: string;
   createdAtLabel: string;
+  tableText: string;
   paymentLabel: string;
   isUnread: boolean;
   hasReview: boolean;
@@ -94,6 +95,7 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
                   {isUnread ? (
                     <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">未読</span>
                   ) : null}
+                  {item.tableText !== "—" ? <span>{item.tableText}</span> : null}
                   <span>{item.createdAtLabel}</span>
                   {item.rating !== null ? (
                     <span className="flex items-center gap-1">
@@ -149,6 +151,7 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
         </div>
 
         <dl className="mt-4 divide-y divide-neutral-100 text-sm">
+          <InfoRow label="テーブル番号" value={item.tableText} />
           <InfoRow label="受信日時" value={item.createdAtLabel} />
           <InfoRow label="支払方法" value={item.paymentLabel} />
           <InfoRow label="評価">

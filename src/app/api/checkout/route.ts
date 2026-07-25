@@ -10,6 +10,7 @@ const bodySchema = z.object({
   slug: z.string().min(1),
   amount: z.number().int().refine(isValidTipAmount, "invalid_amount"),
   locale: z.enum(LOCALES),
+  tableLabel: z.string().trim().max(40).optional(),
   paymentMethod: z.enum(["cash", "card"]),
 });
 
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
-  const { slug, amount, locale, paymentMethod } = parsed.data;
+  const { slug, amount, locale, tableLabel, paymentMethod } = parsed.data;
 
   const store = await prisma.store.findUnique({ where: { slug } });
   if (!store) {
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
         storeId: store.id,
         amount,
         locale,
+        tableLabel: tableLabel || null,
         paymentMethod: "cash",
         status: "succeeded",
       },
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
       tipId: tip.id,
       amount: tip.amount,
       locale: tip.locale,
+      tableLabel: tip.tableLabel,
       paymentMethod: "cash",
       createdAt: tip.createdAt.toISOString(),
     });
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
       storeId: store.id,
       amount,
       locale,
+      tableLabel: tableLabel || null,
       paymentMethod: "card",
       status: "pending",
     },
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
     amount,
     currency: "jpy",
     payment_method_types: ["card"],
-    metadata: { tipId: tip.id, storeSlug: store.slug },
+    metadata: { tipId: tip.id, storeSlug: store.slug, tableLabel: tableLabel ?? "" },
   });
 
   await prisma.tip.update({

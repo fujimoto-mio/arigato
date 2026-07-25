@@ -83,9 +83,11 @@ function AccentButton({
 
 export function GuestFlow({
   store,
+  tableLabel,
   resumeTipId = null,
 }: {
   store: GuestStore;
+  tableLabel: string | null;
   // Set after a card returns from a 3-D Secure redirect (?paid=<tipId>): the tip
   // is already paid, so resume straight at the review step.
   resumeTipId?: string | null;
@@ -123,6 +125,7 @@ export function GuestFlow({
           slug: store.slug,
           amount,
           locale,
+          tableLabel: tableLabel ?? undefined,
           paymentMethod: payByCard ? "card" : "cash",
         }),
       });

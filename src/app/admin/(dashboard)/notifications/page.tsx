@@ -48,6 +48,7 @@ export default async function AdminNotificationsPage({
     amountYen: formatYen(tip.amount),
     amountUsd: formatUsdApprox(tip.amount),
     createdAtLabel: formatTokyoTime(tip.createdAt),
+    tableText: tip.tableLabel ? `${tip.tableLabel}番` : "—",
     paymentLabel: tip.paymentMethod === "card" ? "カード" : "現金",
     isUnread: !readSet.has(tip.id),
     hasReview: Boolean(tip.review),
