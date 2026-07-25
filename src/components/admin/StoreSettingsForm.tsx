@@ -145,11 +145,11 @@ export function StoreSettingsForm({
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
           disabled={status === "saving"}
-          className="rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white disabled:opacity-40"
+          className="w-full rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white disabled:opacity-40 sm:w-auto"
         >
           {status === "saving" ? "保存中…" : "保存"}
         </button>

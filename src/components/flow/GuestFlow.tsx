@@ -41,7 +41,7 @@ function googleMapsUrl(placeId: string) {
 function Header({ onBack }: { onBack?: () => void }) {
   return (
     <header className="flex items-start justify-between px-5 pt-5">
-      <div className="flex min-h-11 items-center gap-5">
+      <div className="flex min-h-11 items-center gap-2">
         {onBack ? <BackButton onClick={onBack} /> : null}
         <LanguageMenu />
       </div>
@@ -53,8 +53,24 @@ function Header({ onBack }: { onBack?: () => void }) {
 function BackButton({ onClick }: { onClick: () => void }) {
   const tc = useTranslations("common");
   return (
-    <button type="button" onClick={onClick} aria-label={tc("back")} className="text-5xl leading-none text-neutral-400">
-      ‹
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={tc("back")}
+      className="-ml-1.5 flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-6 w-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
     </button>
   );
 }

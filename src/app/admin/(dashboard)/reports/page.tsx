@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp, Coins, HandCoins, Star, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { ReportRangeSelect } from "@/components/admin/ReportRangeSelect";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -23,6 +24,16 @@ function tokyoISODate(value: Date): string {
   return new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
 }
 
+function tokyoLongDate(value: Date): string {
+  return new Date(value).toLocaleDateString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
+}
+
 function parseTokyoDate(value: string | undefined): Date | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const [y, m, d] = value.split("-").map(Number);
@@ -30,18 +41,25 @@ function parseTokyoDate(value: string | undefined): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-async function periodStats(storeId: string, since?: Date) {
-  const where = { storeId, status: "succeeded" as const, ...(since ? { createdAt: { gte: since } } : {}) };
-  const reviewWhere = { storeId, ...(since ? { createdAt: { gte: since } } : {}) };
+async function periodStats(storeId: string, start?: Date, end?: Date) {
+  const createdAt: { gte?: Date; lt?: Date } = {};
+  if (start) createdAt.gte = start;
+  if (end) createdAt.lt = end;
+  const scoped = Boolean(start || end);
+  const where = { storeId, status: "succeeded" as const, ...(scoped ? { createdAt } : {}) };
+  const reviewWhere = { storeId, ...(scoped ? { createdAt } : {}) };
   const [tips, reviews] = await Promise.all([
     prisma.tip.aggregate({ where, _sum: { amount: true }, _count: true }),
     prisma.review.aggregate({ where: reviewWhere, _count: true, _avg: { rating: true } }),
   ]);
+  const tipCount = tips._count;
+  const tipTotal = tips._sum.amount ?? 0;
   return {
-    tipCount: tips._count,
-    tipTotal: tips._sum.amount ?? 0,
+    tipCount,
+    tipTotal,
+    avgTip: tipCount > 0 ? tipTotal / tipCount : 0,
     reviewCount: reviews._count,
-    avgRating: reviews._avg.rating,
+    avgRating: reviews._avg.rating ?? 0,
   };
 }
 
@@ -53,6 +71,7 @@ export default async function AdminReportsPage({
   const { store } = await requireAdmin();
   const { range, from, to } = await searchParams;
   const todayStart = startOfTokyoDay();
+  const yesterdayStart = startOfTokyoDaysAgo(1);
 
   // Resolve the chart range: a preset keyword (today/7/14/30/60) or a custom
   // from–to pair. Clamped so it never runs into the future or exceeds the cap.
@@ -78,8 +97,9 @@ export default async function AdminReportsPage({
   }
   const rangeEndExclusive = new Date(toStart.getTime() + DAY_MS);
 
-  const [today, all, rangeTips] = await Promise.all([
+  const [today, yesterday, all, rangeTips] = await Promise.all([
     periodStats(store.id, todayStart),
+    periodStats(store.id, yesterdayStart, todayStart),
     periodStats(store.id),
     prisma.tip.findMany({
       where: { storeId: store.id, status: "succeeded", createdAt: { gte: fromStart, lt: rangeEndExclusive } },
@@ -106,14 +126,12 @@ export default async function AdminReportsPage({
   const rangeCount = days.reduce((sum, d) => sum + d.count, 0);
 
   // Line chart geometry in a 0–100 viewBox (points at each day's column centre).
-  // value 0 sits at the baseline (96), the peak near the top (6).
   const n = days.length;
   const px = (i: number) => ((i + 0.5) / n) * 100;
   const py = (total: number) => 96 - (total / maxTotal) * 90;
   const baseY = py(0).toFixed(2);
   const linePoints = days.map((d, i) => `${px(i).toFixed(2)},${py(d.total).toFixed(2)}`).join(" ");
   const areaPoints = `${px(0).toFixed(2)},${baseY} ${linePoints} ${px(n - 1).toFixed(2)},${baseY}`;
-  // Y-axis ticks (top → bottom).
   const yTicks = [1, 0.75, 0.5, 0.25, 0].map((f) => Math.round(maxTotal * f));
 
   const labelEveryNth = dayCount <= 14 ? 1 : Math.ceil(dayCount / 12);
@@ -121,34 +139,59 @@ export default async function AdminReportsPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-xl font-bold">レポート</h1>
+      <div>
+        <h1 className="text-xl font-bold">レポート</h1>
+        <p className="mt-1 text-sm text-neutral-500">集計日：{tokyoLongDate(todayStart)}（JST）</p>
+      </div>
 
-      {[
-        { title: "本日", s: today },
-        { title: "累計", s: all },
-      ].map(({ title, s }) => (
-        <section key={title}>
-          <h2 className="mb-3 text-sm font-bold text-neutral-700">{title}</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Metric label="チップ件数" value={`${s.tipCount} 件`} icon={<CountIcon />} />
-            <Metric label="チップ合計金額" value={formatYen(s.tipTotal)} accent icon={<YenIcon />} />
-            <Metric
-              label="平均チップ"
-              value={s.tipCount > 0 ? formatYen(Math.round(s.tipTotal / s.tipCount)) : "—"}
-              icon={<YenIcon />}
-            />
-            <Metric
-              label="平均評価"
-              value={s.avgRating ? s.avgRating.toFixed(2) : `— (${s.reviewCount}件)`}
-              icon={<StarIcon />}
-            />
-          </div>
-        </section>
-      ))}
+      <section>
+        <h2 className="mb-3 text-sm font-bold text-neutral-700">本日の実績</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Metric
+            label="チップ件数"
+            value={`${today.tipCount.toLocaleString("ja-JP")} 件`}
+            delta={<Delta current={today.tipCount} previous={yesterday.tipCount} />}
+            icon={<HandCoins className="h-4 w-4" strokeWidth={1.75} />}
+          />
+          <Metric
+            label="チップ合計金額"
+            value={formatYen(today.tipTotal)}
+            accent
+            delta={<Delta current={today.tipTotal} previous={yesterday.tipTotal} />}
+            icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />}
+          />
+          <Metric
+            label="平均チップ"
+            value={today.tipCount > 0 ? formatYen(Math.round(today.avgTip)) : "—"}
+            delta={<Delta current={today.avgTip} previous={yesterday.avgTip} />}
+            icon={<Coins className="h-4 w-4" strokeWidth={1.75} />}
+          />
+          <Metric
+            label="平均評価"
+            value={today.reviewCount > 0 ? today.avgRating.toFixed(2) : "—"}
+            delta={<Delta current={today.avgRating} previous={yesterday.avgRating} suffix="pt" absolute />}
+            icon={<Star className="h-4 w-4" strokeWidth={1.75} />}
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-bold text-neutral-700">累計</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Metric label="チップ件数" value={`${all.tipCount.toLocaleString("ja-JP")} 件`} icon={<HandCoins className="h-4 w-4" strokeWidth={1.75} />} />
+          <Metric label="チップ合計金額" value={formatYen(all.tipTotal)} accent icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />} />
+          <Metric label="平均チップ" value={all.tipCount > 0 ? formatYen(Math.round(all.avgTip)) : "—"} icon={<Coins className="h-4 w-4" strokeWidth={1.75} />} />
+          <Metric
+            label="平均評価"
+            value={all.reviewCount > 0 ? `${all.avgRating.toFixed(2)}（${all.reviewCount}件）` : "—"}
+            icon={<Star className="h-4 w-4" strokeWidth={1.75} />}
+          />
+        </div>
+      </section>
 
       <section>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-sm font-bold text-neutral-700">日別チップ</h2>
+          <h2 className="text-sm font-bold text-neutral-700">日別チップ推移</h2>
           <ReportRangeSelect
             selection={selection}
             fromISO={tokyoISODate(fromStart)}
@@ -160,13 +203,12 @@ export default async function AdminReportsPage({
         <div className="rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="mb-4 flex flex-wrap gap-x-8 gap-y-2 border-b border-neutral-100 pb-4">
             <RangeStat label="期間合計" value={formatYen(rangeTotal)} accent />
-            <RangeStat label="チップ件数" value={`${rangeCount} 件`} />
+            <RangeStat label="チップ件数" value={`${rangeCount.toLocaleString("ja-JP")} 件`} />
             <RangeStat label="1日平均" value={formatYen(Math.round(rangeTotal / dayCount))} />
             <RangeStat label="最高日" value={formatYen(maxTotal)} />
           </div>
 
           <div className="relative h-56">
-            {/* Y axis: amount ticks with gridlines. */}
             {yTicks.map((t, i) => (
               <div key={i} className="absolute inset-x-0 flex -translate-y-1/2 items-center" style={{ top: `${py(t)}%` }}>
                 <span className="w-14 shrink-0 pr-2 text-right text-[10px] tabular-nums text-neutral-400">{formatYen(t)}</span>
@@ -174,7 +216,6 @@ export default async function AdminReportsPage({
               </div>
             ))}
 
-            {/* Plot, offset right of the axis gutter. */}
             <div className="absolute inset-y-0 left-14 right-0">
               <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                 <polygon points={areaPoints} fill="var(--color-accent)" fillOpacity={0.1} />
@@ -218,7 +259,7 @@ export default async function AdminReportsPage({
                   <>
                     <p className="text-[10px] leading-tight">{d.key}</p>
                     {showValues ? (
-                      <p className="text-[10px] font-medium leading-tight text-neutral-600">
+                      <p className="text-[10px] font-medium leading-tight tabular-nums text-neutral-600">
                         {d.count > 0 ? formatYen(d.total) : "—"}
                       </p>
                     ) : null}
@@ -236,11 +277,13 @@ export default async function AdminReportsPage({
 function Metric({
   label,
   value,
+  delta,
   accent,
   icon,
 }: {
   label: string;
   value: string;
+  delta?: ReactNode;
   accent?: boolean;
   icon: ReactNode;
 }) {
@@ -260,10 +303,49 @@ function Metric({
           {icon}
         </span>
       </div>
-      <p className={`mt-2 text-2xl font-bold tracking-tight ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>
+      <p className={`mt-2 text-2xl font-bold tracking-tight tabular-nums ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>
         {value}
       </p>
+      {delta ? (
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+          <span className="text-neutral-400">前日比</span>
+          {delta}
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+/** Day-over-day change indicator (Japanese report style: ▲/▼ + %). */
+function Delta({
+  current,
+  previous,
+  suffix,
+  absolute,
+}: {
+  current: number;
+  previous: number;
+  suffix?: string;
+  absolute?: boolean;
+}) {
+  if (previous <= 0) {
+    return current > 0 ? (
+      <span className="font-medium text-emerald-600">新規</span>
+    ) : (
+      <span className="text-neutral-400">—</span>
+    );
+  }
+
+  const diff = absolute ? current - previous : ((current - previous) / previous) * 100;
+  if (Math.abs(diff) < 0.05) return <span className="tabular-nums text-neutral-400">±0.0{suffix ?? "%"}</span>;
+
+  const up = diff > 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 font-medium tabular-nums ${up ? "text-emerald-600" : "text-red-500"}`}>
+      {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+      {Math.abs(diff).toFixed(1)}
+      {suffix ?? "%"}
+    </span>
   );
 }
 
@@ -271,43 +353,9 @@ function RangeStat({ label, value, accent }: { label: string; value: string; acc
   return (
     <div>
       <p className="text-xs text-neutral-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>{value}</p>
+      <p className={`mt-0.5 text-lg font-bold tabular-nums ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>
+        {value}
+      </p>
     </div>
-  );
-}
-
-const metricIconProps = {
-  viewBox: "0 0 24 24",
-  className: "h-4 w-4",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.8,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-};
-
-function CountIcon() {
-  return (
-    <svg {...metricIconProps}>
-      <path d="M8 6h11M8 12h11M8 18h11" />
-      <path d="M4 6h.01M4 12h.01M4 18h.01" />
-    </svg>
-  );
-}
-
-function YenIcon() {
-  return (
-    <svg {...metricIconProps}>
-      <path d="M7 5l5 7 5-7M9 12h6M9 16h6M12 12v6" />
-    </svg>
-  );
-}
-
-function StarIcon() {
-  return (
-    <svg {...metricIconProps}>
-      <path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z" />
-    </svg>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import { Coins, MessageSquareText, X } from "lucide-react";
+import { Coins, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { type ReviewEvent, REVIEW_EVENT, type TipEvent, TIP_EVENT, storeChannelName } from "@/lib/realtime";
+import { type ReviewEvent, REVIEW_EVENT, storeChannelName } from "@/lib/realtime";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-type Toast = { id: number; kind: "tip" | "review"; title: string; body: string };
+type Toast = { id: number; title: string; body: string };
 
 /**
  * Global in-web notifications for the admin panel: on a new tip/review broadcast
@@ -43,9 +43,9 @@ export function AdminToaster({ storeId }: { storeId: string }) {
     };
   }, []);
 
-  function addToast(kind: Toast["kind"], title: string, body: string) {
+  function addToast(title: string, body: string) {
     const id = (nextId.current += 1);
-    setToasts((prev) => [...prev, { id, kind, title, body }]);
+    setToasts((prev) => [...prev, { id, title, body }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000);
   }
 
@@ -57,22 +57,15 @@ export function AdminToaster({ storeId }: { storeId: string }) {
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
       .channel(storeChannelName(storeId))
-      .on("broadcast", { event: TIP_EVENT }, ({ payload }) => {
-        const tip = payload as TipEvent;
-        chimeRef.current();
-        addToast(
-          "tip",
-          "新しいチップが届きました",
-          `¥${Number(tip.amount).toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
-        );
-        router.refresh();
-      })
+      // One combined notification per interaction, fired after the review.
       .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
         const review = payload as ReviewEvent;
+        chimeRef.current();
         addToast(
-          "review",
-          "新しい口コミが届きました",
-          `★${Number(review.rating).toFixed(1)}${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
+          "新しいチップ・口コミが届きました",
+          `¥${Number(review.amount).toLocaleString("ja-JP")} ・ ★${Number(review.rating).toFixed(1)}${
+            review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
+          }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
         );
         router.refresh();
       })
@@ -99,11 +92,7 @@ export function AdminToaster({ storeId }: { storeId: string }) {
           className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white p-4 text-left shadow-lg"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-            {toast.kind === "tip" ? (
-              <Coins className="h-5 w-5" strokeWidth={1.75} />
-            ) : (
-              <MessageSquareText className="h-5 w-5" strokeWidth={1.75} />
-            )}
+            <Coins className="h-5 w-5" strokeWidth={1.75} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-neutral-900">{toast.title}</p>

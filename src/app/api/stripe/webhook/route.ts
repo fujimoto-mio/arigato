@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { sendStorePush } from "@/lib/push";
-import { broadcastTip } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -28,34 +26,14 @@ export async function POST(request: Request) {
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
-      // Scoped to tips not already succeeded so a Stripe retry can't notify twice.
-      const { count } = await prisma.tip.updateMany({
+      // Scoped to tips not already succeeded so a Stripe retry is idempotent.
+      await prisma.tip.updateMany({
         where: { stripePaymentIntentId: paymentIntent.id, status: { not: "succeeded" } },
         data: { status: "succeeded" },
       });
 
-      if (count > 0) {
-        const tip = await prisma.tip.findUnique({
-          where: { stripePaymentIntentId: paymentIntent.id },
-        });
-
-        if (tip) {
-          await broadcastTip(tip.storeId, {
-            tipId: tip.id,
-            amount: tip.amount,
-            locale: tip.locale,
-            tableLabel: tip.tableLabel,
-            paymentMethod: "card",
-            createdAt: tip.createdAt.toISOString(),
-          });
-
-          await sendStorePush(tip.storeId, {
-            title: "新しいチップが届きました",
-            body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
-            tag: `tip-${tip.id}`,
-          });
-        }
-      }
+      // The admin is notified once after the review (see /api/reviews), so
+      // nothing is broadcast/pushed here.
       break;
     }
     case "payment_intent.payment_failed": {

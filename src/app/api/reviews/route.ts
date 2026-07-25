@@ -62,20 +62,27 @@ export async function POST(request: Request) {
     },
   });
 
-  // Await both so the realtime toast broadcast and the push both complete
-  // before this serverless invocation ends.
+  // One combined notification for the whole interaction (tip + review), fired
+  // once here after the review — not separately at tip time. Awaited so both
+  // the toast broadcast and the push complete before this invocation ends.
+  const pushBody = `¥${tip.amount.toLocaleString("ja-JP")} ・ ★${review.rating.toFixed(1)}${
+    tip.tableLabel ? ` ・ ${tip.tableLabel}番` : ""
+  }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`;
+
   await Promise.all([
     broadcastReview(tip.storeId, {
       tipId: tip.id,
       rating: review.rating,
       comment: review.comment,
       photoUrls: review.photoUrls,
+      amount: tip.amount,
+      tableLabel: tip.tableLabel,
       createdAt: review.createdAt.toISOString(),
     }),
     sendStorePush(tip.storeId, {
-      title: "新しい口コミが届きました",
-      body: `★${review.rating.toFixed(1)}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}${review.comment ? `「${review.comment.slice(0, 40)}」` : ""}`,
-      tag: `review-${tip.id}`,
+      title: "新しいチップ・口コミが届きました",
+      body: pushBody,
+      tag: `tip-${tip.id}`,
     }),
   ]);
 
