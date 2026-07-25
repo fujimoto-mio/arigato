@@ -38,6 +38,7 @@ export function formatUsdApprox(yen: number): string {
 export function formatTokyoTime(value: Date | string): string {
   return new Date(value).toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo",
+    year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",

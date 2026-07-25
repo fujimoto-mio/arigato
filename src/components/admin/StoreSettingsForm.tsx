@@ -95,9 +95,6 @@ export function StoreSettingsForm({
           placeholder="ChIJ..."
           className="mt-1 w-full rounded-lg border border-neutral-300 p-3 font-mono text-sm"
         />
-        <span className="mt-1 block text-xs font-normal text-neutral-500">
-          3★以上のお客様はGoogleのレビューページに案内されます。空欄の場合は、すべての評価が非公開のままになります。
-        </span>
       </label>
 
       <label className="block text-sm font-medium text-neutral-700">
@@ -108,9 +105,6 @@ export function StoreSettingsForm({
           placeholder="https://instagram.com/yourstore"
           className="mt-1 w-full rounded-lg border border-neutral-300 p-3 text-sm"
         />
-        <span className="mt-1 block text-xs font-normal text-neutral-500">
-          お客様の「つながる」画面にフォローボタンとして表示されます。空欄にすると非表示になります。
-        </span>
       </label>
 
       <label className="block text-sm font-medium text-neutral-700">

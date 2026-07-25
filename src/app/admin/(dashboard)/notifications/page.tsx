@@ -1,7 +1,5 @@
-import { DashboardLive } from "@/components/admin/DashboardLive";
 import { Pagination } from "@/components/admin/DataTable";
 import { type NotificationItem, NotificationsList } from "@/components/admin/NotificationsList";
-import { PushToggle } from "@/components/admin/PushToggle";
 import { PendingSwap, TableNavProvider } from "@/components/admin/TableNav";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatUsdApprox, formatYen } from "@/lib/admin/period";
@@ -61,15 +59,11 @@ export default async function AdminNotificationsPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <DashboardLive storeId={store.id} />
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">通知</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            新しいチップ・口コミが届くと自動で更新されます。項目をタップすると詳細が開きます。
-          </p>
-        </div>
-        <PushToggle />
+      <div>
+        <h1 className="text-xl font-bold">通知</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          新しいチップ・口コミが届くと自動で更新されます。項目をタップすると詳細が開きます。
+        </p>
       </div>
 
       {total === 0 ? (

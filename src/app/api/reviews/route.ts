@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendStorePush } from "@/lib/push";
 import { broadcastReview } from "@/lib/realtime";
+import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 import { stripe } from "@/lib/stripe";
 
 const bodySchema = z.object({
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "payment_not_completed" }, { status: 400 });
   }
 
-  const redirectedToGoogle = rating >= 3 && Boolean(tip.store.googlePlaceId);
+  const redirectedToGoogle = rating >= PUBLIC_REVIEW_MIN_RATING && Boolean(tip.store.googlePlaceId);
 
   const review = await prisma.review.create({
     data: {
@@ -61,19 +62,22 @@ export async function POST(request: Request) {
     },
   });
 
-  void broadcastReview(tip.storeId, {
-    tipId: tip.id,
-    rating: review.rating,
-    comment: review.comment,
-    photoUrls: review.photoUrls,
-    createdAt: review.createdAt.toISOString(),
-  });
-
-  void sendStorePush(tip.storeId, {
-    title: "新しい口コミが届きました",
-    body: `★${review.rating.toFixed(1)}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}${review.comment ? `「${review.comment.slice(0, 40)}」` : ""}`,
-    tag: `review-${tip.id}`,
-  });
+  // Await both so the realtime toast broadcast and the push both complete
+  // before this serverless invocation ends.
+  await Promise.all([
+    broadcastReview(tip.storeId, {
+      tipId: tip.id,
+      rating: review.rating,
+      comment: review.comment,
+      photoUrls: review.photoUrls,
+      createdAt: review.createdAt.toISOString(),
+    }),
+    sendStorePush(tip.storeId, {
+      title: "新しい口コミが届きました",
+      body: `★${review.rating.toFixed(1)}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}${review.comment ? `「${review.comment.slice(0, 40)}」` : ""}`,
+      tag: `review-${tip.id}`,
+    }),
+  ]);
 
   return NextResponse.json({
     redirectUrl: redirectedToGoogle
