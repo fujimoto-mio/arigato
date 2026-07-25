@@ -1,3 +1,4 @@
+import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm";
 import { PushToggle } from "@/components/admin/PushToggle";
 import { StoreSettingsForm } from "@/components/admin/StoreSettingsForm";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -24,9 +25,9 @@ export default async function AdminSettingsPage({
     : `arigato-qr-${store.slug}.png`;
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">設定</h1>
-      <section>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
         <h2 className="text-lg font-bold">店舗情報</h2>
         <p className="mb-4 text-sm text-neutral-500">お客様の画面に表示されます。</p>
         <StoreSettingsForm
@@ -38,7 +39,7 @@ export default async function AdminSettingsPage({
         />
       </section>
 
-      <section>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
         <h2 className="text-lg font-bold">通知設定</h2>
         <p className="mb-4 text-sm text-neutral-500">
           新しいチップ・口コミが届いたときに、この端末へプッシュ通知を送ります。端末ごとに設定が必要です。
@@ -46,7 +47,13 @@ export default async function AdminSettingsPage({
         <PushToggle variant="switch" />
       </section>
 
-      <section>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+        <h2 className="text-lg font-bold">パスワード変更</h2>
+        <p className="mb-4 text-sm text-neutral-500">ログインに使用するパスワードを変更します。</p>
+        <ChangePasswordForm />
+      </section>
+
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
         <h2 className="text-lg font-bold">テーブルQRコード</h2>
         <p className="mb-4 text-sm text-neutral-500">
           印刷してテーブルに置いてください。読み取るとお客様のチップ画面が開きます。
@@ -64,13 +71,13 @@ export default async function AdminSettingsPage({
           </label>
           <button
             type="submit"
-            className="shrink-0 whitespace-nowrap rounded-full border border-neutral-300 px-6 py-2 text-sm font-medium hover:bg-neutral-100"
+            className="w-full shrink-0 whitespace-nowrap rounded-full border border-neutral-300 px-6 py-2 text-sm font-medium hover:bg-neutral-100 sm:w-auto"
           >
             生成
           </button>
         </form>
 
-        <div className="flex max-w-xs flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
+        <div className="flex max-w-xs flex-col items-center gap-3 rounded-xl bg-neutral-50 p-6 text-center">
           <p className="text-base font-bold text-neutral-900">
             {store.name}
             {tableLabel ? <span className="ml-1 text-sm font-normal text-neutral-500">（{tableLabel}番）</span> : null}
@@ -88,7 +95,7 @@ export default async function AdminSettingsPage({
           <a
             href={qrDataUrl}
             download={downloadName}
-            className="rounded-full bg-neutral-900 px-5 py-2 text-sm font-semibold text-white"
+            className="w-full rounded-full bg-neutral-900 px-5 py-2 text-center text-sm font-semibold text-white"
           >
             PNGをダウンロード
           </a>

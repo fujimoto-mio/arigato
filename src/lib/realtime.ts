@@ -17,6 +17,8 @@ export type ReviewEvent = {
   rating: number;
   comment: string | null;
   photoUrls: string[];
+  amount: number;
+  tableLabel: string | null;
   createdAt: string;
 };
 
