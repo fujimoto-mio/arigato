@@ -18,6 +18,7 @@ model Store {
   staff         Staff[]
   tips          Tip[]
   admins        AdminUser[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Staff {
@@ -51,6 +52,7 @@ model Tip {
   staffId               String?
   amount                Int
   locale                String
+  tableLabel            String?
   paymentMethod         PaymentMethod @default(cash)
   status                TipStatus     @default(pending)
   stripePaymentIntentId String?       @unique
@@ -87,6 +89,20 @@ model AdminUser {
   createdAt         DateTime           @default(now())
   store             Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
   notificationReads NotificationRead[]
+
+  @@index([storeId])
+}
+
+/** Web Push subscription for a store's admin device (one per browser/device). */
+model PushSubscription {
+  id          String   @id @default(cuid())
+  storeId     String
+  adminUserId String?
+  endpoint    String   @unique
+  p256dh      String
+  auth        String
+  createdAt   DateTime @default(now())
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@index([storeId])
 }

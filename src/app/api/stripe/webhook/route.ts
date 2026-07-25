@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { sendStorePush } from "@/lib/push";
 import { broadcastTip } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 
@@ -43,8 +44,15 @@ export async function POST(request: Request) {
             tipId: tip.id,
             amount: tip.amount,
             locale: tip.locale,
+            tableLabel: tip.tableLabel,
             paymentMethod: "card",
             createdAt: tip.createdAt.toISOString(),
+          });
+
+          void sendStorePush(tip.storeId, {
+            title: "新しいチップが届きました",
+            body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
+            tag: `tip-${tip.id}`,
           });
         }
       }

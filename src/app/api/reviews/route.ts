@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { sendStorePush } from "@/lib/push";
 import { broadcastReview } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 
@@ -66,6 +67,12 @@ export async function POST(request: Request) {
     comment: review.comment,
     photoUrls: review.photoUrls,
     createdAt: review.createdAt.toISOString(),
+  });
+
+  void sendStorePush(tip.storeId, {
+    title: "新しい口コミが届きました",
+    body: `★${review.rating.toFixed(1)}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}${review.comment ? `「${review.comment.slice(0, 40)}」` : ""}`,
+    tag: `review-${tip.id}`,
   });
 
   return NextResponse.json({

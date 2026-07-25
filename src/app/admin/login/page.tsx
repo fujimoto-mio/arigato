@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/admin/LoginForm";
+import { LogoMark, Wordmark } from "@/components/flow/brand";
 import { getAdminContext } from "@/lib/admin/auth";
 
 export const metadata = { title: "ログイン — ARIGATO TiP" };
@@ -14,12 +15,22 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-8 px-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">ARIGATO TiP</h1>
-        <p className="mt-1 text-sm text-neutral-500">店舗管理画面</p>
+    <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6 py-12">
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center text-center">
+          <LogoMark size={64} />
+          <Wordmark className="mt-4 text-3xl tracking-tight" />
+          <p className="mt-1 text-sm text-neutral-500">店舗管理画面</p>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <LoginForm />
+        </div>
+
+        <p className="mt-6 text-center text-xs tracking-wide text-neutral-400">
+          Powered by <span className="font-bold text-neutral-600">ARIGATO TiP</span>
+        </p>
       </div>
-      <LoginForm />
     </main>
   );
 }

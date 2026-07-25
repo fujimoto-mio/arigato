@@ -1,3 +1,4 @@
+import { Armchair, Coins, HandCoins, MessageSquareText, Star, Wallet } from "lucide-react";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { DashboardLive } from "@/components/admin/DashboardLive";
@@ -11,6 +12,10 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 type TipWithReview = Prisma.TipGetPayload<{ include: { review: true } }>;
+
+function tableText(label: string | null) {
+  return label ? `${label}番` : "—";
+}
 
 export default async function AdminDashboardPage() {
   const { store } = await requireAdmin();
@@ -42,10 +47,23 @@ export default async function AdminDashboardPage() {
       <section>
         <h2 className="text-sm font-bold text-neutral-700">本日のサマリー</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="本日のチップ件数" value={`${tipsAgg._count} 件`} />
-          <KpiCard label="本日の合計金額" value={formatYen(tipsAgg._sum.amount ?? 0)} accent />
-          <KpiCard label="本日の口コミ件数" value={`${reviewsAgg._count} 件`} />
-          <KpiCard label="本日の平均評価" value={reviewsAgg._avg.rating ? reviewsAgg._avg.rating.toFixed(1) : "—"} />
+          <KpiCard label="本日のチップ件数" value={`${tipsAgg._count} 件`} icon={<HandCoins className="h-4 w-4" strokeWidth={1.75} />} />
+          <KpiCard
+            label="本日の合計金額"
+            value={formatYen(tipsAgg._sum.amount ?? 0)}
+            accent
+            icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />}
+          />
+          <KpiCard
+            label="本日の口コミ件数"
+            value={`${reviewsAgg._count} 件`}
+            icon={<MessageSquareText className="h-4 w-4" strokeWidth={1.75} />}
+          />
+          <KpiCard
+            label="本日の平均評価"
+            value={reviewsAgg._avg.rating ? reviewsAgg._avg.rating.toFixed(1) : "—"}
+            icon={<Star className="h-4 w-4" strokeWidth={1.75} />}
+          />
         </div>
       </section>
 
@@ -65,11 +83,30 @@ export default async function AdminDashboardPage() {
   );
 }
 
-function KpiCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function KpiCard({
+  label,
+  value,
+  accent,
+  icon,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  icon: React.ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>{value}</p>
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-neutral-500">{label}</p>
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+            accent ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]" : "bg-neutral-100 text-neutral-400"
+          }`}
+        >
+          {icon}
+        </span>
+      </div>
+      <p className={`mt-2 text-2xl font-bold ${accent ? "text-[var(--color-accent)]" : "text-neutral-900"}`}>{value}</p>
     </div>
   );
 }
@@ -95,11 +132,14 @@ function NewArrivalBanner({ tip, isNew }: { tip: TipWithReview; isNew: boolean }
   );
 }
 
-function StatCol({ label, children }: { label: string; children: React.ReactNode }) {
+function StatCol({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-1 px-2 text-center">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <div className="text-lg font-bold">{children}</div>
+    <div className="flex flex-col items-center gap-2 px-2 text-center">
+      <p className="text-xs font-bold text-neutral-600">{label}</p>
+      <div className="flex items-center justify-center gap-2 text-lg font-bold">
+        {icon ? <span className="shrink-0 text-[var(--color-accent)]">{icon}</span> : null}
+        <div>{children}</div>
+      </div>
     </div>
   );
 }
@@ -113,12 +153,15 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
         <span className="text-xs text-neutral-500">受信日時：{formatTokyoTime(tip.createdAt)}</span>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-4 border-y border-neutral-100 py-5 sm:divide-x sm:divide-neutral-100">
-        <StatCol label="チップ金額">
+      <div className="mt-5 grid grid-cols-2 gap-4 border-y border-neutral-100 py-5 sm:grid-cols-4 sm:divide-x sm:divide-neutral-100">
+        <StatCol label="テーブル番号" icon={<Armchair className="h-6 w-6" strokeWidth={1.6} />}>
+          {tableText(tip.tableLabel)}
+        </StatCol>
+        <StatCol label="チップ金額" icon={<Coins className="h-6 w-6" strokeWidth={1.6} />}>
           <span className="text-[var(--color-accent)]">{formatYen(tip.amount)}</span>
           <span className="mt-0.5 block text-[11px] font-normal text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
         </StatCol>
-        <StatCol label="評価">
+        <StatCol label="評価" icon={<Star className="h-6 w-6" strokeWidth={1.6} />}>
           {review ? (
             <span className="flex flex-col items-center">
               <Stars rating={review.rating} />
@@ -128,22 +171,31 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
             "—"
           )}
         </StatCol>
-        <StatCol label="口コミ">{review?.comment ? "あり" : "—"}</StatCol>
+        <StatCol label="口コミ" icon={<MessageSquareText className="h-6 w-6" strokeWidth={1.6} />}>
+          {review?.comment ? "あり" : "—"}
+        </StatCol>
       </div>
 
       {review?.comment ? (
         <div className="mt-5">
-          <p className="text-sm font-medium text-neutral-700">口コミ内容（原文のまま）</p>
+          <p className="text-sm font-bold text-neutral-700">口コミ内容</p>
           <p className="mt-2 whitespace-pre-line rounded-xl bg-neutral-50 p-4 text-sm text-neutral-800">{review.comment}</p>
         </div>
       ) : null}
 
       {review && review.photoUrls.length > 0 ? (
         <div className="mt-5">
-          <p className="text-sm font-medium text-neutral-700">投稿写真</p>
-          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <p className="text-sm font-bold text-neutral-700">投稿写真</p>
+          {/* 4 per row on mobile; fixed 6rem thumbnails (wrapping) on desktop. */}
+          <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-[repeat(auto-fill,6rem)] sm:gap-3">
             {review.photoUrls.map((url) => (
-              <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100">
+              <a
+                key={url}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative aspect-square overflow-hidden rounded-xl bg-neutral-100"
+              >
                 {/* Guest-uploaded Supabase URLs; plain img avoids remote-loader config. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="投稿写真" className="h-full w-full object-cover" />
@@ -164,6 +216,12 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       header: "受信日時",
       className: "whitespace-nowrap text-neutral-600",
       render: (tip) => formatTokyoTime(tip.createdAt),
+    },
+    {
+      key: "table",
+      header: "テーブル番号",
+      className: "whitespace-nowrap",
+      render: (tip) => tableText(tip.tableLabel),
     },
     {
       key: "amount",
@@ -192,8 +250,27 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
     {
       key: "comment",
       header: "口コミ",
-      className: "max-w-[220px] truncate text-neutral-600",
-      render: (tip) => tip.review?.comment ?? "—",
+      className: "min-w-[200px] max-w-[340px] whitespace-pre-line leading-relaxed text-neutral-700",
+      render: (tip) => tip.review?.comment ?? <span className="text-neutral-400">—</span>,
+    },
+    {
+      key: "photos",
+      header: "投稿写真",
+      render: (tip) => {
+        const photos = tip.review?.photoUrls ?? [];
+        return photos.length > 0 ? (
+          <div className="flex gap-1">
+            {photos.slice(0, 3).map((url) => (
+              // Guest-uploaded Supabase URLs; plain img avoids remote-loader config.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={url} src={url} alt="投稿写真" className="h-8 w-8 rounded object-cover" />
+            ))}
+            {photos.length > 3 ? <span className="self-center text-xs text-neutral-400">+{photos.length - 3}</span> : null}
+          </div>
+        ) : (
+          <span className="text-neutral-400">—</span>
+        );
+      },
     },
     {
       key: "guide",
@@ -224,6 +301,7 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
         rows={tips}
         rowKey={(tip) => tip.id}
         rowClassName={(_, index) => (index === 0 ? "bg-[var(--color-accent)]/5" : "")}
+        bodyCellClassName="align-top"
         emptyLabel="まだチップ・口コミはありません。"
       />
     </section>

@@ -1,10 +1,20 @@
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { AdminMobileLogout, AdminSidebar, type AdminSummary } from "@/components/admin/AdminSidebar";
+import { PwaInstallButton } from "@/components/admin/PwaInstallButton";
+import { PwaRegister } from "@/components/admin/PwaRegister";
 import { requireAdmin } from "@/lib/admin/auth";
 import { startOfTokyoDay } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "ダッシュボード — ARIGATO TiP" };
+export const metadata: Metadata = {
+  title: "ダッシュボード — ARIGATO TiP",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ARIGATO 管理" },
+  icons: { apple: "/icons/apple-icon-180.png" },
+};
+
+export const viewport: Viewport = { themeColor: "#171717" };
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -40,6 +50,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
+      <PwaRegister />
       <AdminSidebar summary={summary} notifCount={unreadCount} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
@@ -50,7 +61,8 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
               {email ? ` · ${email}` : ""}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-2">
+            <PwaInstallButton />
             <Link
               href="/admin/notifications"
               aria-label="通知"

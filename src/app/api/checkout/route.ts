@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { LOCALES } from "@/i18n/messages";
 import { prisma } from "@/lib/prisma";
+import { sendStorePush } from "@/lib/push";
 import { broadcastTip } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 import { CARD_MIN_AMOUNT, isValidTipAmount } from "@/lib/tip";
@@ -10,6 +11,7 @@ const bodySchema = z.object({
   slug: z.string().min(1),
   amount: z.number().int().refine(isValidTipAmount, "invalid_amount"),
   locale: z.enum(LOCALES),
+  tableLabel: z.string().trim().max(40).optional(),
   paymentMethod: z.enum(["cash", "card"]),
 });
 
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
-  const { slug, amount, locale, paymentMethod } = parsed.data;
+  const { slug, amount, locale, tableLabel, paymentMethod } = parsed.data;
 
   const store = await prisma.store.findUnique({ where: { slug } });
   if (!store) {
@@ -33,6 +35,7 @@ export async function POST(request: Request) {
         storeId: store.id,
         amount,
         locale,
+        tableLabel: tableLabel || null,
         paymentMethod: "cash",
         status: "succeeded",
       },
@@ -42,8 +45,15 @@ export async function POST(request: Request) {
       tipId: tip.id,
       amount: tip.amount,
       locale: tip.locale,
+      tableLabel: tip.tableLabel,
       paymentMethod: "cash",
       createdAt: tip.createdAt.toISOString(),
+    });
+
+    void sendStorePush(store.id, {
+      title: "新しいチップが届きました",
+      body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
+      tag: `tip-${tip.id}`,
     });
 
     return NextResponse.json({ tipId: tip.id, mode: "cash" });
@@ -59,6 +69,7 @@ export async function POST(request: Request) {
       storeId: store.id,
       amount,
       locale,
+      tableLabel: tableLabel || null,
       paymentMethod: "card",
       status: "pending",
     },
@@ -71,7 +82,7 @@ export async function POST(request: Request) {
     amount,
     currency: "jpy",
     payment_method_types: ["card"],
-    metadata: { tipId: tip.id, storeSlug: store.slug },
+    metadata: { tipId: tip.id, storeSlug: store.slug, tableLabel: tableLabel ?? "" },
   });
 
   await prisma.tip.update({
