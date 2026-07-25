@@ -34,3 +34,38 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(request).then((cached) => cached ?? caches.match("/admin"))),
   );
 });
+
+// --- Web Push: show a notification when a tip/review arrives ---
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "ARIGATO TiP", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "ARIGATO TiP";
+  const options = {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: data.tag || "arigato-tip",
+    renotify: true,
+    data: { url: data.url || "/admin/notifications" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/admin/notifications";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // Focus an existing admin tab if one is open; otherwise open a new one.
+      for (const client of clients) {
+        if (client.url.includes("/admin") && "focus" in client) return client.focus();
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});

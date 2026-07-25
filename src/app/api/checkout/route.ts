@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { LOCALES } from "@/i18n/messages";
 import { prisma } from "@/lib/prisma";
+import { sendStorePush } from "@/lib/push";
 import { broadcastTip } from "@/lib/realtime";
 import { stripe } from "@/lib/stripe";
 import { CARD_MIN_AMOUNT, isValidTipAmount } from "@/lib/tip";
@@ -47,6 +48,12 @@ export async function POST(request: Request) {
       tableLabel: tip.tableLabel,
       paymentMethod: "cash",
       createdAt: tip.createdAt.toISOString(),
+    });
+
+    void sendStorePush(store.id, {
+      title: "新しいチップが届きました",
+      body: `¥${tip.amount.toLocaleString("ja-JP")}${tip.tableLabel ? `・${tip.tableLabel}番` : ""}`,
+      tag: `tip-${tip.id}`,
     });
 
     return NextResponse.json({ tipId: tip.id, mode: "cash" });
