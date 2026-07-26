@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 /**
  * Service-role client for server components/route handlers (Storage, Realtime,
- * Auth admin APIs). Data reads/writes for Store/Staff/Tip/Review go through
+ * Auth admin APIs). Data reads/writes for Store/Tip/Review go through
  * Prisma (`@/lib/prisma`), not this client.
  *
  * Constructed per call rather than at module scope: a module-level client would

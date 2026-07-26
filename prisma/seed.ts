@@ -20,21 +20,7 @@ async function main() {
     },
   });
 
-  const staffNames = ["Tanaka", "Sato", "Suzuki", "Yamada"];
-  for (const [index, name] of staffNames.entries()) {
-    await prisma.staff.upsert({
-      where: { id: `${store.id}-seed-${index}` },
-      update: {},
-      create: {
-        id: `${store.id}-seed-${index}`,
-        storeId: store.id,
-        name,
-        sortOrder: index,
-      },
-    });
-  }
-
-  console.log(`Seeded store "${store.slug}" with ${staffNames.length} staff.`);
+  console.log(`Seeded store "${store.slug}".`);
 }
 
 main()
