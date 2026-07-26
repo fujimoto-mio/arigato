@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ARIGATO TiP",
-  description: "Tip your favorite staff, in your language.",
+  description: "Say thank you to the restaurant, in your language.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

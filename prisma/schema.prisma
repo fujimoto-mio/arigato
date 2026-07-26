@@ -15,24 +15,9 @@ model Store {
   instagramUrl  String?
   facebookUrl   String?
   createdAt     DateTime    @default(now())
-  staff         Staff[]
   tips          Tip[]
   admins        AdminUser[]
   pushSubscriptions PushSubscription[]
-}
-
-model Staff {
-  id        String   @id @default(cuid())
-  storeId   String
-  name      String
-  photoUrl  String?
-  active    Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  tips      Tip[]
-
-  @@index([storeId])
 }
 
 enum TipStatus {
@@ -49,7 +34,6 @@ enum PaymentMethod {
 model Tip {
   id                    String        @id @default(cuid())
   storeId               String
-  staffId               String?
   amount                Int
   locale                String
   tableLabel            String?
@@ -58,12 +42,10 @@ model Tip {
   stripePaymentIntentId String?       @unique
   createdAt             DateTime      @default(now())
   store                 Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  staff                 Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
   review                Review?
   notificationReads     NotificationRead[]
 
   @@index([storeId])
-  @@index([staffId])
 }
 
 model Review {
