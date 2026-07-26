@@ -29,3 +29,42 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Guest-flow section transitions: the next screen slides in from the right,
+   going back slides in from the left — a native phone-swipe feel. */
+@keyframes flow-screen-fwd {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes flow-screen-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.flow-screen-fwd {
+  animation: flow-screen-fwd 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.flow-screen-back {
+  animation: flow-screen-back 280ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-screen-fwd,
+  .flow-screen-back {
+    animation: none;
+  }
+}

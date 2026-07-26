@@ -27,6 +27,9 @@ export type GuestStore = {
 
 type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou" | "connect";
 
+// Forward order of the flow — used to pick the slide direction between screens.
+const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou", "connect"];
+
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
 
@@ -111,6 +114,14 @@ export function GuestFlow({
 }) {
   const { locale } = useLocaleSwitcher();
   const [step, setStep] = useState<Step>(resumeTipId ? "review" : "landing");
+  // +1 when moving forward through the flow, -1 when going back — drives the
+  // slide direction so a section transition reads like a real phone swipe.
+  const [direction, setDirection] = useState(1);
+
+  function goToStep(next: Step) {
+    setDirection(STEP_ORDER.indexOf(next) >= STEP_ORDER.indexOf(step) ? 1 : -1);
+    setStep(next);
+  }
   const [amount, setAmount] = useState(0);
   const [payByCard, setPayByCard] = useState(false);
   const [tipId, setTipId] = useState<string | null>(resumeTipId);
@@ -132,7 +143,7 @@ export function GuestFlow({
     setError(null);
     setGoogleReviewUrl(null);
     setPromote(true);
-    setStep("landing");
+    goToStep("landing");
   }
 
   async function startCheckout() {
@@ -155,9 +166,9 @@ export function GuestFlow({
       setTipId(data.tipId);
       if (data.mode === "card" && data.clientSecret) {
         setClientSecret(data.clientSecret);
-        setStep("payment");
+        goToStep("payment");
       } else {
-        setStep("review");
+        goToStep("review");
       }
     } catch {
       setError("support");
@@ -168,13 +179,16 @@ export function GuestFlow({
 
   function goReviews() {
     if (store.googlePlaceId) window.open(googleMapsUrl(store.googlePlaceId), "_blank");
-    else setStep("connect");
+    else goToStep("connect");
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-white">
-      {step === "landing" && <Landing store={store} onStart={() => setStep("story")} />}
-      {step === "story" && <Story onNext={() => setStep("support")} />}
+    <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-white">
+      {/* Keyed on `step` so each section remounts and plays the slide-in; the
+          direction class makes it feel like swiping forward/back on a phone. */}
+      <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
+        {step === "landing" && <Landing store={store} onStart={() => goToStep("story")} />}
+      {step === "story" && <Story onNext={() => goToStep("support")} />}
       {step === "support" && (
         <Support
           amount={amount}
@@ -182,7 +196,7 @@ export function GuestFlow({
           payByCard={payByCard}
           setPayByCard={setPayByCard}
           onNext={startCheckout}
-          onBack={() => setStep("story")}
+          onBack={() => goToStep("story")}
           isSubmitting={isSubmitting}
           hasError={error === "support"}
         />
@@ -194,8 +208,8 @@ export function GuestFlow({
           clientSecret={clientSecret}
           amount={amount}
           locale={locale}
-          onPaid={() => setStep("review")}
-          onBack={() => setStep("support")}
+          onPaid={() => goToStep("review")}
+          onBack={() => goToStep("support")}
         />
       )}
       {step === "review" && tipId && (
@@ -204,26 +218,27 @@ export function GuestFlow({
           onDone={(reviewUrl, promoteFlag) => {
             setGoogleReviewUrl(reviewUrl);
             setPromote(promoteFlag);
-            setStep("thankyou");
+            goToStep("thankyou");
           }}
-          onBack={() => setStep("support")}
+          onBack={() => goToStep("support")}
         />
       )}
       {step === "thankyou" && (
-        <ThankYou onHome={reset} onReviews={promote ? () => setStep("connect") : null} />
+        <ThankYou onHome={reset} onReviews={promote ? () => goToStep("connect") : null} />
       )}
       {step === "connect" && (
         <Connect
           store={store}
           reviewUrl={googleReviewUrl}
           promote={promote}
-          onBack={() => setStep("thankyou")}
+          onBack={() => goToStep("thankyou")}
           onHome={reset}
-          onStory={() => setStep("story")}
+          onStory={() => goToStep("story")}
           onReviews={goReviews}
-          onSupport={() => setStep("support")}
+          onSupport={() => goToStep("support")}
         />
       )}
+      </div>
     </div>
   );
 }
