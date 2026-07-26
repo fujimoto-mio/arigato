@@ -24,6 +24,16 @@ const urlOrEmpty = z
 
 const settingsSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
+  // The slug is the guest URL (`/s/<slug>`) that this store's QR points at, so
+  // it must stay URL-safe. Changing it re-points the QR (the form warns that
+  // codes already printed with the old slug stop working).
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "invalid_slug")
+    .optional(),
   // With no Place ID the review flow keeps every rating private instead of
   // deep-linking to Google.
   googlePlaceId: emptyToNull(200),
@@ -38,7 +48,17 @@ export async function PATCH(request: Request) {
 
   const parsed = settingsSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+    const isSlug = parsed.error.issues.some((issue) => issue.path[0] === "slug");
+    return NextResponse.json({ error: isSlug ? "invalid_slug" : "invalid_request" }, { status: 400 });
+  }
+
+  // A slug is globally unique, so reject one already taken by another store
+  // before the DB does (clearer error than the unique-constraint violation).
+  if (parsed.data.slug && parsed.data.slug !== context.store.slug) {
+    const taken = await prisma.store.findUnique({ where: { slug: parsed.data.slug } });
+    if (taken) {
+      return NextResponse.json({ error: "slug_taken" }, { status: 409 });
+    }
   }
 
   const store = await prisma.store.update({
