@@ -14,7 +14,7 @@ import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
-import { TIP_STEP } from "@/lib/tip";
+import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
 
 export type GuestStore = {
   slug: string;
@@ -384,8 +384,9 @@ function Support({
   hasError: boolean;
 }) {
   const t = useTranslations("support");
-  // Require at least one tip step — the Next button is disabled at ¥0.
-  const canSubmit = !isSubmitting && amount >= TIP_STEP;
+  // ¥0 is allowed (review-only) — guests can continue without tipping. Only the
+  // card path needs a real amount, since Stripe can't charge ¥0.
+  const canSubmit = !isSubmitting && (!payByCard || amount >= CARD_MIN_AMOUNT);
 
   return (
     <div className="flex flex-1 flex-col pb-8">
