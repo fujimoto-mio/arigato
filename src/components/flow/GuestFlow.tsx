@@ -25,10 +25,10 @@ export type GuestStore = {
   facebookUrl: string | null;
 };
 
-type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou" | "connect";
+type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
-const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou", "connect"];
+const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
@@ -177,18 +177,13 @@ export function GuestFlow({
     }
   }
 
-  function goReviews() {
-    if (store.googlePlaceId) window.open(googleMapsUrl(store.googlePlaceId), "_blank");
-    else goToStep("connect");
-  }
-
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-white">
       {/* Keyed on `step` so each section remounts and plays the slide-in; the
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
         {step === "landing" && <Landing store={store} onStart={() => goToStep("story")} />}
-      {step === "story" && <Story onNext={() => goToStep("support")} />}
+      {step === "story" && <Story onNext={() => goToStep("support")} onBack={() => goToStep("landing")} />}
       {step === "support" && (
         <Support
           amount={amount}
@@ -224,19 +219,7 @@ export function GuestFlow({
         />
       )}
       {step === "thankyou" && (
-        <ThankYou onHome={reset} onReviews={promote ? () => goToStep("connect") : null} />
-      )}
-      {step === "connect" && (
-        <Connect
-          store={store}
-          reviewUrl={googleReviewUrl}
-          promote={promote}
-          onBack={() => goToStep("thankyou")}
-          onHome={reset}
-          onStory={() => goToStep("story")}
-          onReviews={goReviews}
-          onSupport={() => goToStep("support")}
-        />
+        <ThankYou store={store} reviewUrl={googleReviewUrl} promote={promote} onHome={reset} />
       )}
       </div>
     </div>
@@ -278,7 +261,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
 
 /* ---------- Screen 2: Our Story (swipe carousel) ---------- */
 
-function Story({ onNext }: { onNext: () => void }) {
+function Story({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const t = useTranslations("story");
   const slides = t.raw("slides") as { title: string; body: string }[];
   const [index, setIndex] = useState(0);
@@ -317,7 +300,7 @@ function Story({ onNext }: { onNext: () => void }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Header />
+      <Header onBack={onBack} />
       <div className="px-6 pt-2">
         <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{t("heading")}</h2>
         <div className="mt-1.5 h-1 w-12 rounded-full bg-[var(--color-accent)]" />
@@ -636,12 +619,25 @@ function Review({
 
 /* ---------- Screen 5: Thank You ---------- */
 
-function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: (() => void) | null }) {
+function ThankYou({
+  store,
+  reviewUrl,
+  promote,
+  onHome,
+}: {
+  store: GuestStore;
+  // Store's Google "write a review" link when the rating qualified; else the
+  // general Maps listing (resolved inside FollowMenu).
+  reviewUrl: string | null;
+  // A 1–3★ review keeps things private — no follow menu is shown.
+  promote: boolean;
+  onHome: () => void;
+}) {
   const t = useTranslations("thankYou");
   return (
     <div className="flex flex-1 flex-col">
       <Header />
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16 text-center">
+      <div className="flex flex-1 flex-col items-center px-6 pb-16 pt-8 text-center">
         <div className="relative text-[var(--color-accent)]">
           <span className="flex h-24 w-24 items-center justify-center rounded-full border-[3px] border-current">
             <svg viewBox="0 0 24 24" className="h-11 w-11" fill="currentColor" aria-hidden="true">
@@ -661,219 +657,67 @@ function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: (() =>
           {t("subtitlePart2")}
         </p>
 
-        <div className="mt-12 w-full max-w-xs">
-          <button
-            type="button"
-            onClick={onHome}
-            className="w-full rounded-xl border border-[var(--color-accent)] py-4 text-center text-base font-semibold text-[var(--color-accent)]"
-          >
-            {t("backToTop")}
-          </button>
-          {onReviews ? (
-            <button
-              type="button"
-              onClick={onReviews}
-              className="mt-6 flex w-full items-center justify-center gap-1.5 text-base font-semibold text-[var(--color-accent)]"
-            >
-              {t("viewReviews")}
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          ) : null}
-        </div>
+        {/* Follow menu directly below the thank-you, for positive reviewers. */}
+        {promote ? <FollowMenu store={store} reviewUrl={reviewUrl} className="mt-10 w-full max-w-xs" /> : null}
+
+        <button
+          type="button"
+          onClick={onHome}
+          className="mt-10 w-full max-w-xs rounded-xl border border-[var(--color-accent)] py-4 text-center text-base font-semibold text-[var(--color-accent)]"
+        >
+          {t("backToTop")}
+        </button>
       </div>
     </div>
   );
 }
 
-/* ---------- Screen 6: Stay Connected ---------- */
+/* ---------- Follow menu (shown under Thank You) ---------- */
 
-function Connect({
+function FollowMenu({
   store,
   reviewUrl,
-  promote,
-  onBack,
-  onHome,
-  onStory,
-  onReviews,
-  onSupport,
+  className = "",
 }: {
   store: GuestStore;
-  // The store's Google "write a review" link when the guest just left a
-  // qualifying rating; falls back to the general Maps listing otherwise.
   reviewUrl: string | null;
-  // Only positive reviewers (and neutral guests) see the follow/review buttons;
-  // a 1–3★ review turns this off so we never publicly promote it.
-  promote: boolean;
-  onBack: () => void;
-  onHome: () => void;
-  onStory: () => void;
-  onReviews: () => void;
-  onSupport: () => void;
+  className?: string;
 }) {
   const t = useTranslations("connect");
   const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
-  const links = (
-    promote
-      ? [
-          store.instagramUrl
-            ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
-            : null,
-          store.facebookUrl
-            ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
-            : null,
-          googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
-        ]
-      : []
-  ).filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
+  const links = [
+    store.instagramUrl
+      ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
+      : null,
+    store.facebookUrl
+      ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
+      : null,
+    googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
+  ].filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
+
+  if (links.length === 0) return null;
 
   return (
-    <div className="flex flex-1 flex-col pb-20">
-      <Header onBack={onBack} />
-      <div className="px-6 pt-4">
-        <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
-        <p className="mt-2 text-base leading-snug text-neutral-500">
-          {t("subtitleLine1")}
-          <br />
-          {t("subtitleLine2")}
-        </p>
-
-        <div className="mt-6 flex flex-col gap-3">
-          {links.length === 0 ? (
-            <p className="rounded-xl bg-neutral-50 p-4 text-center text-sm text-neutral-400">—</p>
-          ) : (
-            links.map((link) => (
-              <a
-                key={link.key}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium hover:bg-neutral-50"
-              >
-                <span className="flex items-center gap-3">
-                  {link.icon}
-                  {link.label}
-                </span>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
-              </a>
-            ))
-          )}
-        </div>
+    <div className={className}>
+      <div className="flex flex-col gap-3">
+        {links.map((link) => (
+          <a
+            key={link.key}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-3 text-left text-sm font-medium hover:bg-neutral-50"
+          >
+            <span className="flex items-center gap-3">
+              {link.icon}
+              {link.label}
+            </span>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </a>
+        ))}
       </div>
-
-      {/* Full-bleed, edge-to-edge — anchored just above the bottom nav. */}
-      <div className="mt-auto grid grid-cols-2 gap-0.5">
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <Image src={STORY_IMAGES[0]} alt={store.name} fill sizes="224px" className="object-cover" />
-        </div>
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <Image src={STORY_IMAGES[2]} alt={store.name} fill sizes="224px" className="object-cover" />
-        </div>
-      </div>
-
-      <BottomNav active="home" onHome={onHome} onStory={onStory} onReviews={onReviews} onSupport={onSupport} />
     </div>
-  );
-}
-
-/* ---------- Bottom nav (screen 6) ---------- */
-
-function BottomNav({
-  active,
-  onHome,
-  onStory,
-  onReviews,
-  onSupport,
-}: {
-  active: "home" | "story" | "reviews" | "support";
-  onHome: () => void;
-  onStory: () => void;
-  onReviews: () => void;
-  onSupport: () => void;
-}) {
-  const t = useTranslations("nav");
-  const iconProps = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className: "h-5 w-5",
-  };
-  const items: { key: "home" | "story" | "reviews" | "support"; label: string; icon: ReactNode; go: () => void }[] = [
-    {
-      key: "home",
-      label: t("home"),
-      go: onHome,
-      icon: (
-        <svg {...iconProps}>
-          <path d="M3 11.5 12 4l9 7.5" />
-          <path d="M5.5 10v9.5h13V10" />
-        </svg>
-      ),
-    },
-    {
-      key: "story",
-      label: t("story"),
-      go: onStory,
-      icon: (
-        <svg {...iconProps}>
-          <rect x="4" y="5" width="16" height="14" rx="2" />
-          <circle cx="9" cy="10" r="1.4" />
-          <path d="M4.5 16l4.5-3.5 3 2.5 3.5-4 4.5 5" />
-        </svg>
-      ),
-    },
-    {
-      key: "reviews",
-      label: t("reviews"),
-      go: onReviews,
-      icon: (
-        <svg {...iconProps}>
-          <path d="M12 4l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z" />
-        </svg>
-      ),
-    },
-    {
-      key: "support",
-      label: t("support"),
-      go: onSupport,
-      icon: (
-        <svg {...iconProps}>
-          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5z" />
-          <path d="M8 9h8M8 12.5h5" />
-        </svg>
-      ),
-    },
-  ];
-  return (
-    <nav className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md items-center justify-around border-t border-neutral-200 bg-white py-2">
-      {items.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          onClick={item.go}
-          className={`flex flex-1 flex-col items-center gap-1 py-1 text-[10px] ${
-            item.key === active ? "font-semibold text-[var(--color-accent)]" : "text-neutral-400"
-          }`}
-        >
-          {item.icon}
-          {item.label}
-        </button>
-      ))}
-    </nav>
   );
 }
