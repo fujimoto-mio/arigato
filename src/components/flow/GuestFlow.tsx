@@ -30,10 +30,10 @@ export type GuestStore = {
   facebookUrl: string | null;
 };
 
-type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou";
+type Step = "landing" | "support" | "payment" | "review" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
-const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou"];
+const STEP_ORDER: Step[] = ["landing", "support", "payment", "review", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
@@ -187,8 +187,7 @@ export function GuestFlow({
       {/* Keyed on `step` so each section remounts and plays the slide-in; the
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
-        {step === "landing" && <Landing store={store} onStart={() => goToStep("story")} />}
-      {step === "story" && <Story onNext={() => goToStep("support")} onBack={() => goToStep("landing")} />}
+        {step === "landing" && <Landing store={store} onStart={() => goToStep("support")} />}
       {step === "support" && (
         <Support
           amount={amount}
@@ -196,7 +195,7 @@ export function GuestFlow({
           payByCard={payByCard}
           setPayByCard={setPayByCard}
           onNext={startCheckout}
-          onBack={() => goToStep("story")}
+          onBack={() => goToStep("landing")}
           isSubmitting={isSubmitting}
           hasError={error === "support"}
         />
@@ -231,120 +230,98 @@ export function GuestFlow({
   );
 }
 
-/* ---------- Screen 1: Landing ---------- */
+/* ---------- Screen 1: QR entry (vertical-scroll story) ---------- */
 
+// A single vertical-scroll page: hero, then the story read top-to-bottom as
+// numbered chapters, then a Next button that moves on to the tip screen.
 function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
   const t = useTranslations("story");
+  const tc = useTranslations("common");
+  const slides = t.raw("slides") as { title: string; body: string }[];
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col pb-10">
       <Header />
-      <div className="px-8 pt-6 text-center">
-        <Wordmark className="text-5xl tracking-tight" />
-        <p className="mx-auto mt-7 max-w-[15rem] text-[15px] font-semibold uppercase leading-relaxed tracking-[0.1em] text-neutral-800">
+
+      {/* Hero */}
+      <div className="px-8 pt-8 text-center">
+        <Wordmark className="text-[52px] leading-none tracking-tight" />
+        <p className="mx-auto mt-6 max-w-[16rem] text-[13px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-700">
           {t("tagline")}
         </p>
-        <p className="mt-3 text-[15px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)]">
+        <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
           {t("takeALook")}
         </p>
       </div>
-      <div className="relative mt-10 aspect-[4/3] overflow-hidden bg-neutral-100">
-        <Image src={STORY_IMAGES[0]} alt={store.name} fill sizes="(max-width: 448px) 100vw, 448px" className="object-cover" />
+
+      {/* Cover — full-bleed with a soft gradient foot */}
+      <div className="relative mt-8 aspect-[4/3] overflow-hidden bg-neutral-100">
+        <Image
+          src={STORY_IMAGES[0]}
+          alt={store.name}
+          fill
+          sizes="(max-width: 448px) 100vw, 448px"
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
-      <div className="mt-auto px-6 pb-8 pt-8">
+
+      {/* Scroll hint */}
+      <div className="flex justify-center pt-6 text-[var(--color-accent)]">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-6 w-6 animate-bounce"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </div>
+
+      {/* Our Story — read by scrolling down */}
+      <div className="px-8 pt-6 text-center">
+        <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">{t("heading")}</h2>
+        <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
+      </div>
+
+      <div className="mt-9 flex flex-col gap-16">
+        {slides.map((slide, i) => (
+          <section key={slide.title} className="px-6">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-neutral-100 shadow-[0_12px_34px_rgba(0,0,0,0.09)]">
+              <Image
+                src={STORY_IMAGES[(i + 1) % STORY_IMAGES.length]}
+                alt={slide.title}
+                fill
+                sizes="(max-width: 448px) 100vw, 448px"
+                className="object-cover"
+              />
+              <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[var(--color-accent)] shadow-md backdrop-blur">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </div>
+            <div className="px-1 pt-6 text-center">
+              <h3 className="text-[26px] font-bold leading-tight text-neutral-900">{slide.title}</h3>
+              <p className="mx-auto mt-3 max-w-[21rem] text-[15px] leading-loose text-neutral-500">{slide.body}</p>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {/* Closing + Next → tip screen */}
+      <div className="mt-16 px-6">
+        <div className="mx-auto mb-9 h-px w-16 bg-neutral-200" />
         <AccentButton onClick={onStart}>
           <span className="flex items-center justify-center gap-2">
-            {t("cta")} <span className="text-lg">›</span>
+            {tc("next")} <span className="text-lg">›</span>
           </span>
         </AccentButton>
         <p className="mt-4 text-center text-xs tracking-wide text-neutral-400">
           {t("poweredByPrefix")} <span className="font-bold text-neutral-600">ARIGATO TiP</span>
         </p>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Screen 2: Our Story (swipe carousel) ---------- */
-
-function Story({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const t = useTranslations("story");
-  const slides = t.raw("slides") as { title: string; body: string }[];
-  const [index, setIndex] = useState(0);
-  const [dragX, setDragX] = useState<number | null>(null);
-  const slide = slides[index];
-
-  function advance() {
-    if (index < slides.length - 1) setIndex((i) => i + 1);
-    else onNext();
-  }
-  function back() {
-    if (index > 0) setIndex((i) => i - 1);
-  }
-
-  // One handler for mouse, touch, and pen: a horizontal drag past the threshold
-  // moves prev/next; a small movement counts as a tap and advances.
-  const SWIPE_THRESHOLD = 40;
-  function onPointerDown(e: React.PointerEvent) {
-    setDragX(e.clientX);
-    // Capture the pointer so we still get pointerup even if the finger drifts
-    // off this element mid-swipe (common on mobile).
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* setPointerCapture can throw if the pointer is already gone; ignore. */
-    }
-  }
-  function onPointerUp(e: React.PointerEvent) {
-    if (dragX === null) return;
-    const dx = e.clientX - dragX;
-    setDragX(null);
-    if (dx <= -SWIPE_THRESHOLD) advance();
-    else if (dx >= SWIPE_THRESHOLD) back();
-    else advance();
-  }
-
-  return (
-    <div className="flex flex-1 flex-col">
-      <Header onBack={onBack} />
-      <div className="px-6 pt-2">
-        <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{t("heading")}</h2>
-        <div className="mt-1.5 h-1 w-12 rounded-full bg-[var(--color-accent)]" />
-      </div>
-
-      <div
-        className="mt-5 flex-1 cursor-pointer touch-pan-y select-none"
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => setDragX(null)}
-      >
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <Image
-            src={STORY_IMAGES[index % STORY_IMAGES.length]}
-            alt={slide.title}
-            fill
-            sizes="(max-width: 448px) 100vw, 448px"
-            className="object-cover"
-          />
-        </div>
-        <div className="px-6 pt-7">
-          <h3 className="text-3xl font-bold">{slide.title}</h3>
-          <p className="mt-4 text-lg leading-loose text-neutral-500">{slide.body}</p>
-        </div>
-      </div>
-
-      <div className="flex justify-center gap-2.5 py-8">
-        {slides.map((s, i) => (
-          <button
-            key={s.title}
-            type="button"
-            aria-label={`Slide ${i + 1}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIndex(i);
-            }}
-            className={`h-2.5 w-2.5 rounded-full transition-colors ${i === index ? "bg-[var(--color-accent)]" : "bg-neutral-200"}`}
-          />
-        ))}
       </div>
     </div>
   );
