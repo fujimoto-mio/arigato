@@ -46,6 +46,12 @@ function PaymentInner({
   // render (which would cancel the in-flight Apple/Google Pay iframe load).
   const expressOptions = useMemo<StripeExpressCheckoutElementOptions>(
     () => ({
+      // Google restricts wallet buttons to black/white; label + height + radius
+      // are the customisable bits. Height matches the app's other CTAs. Apple
+      // uses white-outline so the white button stays visible on the white page.
+      buttonHeight: 52,
+      buttonTheme: { applePay: "white-outline", googlePay: "white" },
+      buttonType: { applePay: "tip", googlePay: "pay" },
       paymentMethods: {
         applePay: preferredWallet === "googlepay" ? "never" : "auto",
         googlePay: preferredWallet === "applepay" ? "never" : "auto",
