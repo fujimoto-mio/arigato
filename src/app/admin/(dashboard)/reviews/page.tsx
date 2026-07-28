@@ -2,8 +2,8 @@ import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { GoogleIcon } from "@/components/flow/brand";
-import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatYen } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 
@@ -123,17 +123,18 @@ export default async function AdminReviewsPage({
 }: {
   searchParams: Promise<{ pubPage?: string; privPage?: string }>;
 }) {
-  const { store } = await requireAdmin();
+  const { activeStoreId } = await getActiveStore();
+  const scope = storeScope(activeStoreId);
   const { pubPage: pubParam, privPage: privParam } = await searchParams;
 
   // Same threshold the guest flow branches on (see /api/reviews).
-  const publicWhere = { storeId: store.id, rating: { gte: PUBLIC_REVIEW_MIN_RATING } };
-  const privateWhere = { storeId: store.id, rating: { lt: PUBLIC_REVIEW_MIN_RATING } };
+  const publicWhere = { ...scope, rating: { gte: PUBLIC_REVIEW_MIN_RATING } };
+  const privateWhere = { ...scope, rating: { lt: PUBLIC_REVIEW_MIN_RATING } };
 
   const [publicCount, privateCount, avgAgg] = await Promise.all([
     prisma.review.count({ where: publicWhere }),
     prisma.review.count({ where: privateWhere }),
-    prisma.review.aggregate({ where: { storeId: store.id }, _avg: { rating: true } }),
+    prisma.review.aggregate({ where: { ...scope }, _avg: { rating: true } }),
   ]);
   const average = avgAgg._avg.rating ? avgAgg._avg.rating.toFixed(2) : "—";
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin/auth";
+import { getActiveStore } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
 // Empty string clears an optional field back to null.
@@ -43,8 +44,15 @@ const settingsSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  const { context, error } = await requireAdminApi();
+  const { error } = await requireAdminApi();
   if (error) return error;
+
+  // Which store this edits comes from the top-bar switcher (cookie). The all-
+  // stores view can't edit a single store, so require a concrete selection.
+  const { activeStore } = await getActiveStore();
+  if (!activeStore) {
+    return NextResponse.json({ error: "no_store_selected" }, { status: 400 });
+  }
 
   const parsed = settingsSchema.safeParse(await request.json());
   if (!parsed.success) {
@@ -54,7 +62,7 @@ export async function PATCH(request: Request) {
 
   // A slug is globally unique, so reject one already taken by another store
   // before the DB does (clearer error than the unique-constraint violation).
-  if (parsed.data.slug && parsed.data.slug !== context.store.slug) {
+  if (parsed.data.slug && parsed.data.slug !== activeStore.slug) {
     const taken = await prisma.store.findUnique({ where: { slug: parsed.data.slug } });
     if (taken) {
       return NextResponse.json({ error: "slug_taken" }, { status: 409 });
@@ -62,7 +70,7 @@ export async function PATCH(request: Request) {
   }
 
   const store = await prisma.store.update({
-    where: { id: context.store.id },
+    where: { id: activeStore.id },
     data: parsed.data,
   });
 

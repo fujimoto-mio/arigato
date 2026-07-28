@@ -2,26 +2,22 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseSessionClient } from "@/lib/supabase/session";
 
+/**
+ * The signed-in admin. A single admin manages every store, so the context is no
+ * longer bound to one store — the active store comes from the top-bar switcher
+ * (see `@/lib/admin/store-scope`).
+ */
 export type AdminContext = {
   supabaseUserId: string;
   adminUserId: string;
   email: string;
   role: string;
-  store: {
-    id: string;
-    slug: string;
-    name: string;
-    logoUrl: string | null;
-    googlePlaceId: string | null;
-    instagramUrl: string | null;
-    facebookUrl: string | null;
-  };
 };
 
 /**
- * Resolve the signed-in Supabase user to the store they administer.
- * Returns null when there is no session, or when the user has no AdminUser row
- * (authenticated with Supabase but not provisioned for any store).
+ * Resolve the signed-in Supabase user to their AdminUser row.
+ * Returns null when there is no session, or when the user is authenticated with
+ * Supabase but has no AdminUser row (not provisioned as an admin).
  */
 export async function getAdminContext(): Promise<AdminContext | null> {
   const supabase = await createSupabaseSessionClient();
@@ -33,7 +29,6 @@ export async function getAdminContext(): Promise<AdminContext | null> {
 
   const admin = await prisma.adminUser.findUnique({
     where: { supabaseUserId: user.id },
-    include: { store: true },
   });
 
   if (!admin) return null;
@@ -43,15 +38,6 @@ export async function getAdminContext(): Promise<AdminContext | null> {
     adminUserId: admin.id,
     email: admin.email,
     role: admin.role,
-    store: {
-      id: admin.store.id,
-      slug: admin.store.slug,
-      name: admin.store.name,
-      logoUrl: admin.store.logoUrl,
-      googlePlaceId: admin.store.googlePlaceId,
-      instagramUrl: admin.store.instagramUrl,
-      facebookUrl: admin.store.facebookUrl,
-    },
   };
 }
 

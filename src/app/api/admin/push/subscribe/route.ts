@@ -19,16 +19,18 @@ export async function POST(request: Request) {
   }
   const { endpoint, keys } = parsed.data;
 
+  // A single admin manages every store, so the subscription is global (storeId
+  // null) and receives every store's notifications (see sendStorePush).
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     create: {
       endpoint,
       p256dh: keys.p256dh,
       auth: keys.auth,
-      storeId: context.store.id,
+      storeId: null,
       adminUserId: context.adminUserId,
     },
-    update: { p256dh: keys.p256dh, auth: keys.auth, storeId: context.store.id, adminUserId: context.adminUserId },
+    update: { p256dh: keys.p256dh, auth: keys.auth, storeId: null, adminUserId: context.adminUserId },
   });
 
   return NextResponse.json({ ok: true });

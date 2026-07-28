@@ -27,7 +27,11 @@ export async function sendStorePush(storeId: string, payload: PushPayload): Prom
     return;
   }
 
-  const subs = await prisma.pushSubscription.findMany({ where: { storeId } });
+  // Notify this store's subscribers plus global subscribers (storeId null) — a
+  // single admin manages every store, so their devices subscribe globally.
+  const subs = await prisma.pushSubscription.findMany({
+    where: { OR: [{ storeId }, { storeId: null }] },
+  });
   if (subs.length === 0) return;
 
   const body = JSON.stringify(payload);

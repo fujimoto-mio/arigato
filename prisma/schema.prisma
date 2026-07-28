@@ -18,6 +18,7 @@ model Store {
   tips          Tip[]
   admins        AdminUser[]
   pushSubscriptions PushSubscription[]
+  storySlides   StorySlide[]
 }
 
 enum TipStatus {
@@ -62,29 +63,48 @@ model Review {
   @@index([storeId])
 }
 
+// A single admin manages every store, so storeId is optional (no longer the
+// scoping key — the active store comes from the top-bar switcher). Kept as an
+// optional "home" reference.
 model AdminUser {
   id                String             @id @default(cuid())
-  storeId           String
+  storeId           String?
   supabaseUserId    String             @unique
   email             String             @unique
   role              String             @default("owner")
   createdAt         DateTime           @default(now())
-  store             Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store             Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
   notificationReads NotificationRead[]
 
   @@index([storeId])
 }
 
-/** Web Push subscription for a store's admin device (one per browser/device). */
+/** Per-store "Our Story" slide on the guest landing (single language). */
+model StorySlide {
+  id        String   @id @default(cuid())
+  storeId   String
+  sortOrder Int      @default(0)
+  title     String
+  body      String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+}
+
+// Web Push subscription for an admin device (one per browser/device). A single
+// admin manages every store, so a subscription is global by default (storeId
+// null) and receives every store's notifications; a set storeId scopes it to one.
 model PushSubscription {
   id          String   @id @default(cuid())
-  storeId     String
+  storeId     String?
   adminUserId String?
   endpoint    String   @unique
   p256dh      String
   auth        String
   createdAt   DateTime @default(now())
-  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store       Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
 
   @@index([storeId])
 }

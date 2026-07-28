@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
+import { getActiveStore } from "@/lib/admin/store-scope";
 import { supabaseServiceClient } from "@/lib/supabase/server";
 
 const BUCKET = "store-media";
@@ -18,8 +19,13 @@ async function ensureBucket(supabase: ReturnType<typeof supabaseServiceClient>) 
 
 /** Upload a store logo. Returns the public URL to persist. */
 export async function POST(request: Request) {
-  const { context, error } = await requireAdminApi();
+  const { error } = await requireAdminApi();
   if (error) return error;
+
+  const { activeStore } = await getActiveStore();
+  if (!activeStore) {
+    return NextResponse.json({ error: "no_store_selected" }, { status: 400 });
+  }
 
   const form = await request.formData();
   const file = form.get("file");
@@ -39,7 +45,7 @@ export async function POST(request: Request) {
 
   const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
   // Store-scoped path keeps one store's uploads out of another's namespace.
-  const path = `${context.store.id}/${crypto.randomUUID()}.${extension}`;
+  const path = `${activeStore.id}/${crypto.randomUUID()}.${extension}`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)

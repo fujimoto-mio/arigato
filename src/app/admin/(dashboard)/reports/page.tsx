@@ -1,8 +1,8 @@
 import { ArrowDown, ArrowUp, Coins, HandCoins, Star, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { ReportRangeSelect } from "@/components/admin/ReportRangeSelect";
-import { requireAdmin } from "@/lib/admin/auth";
 import { formatYen, startOfTokyoDay, startOfTokyoDaysAgo } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -41,13 +41,13 @@ function parseTokyoDate(value: string | undefined): Date | null {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-async function periodStats(storeId: string, start?: Date, end?: Date) {
+async function periodStats(scope: { storeId?: string }, start?: Date, end?: Date) {
   const createdAt: { gte?: Date; lt?: Date } = {};
   if (start) createdAt.gte = start;
   if (end) createdAt.lt = end;
   const scoped = Boolean(start || end);
-  const where = { storeId, status: "succeeded" as const, ...(scoped ? { createdAt } : {}) };
-  const reviewWhere = { storeId, ...(scoped ? { createdAt } : {}) };
+  const where = { ...scope, status: "succeeded" as const, ...(scoped ? { createdAt } : {}) };
+  const reviewWhere = { ...scope, ...(scoped ? { createdAt } : {}) };
   const [tips, reviews] = await Promise.all([
     prisma.tip.aggregate({ where, _sum: { amount: true }, _count: true }),
     prisma.review.aggregate({ where: reviewWhere, _count: true, _avg: { rating: true } }),
@@ -68,7 +68,8 @@ export default async function AdminReportsPage({
 }: {
   searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
-  const { store } = await requireAdmin();
+  const { activeStoreId } = await getActiveStore();
+  const scope = storeScope(activeStoreId);
   const { range, from, to } = await searchParams;
   const todayStart = startOfTokyoDay();
   const yesterdayStart = startOfTokyoDaysAgo(1);
@@ -98,11 +99,11 @@ export default async function AdminReportsPage({
   const rangeEndExclusive = new Date(toStart.getTime() + DAY_MS);
 
   const [today, yesterday, all, rangeTips] = await Promise.all([
-    periodStats(store.id, todayStart),
-    periodStats(store.id, yesterdayStart, todayStart),
-    periodStats(store.id),
+    periodStats(scope, todayStart),
+    periodStats(scope, yesterdayStart, todayStart),
+    periodStats(scope),
     prisma.tip.findMany({
-      where: { storeId: store.id, status: "succeeded", createdAt: { gte: fromStart, lt: rangeEndExclusive } },
+      where: { ...scope, status: "succeeded", createdAt: { gte: fromStart, lt: rangeEndExclusive } },
       select: { amount: true, createdAt: true },
     }),
   ]);

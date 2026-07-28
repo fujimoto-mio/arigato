@@ -1,13 +1,13 @@
 import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm";
 import { PushToggle } from "@/components/admin/PushToggle";
 import { StoreSettings } from "@/components/admin/StoreSettings";
-import { requireAdmin } from "@/lib/admin/auth";
+import { getActiveStore } from "@/lib/admin/store-scope";
 import { resolveAppOrigin } from "@/lib/origin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-  const { store } = await requireAdmin();
+  const { activeStore } = await getActiveStore();
   const origin = await resolveAppOrigin();
 
   return (
@@ -16,17 +16,23 @@ export default async function AdminSettingsPage() {
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
         <h2 className="text-lg font-bold">店舗情報</h2>
         <p className="mb-4 text-sm text-neutral-500">お客様の画面に表示されます。</p>
-        <StoreSettings
-          origin={origin}
-          store={{
-            name: store.name,
-            slug: store.slug,
-            googlePlaceId: store.googlePlaceId,
-            logoUrl: store.logoUrl,
-            instagramUrl: store.instagramUrl,
-            facebookUrl: store.facebookUrl,
-          }}
-        />
+        {activeStore ? (
+          <StoreSettings
+            origin={origin}
+            store={{
+              name: activeStore.name,
+              slug: activeStore.slug,
+              googlePlaceId: activeStore.googlePlaceId,
+              logoUrl: activeStore.logoUrl,
+              instagramUrl: activeStore.instagramUrl,
+              facebookUrl: activeStore.facebookUrl,
+            }}
+          />
+        ) : (
+          <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm text-neutral-500">
+            店舗情報を編集するには、上部のメニューから店舗を選択してください。
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">

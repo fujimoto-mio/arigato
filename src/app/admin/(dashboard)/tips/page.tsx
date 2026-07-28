@@ -4,8 +4,8 @@ import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { TableToolbar } from "@/components/admin/TableToolbar";
-import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatUsdApprox, formatYen } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -36,10 +36,10 @@ export default async function AdminTipsPage({
 }: {
   searchParams: Promise<{ page?: string; q?: string; method?: string }>;
 }) {
-  const { store } = await requireAdmin();
+  const { activeStoreId } = await getActiveStore();
   const { page: pageParam, q, method } = await searchParams;
 
-  const where: Prisma.TipWhereInput = { storeId: store.id, status: "succeeded" };
+  const where: Prisma.TipWhereInput = { ...storeScope(activeStoreId), status: "succeeded" };
   if (method === "card" || method === "cash") where.paymentMethod = method;
 
   const term = q?.trim();

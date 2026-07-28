@@ -11,9 +11,11 @@ type Toast = { id: number; title: string; body: string };
 /**
  * Global in-web notifications for the admin panel: on a new tip/review broadcast
  * it shows a toast, plays a chime, and refreshes server data. Mounted once in the
- * admin layout so toasts appear on every admin page in real time.
+ * admin layout so toasts appear on every admin page in real time. Subscribes to
+ * every store in view — one channel in a single-store view, all of them in the
+ * all-stores view.
  */
-export function AdminToaster({ storeId }: { storeId: string }) {
+export function AdminToaster({ storeIds }: { storeIds: string[] }) {
   const router = useRouter();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const chimeRef = useRef<() => void>(() => {});
@@ -53,28 +55,35 @@ export function AdminToaster({ storeId }: { storeId: string }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }
 
+  // Stable dependency so the effect only re-subscribes when the set of stores
+  // actually changes (not on every render's new array identity).
+  const storeIdsKey = storeIds.join(",");
+
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel(storeChannelName(storeId))
-      // One combined notification per interaction, fired after the review.
-      .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
-        const review = payload as ReviewEvent;
-        chimeRef.current();
-        addToast(
-          "新しいチップ・口コミが届きました",
-          `¥${Number(review.amount).toLocaleString("ja-JP")} ・ ★${Number(review.rating).toFixed(1)}${
-            review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
-          }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
-        );
-        router.refresh();
-      })
-      .subscribe();
+    const ids = storeIdsKey ? storeIdsKey.split(",") : [];
+    const channels = ids.map((storeId) =>
+      supabase
+        .channel(storeChannelName(storeId))
+        // One combined notification per interaction, fired after the review.
+        .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
+          const review = payload as ReviewEvent;
+          chimeRef.current();
+          addToast(
+            "新しいチップ・口コミが届きました",
+            `¥${Number(review.amount).toLocaleString("ja-JP")} ・ ★${Number(review.rating).toFixed(1)}${
+              review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
+            }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
+          );
+          router.refresh();
+        })
+        .subscribe(),
+    );
 
     return () => {
-      void supabase.removeChannel(channel);
+      for (const channel of channels) void supabase.removeChannel(channel);
     };
-  }, [storeId, router]);
+  }, [storeIdsKey, router]);
 
   if (toasts.length === 0) return null;
 

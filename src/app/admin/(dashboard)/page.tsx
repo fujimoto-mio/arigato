@@ -4,8 +4,8 @@ import type { Prisma } from "@prisma/client";
 import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
 import { GoogleIcon } from "@/components/flow/brand";
-import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatUsdApprox, formatYen, startOfTokyoDay } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -17,20 +17,21 @@ function tableText(label: string | null) {
 }
 
 export default async function AdminDashboardPage() {
-  const { store } = await requireAdmin();
+  const { activeStoreId } = await getActiveStore();
+  const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
-  const todayWhere = { storeId: store.id, status: "succeeded" as const, createdAt: { gte: todayStart } };
+  const todayWhere = { ...scope, status: "succeeded" as const, createdAt: { gte: todayStart } };
 
   const [tips, tipsAgg, reviewsAgg] = await Promise.all([
     prisma.tip.findMany({
-      where: { storeId: store.id, status: "succeeded" },
+      where: { ...scope, status: "succeeded" },
       include: { review: true },
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
     prisma.tip.aggregate({ where: todayWhere, _sum: { amount: true }, _count: true }),
     prisma.review.aggregate({
-      where: { storeId: store.id, createdAt: { gte: todayStart } },
+      where: { ...scope, createdAt: { gte: todayStart } },
       _count: true,
       _avg: { rating: true },
     }),
