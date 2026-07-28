@@ -46,12 +46,14 @@
     "amountLabel": "您的小费金额",
     "addNote": "点击 +¥100 增加小费",
     "addNoteSub": "（金额随您心意，从 ¥0 起）",
-    "cardCheckbox": "使用信用卡支付",
+    "cardCheckbox": "在线支付",
     "cardHint": "支持 Apple Pay、Google Pay 和银行卡。",
     "cashHint": "不使用银行卡时，将计入账单并在收银台结算。",
     "secure": "安全支付",
     "next": "下一步",
-    "errorGeneric": "出了点问题，请重试。"
+    "errorGeneric": "出了点问题，请重试。",
+    "methodCash": "现金（收银台结算）",
+    "methodCard": "信用卡 / 借记卡"
   },
   "payment": {
     "heading": "完成您的小费",
@@ -63,7 +65,8 @@
     "otherOptions": "其他方式",
     "errorGeneric": "支付时出了点问题，请重试。",
     "errorCard": "您的卡被拒绝。请检查信息或更换一张卡。",
-    "notConfigured": "目前暂不支持支付。"
+    "notConfigured": "目前暂不支持支付。",
+    "payByCardInstead": "改用银行卡支付"
   },
   "review": {
     "heading": "写评价",

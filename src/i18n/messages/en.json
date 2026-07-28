@@ -46,12 +46,14 @@
     "amountLabel": "Your tip amount",
     "addNote": "Tap +¥100 to add tip",
     "addNoteSub": "(Up to the amount you like.)",
-    "cardCheckbox": "Pay by credit card",
+    "cardCheckbox": "Pay online now",
     "cardHint": "Apple Pay, Google Pay, or card.",
     "cashHint": "No card — it's added to your bill and settled at the register.",
     "secure": "Secure payment",
     "next": "Next",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "methodCash": "Cash (pay at register)",
+    "methodCard": "Credit / debit card"
   },
   "payment": {
     "heading": "Complete Your Tip",
@@ -63,7 +65,8 @@
     "otherOptions": "Other options",
     "errorGeneric": "Something went wrong with your payment. Please try again.",
     "errorCard": "Your card was declined. Please check the details or try another card.",
-    "notConfigured": "Payment is not available right now."
+    "notConfigured": "Payment is not available right now.",
+    "payByCardInstead": "Pay by card instead"
   },
   "review": {
     "heading": "Leave a Review",

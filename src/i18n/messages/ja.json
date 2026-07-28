@@ -46,12 +46,14 @@
     "amountLabel": "チップの金額",
     "addNote": "「+¥100」を押してチップを追加",
     "addNoteSub": "（¥0からお好きな金額まで）",
-    "cardCheckbox": "クレジットカードで支払う",
+    "cardCheckbox": "オンラインで支払う",
     "cardHint": "Apple Pay・Google Pay・カードに対応。",
     "cashHint": "カードを使わない場合は、お会計時にレジで精算します。",
     "secure": "安全なお支払い",
     "next": "次へ",
-    "errorGeneric": "エラーが発生しました。もう一度お試しください。"
+    "errorGeneric": "エラーが発生しました。もう一度お試しください。",
+    "methodCash": "現金（レジで精算）",
+    "methodCard": "クレジット / デビットカード"
   },
   "payment": {
     "heading": "チップのお支払い",
@@ -63,7 +65,8 @@
     "otherOptions": "その他の方法",
     "errorGeneric": "お支払いでエラーが発生しました。もう一度お試しください。",
     "errorCard": "カードが承認されませんでした。内容をご確認いただくか、別のカードをお試しください。",
-    "notConfigured": "現在お支払いはご利用いただけません。"
+    "notConfigured": "現在お支払いはご利用いただけません。",
+    "payByCardInstead": "カードで支払う"
   },
   "review": {
     "heading": "レビューを書く",
