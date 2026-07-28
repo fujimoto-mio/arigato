@@ -30,10 +30,10 @@ export type GuestStore = {
   facebookUrl: string | null;
 };
 
-type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou";
+type Step = "landing" | "support" | "payment" | "review" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
-const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou"];
+const STEP_ORDER: Step[] = ["landing", "support", "payment", "review", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
@@ -187,8 +187,7 @@ export function GuestFlow({
       {/* Keyed on `step` so each section remounts and plays the slide-in; the
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
-        {step === "landing" && <Landing store={store} onStart={() => goToStep("story")} />}
-      {step === "story" && <Story onNext={() => goToStep("support")} onBack={() => goToStep("landing")} />}
+        {step === "landing" && <Landing store={store} onStart={() => goToStep("support")} />}
       {step === "support" && (
         <Support
           amount={amount}
@@ -196,7 +195,7 @@ export function GuestFlow({
           payByCard={payByCard}
           setPayByCard={setPayByCard}
           onNext={startCheckout}
-          onBack={() => goToStep("story")}
+          onBack={() => goToStep("landing")}
           isSubmitting={isSubmitting}
           hasError={error === "support"}
         />
@@ -231,120 +230,98 @@ export function GuestFlow({
   );
 }
 
-/* ---------- Screen 1: Landing ---------- */
+/* ---------- Screen 1: QR entry (vertical-scroll story) ---------- */
 
+// A single vertical-scroll page: hero, then the story read top-to-bottom as
+// numbered chapters, then a Next button that moves on to the tip screen.
 function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
   const t = useTranslations("story");
+  const tc = useTranslations("common");
+  const slides = t.raw("slides") as { title: string; body: string }[];
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col pb-10">
       <Header />
-      <div className="px-8 pt-6 text-center">
-        <Wordmark className="text-5xl tracking-tight" />
-        <p className="mx-auto mt-7 max-w-[15rem] text-[15px] font-semibold uppercase leading-relaxed tracking-[0.1em] text-neutral-800">
+
+      {/* Hero */}
+      <div className="px-8 pt-8 text-center">
+        <Wordmark className="text-[52px] leading-none tracking-tight" />
+        <p className="mx-auto mt-6 max-w-[16rem] text-[13px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-700">
           {t("tagline")}
         </p>
-        <p className="mt-3 text-[15px] font-semibold uppercase tracking-[0.1em] text-[var(--color-accent)]">
+        <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
           {t("takeALook")}
         </p>
       </div>
-      <div className="relative mt-10 aspect-[4/3] overflow-hidden bg-neutral-100">
-        <Image src={STORY_IMAGES[0]} alt={store.name} fill sizes="(max-width: 448px) 100vw, 448px" className="object-cover" />
+
+      {/* Cover — full-bleed with a soft gradient foot */}
+      <div className="relative mt-8 aspect-[4/3] overflow-hidden bg-neutral-100">
+        <Image
+          src={STORY_IMAGES[0]}
+          alt={store.name}
+          fill
+          sizes="(max-width: 448px) 100vw, 448px"
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
-      <div className="mt-auto px-6 pb-8 pt-8">
+
+      {/* Scroll hint */}
+      <div className="flex justify-center pt-6 text-[var(--color-accent)]">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-6 w-6 animate-bounce"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </div>
+
+      {/* Our Story — read by scrolling down */}
+      <div className="px-8 pt-6 text-center">
+        <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">{t("heading")}</h2>
+        <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
+      </div>
+
+      <div className="mt-9 flex flex-col gap-16">
+        {slides.map((slide, i) => (
+          <section key={slide.title} className="px-6">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-neutral-100 shadow-[0_12px_34px_rgba(0,0,0,0.09)]">
+              <Image
+                src={STORY_IMAGES[(i + 1) % STORY_IMAGES.length]}
+                alt={slide.title}
+                fill
+                sizes="(max-width: 448px) 100vw, 448px"
+                className="object-cover"
+              />
+              <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[var(--color-accent)] shadow-md backdrop-blur">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </div>
+            <div className="px-1 pt-6 text-center">
+              <h3 className="text-[26px] font-bold leading-tight text-neutral-900">{slide.title}</h3>
+              <p className="mx-auto mt-3 max-w-[21rem] text-[15px] leading-loose text-neutral-500">{slide.body}</p>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {/* Closing + Next → tip screen */}
+      <div className="mt-16 px-6">
+        <div className="mx-auto mb-9 h-px w-16 bg-neutral-200" />
         <AccentButton onClick={onStart}>
           <span className="flex items-center justify-center gap-2">
-            {t("cta")} <span className="text-lg">›</span>
+            {tc("next")} <span className="text-lg">›</span>
           </span>
         </AccentButton>
         <p className="mt-4 text-center text-xs tracking-wide text-neutral-400">
           {t("poweredByPrefix")} <span className="font-bold text-neutral-600">ARIGATO TiP</span>
         </p>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Screen 2: Our Story (swipe carousel) ---------- */
-
-function Story({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const t = useTranslations("story");
-  const slides = t.raw("slides") as { title: string; body: string }[];
-  const [index, setIndex] = useState(0);
-  const [dragX, setDragX] = useState<number | null>(null);
-  const slide = slides[index];
-
-  function advance() {
-    if (index < slides.length - 1) setIndex((i) => i + 1);
-    else onNext();
-  }
-  function back() {
-    if (index > 0) setIndex((i) => i - 1);
-  }
-
-  // One handler for mouse, touch, and pen: a horizontal drag past the threshold
-  // moves prev/next; a small movement counts as a tap and advances.
-  const SWIPE_THRESHOLD = 40;
-  function onPointerDown(e: React.PointerEvent) {
-    setDragX(e.clientX);
-    // Capture the pointer so we still get pointerup even if the finger drifts
-    // off this element mid-swipe (common on mobile).
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {
-      /* setPointerCapture can throw if the pointer is already gone; ignore. */
-    }
-  }
-  function onPointerUp(e: React.PointerEvent) {
-    if (dragX === null) return;
-    const dx = e.clientX - dragX;
-    setDragX(null);
-    if (dx <= -SWIPE_THRESHOLD) advance();
-    else if (dx >= SWIPE_THRESHOLD) back();
-    else advance();
-  }
-
-  return (
-    <div className="flex flex-1 flex-col">
-      <Header onBack={onBack} />
-      <div className="px-6 pt-2">
-        <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{t("heading")}</h2>
-        <div className="mt-1.5 h-1 w-12 rounded-full bg-[var(--color-accent)]" />
-      </div>
-
-      <div
-        className="mt-5 flex-1 cursor-pointer touch-pan-y select-none"
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => setDragX(null)}
-      >
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <Image
-            src={STORY_IMAGES[index % STORY_IMAGES.length]}
-            alt={slide.title}
-            fill
-            sizes="(max-width: 448px) 100vw, 448px"
-            className="object-cover"
-          />
-        </div>
-        <div className="px-6 pt-7">
-          <h3 className="text-3xl font-bold">{slide.title}</h3>
-          <p className="mt-4 text-lg leading-loose text-neutral-500">{slide.body}</p>
-        </div>
-      </div>
-
-      <div className="flex justify-center gap-2.5 py-8">
-        {slides.map((s, i) => (
-          <button
-            key={s.title}
-            type="button"
-            aria-label={`Slide ${i + 1}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIndex(i);
-            }}
-            className={`h-2.5 w-2.5 rounded-full transition-colors ${i === index ? "bg-[var(--color-accent)]" : "bg-neutral-200"}`}
-          />
-        ))}
       </div>
     </div>
   );
@@ -696,8 +673,14 @@ function ThankYou({
         </button>
       </div>
 
-      {/* Gold Japan skyline silhouette anchored to the bottom */}
-      <Skyline className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 w-full text-[#c8a256]" />
+      {/* Gold Japan skyline artwork anchored to the bottom */}
+      <Image
+        src="/lp/skyline.png"
+        alt=""
+        width={889}
+        height={345}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-auto w-full"
+      />
     </div>
   );
 }
@@ -748,81 +731,6 @@ function Heart({ className = "", filled = false }: { className?: string; filled?
     >
       {/* Smooth twin-lobe heart with a gentle dimple and a soft point. */}
       <path d="M16 27C16 27 2 18.6 2 9.6 2 5.4 5.3 2.4 9.2 2.4 12 2.4 14.6 4 16 6.6 17.4 4 20 2.4 22.8 2.4 26.7 2.4 30 5.4 30 9.6 30 18.6 16 27 16 27Z" />
-    </svg>
-  );
-}
-
-/** Gold silhouette of a Japanese skyline — pagoda, Mt Fuji, Tokyo Tower, torii. */
-function Skyline({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 400 132" preserveAspectRatio="xMidYEnd meet" className={className} fill="currentColor" aria-hidden="true">
-      <rect x="0" y="120" width="400" height="12" />
-
-      {/* Left pine tree (layered) */}
-      <rect x="18.5" y="112" width="3" height="8" />
-      <polygon points="10,114 30,114 20,101" />
-      <polygon points="12,105 28,105 20,93" />
-      <polygon points="13.5,96 26.5,96 20,85" />
-
-      {/* Five-tier pagoda with upturned eaves */}
-      <rect x="54" y="101" width="20" height="19" />
-      <polygon points="64,95 82,101 84.5,98 80.5,102 47.5,102 43.5,98 46,101" />
-      <rect x="57" y="90" width="14" height="5" />
-      <polygon points="64,85 79,90 81.5,87 77.5,91 50.5,91 46.5,87 49,90" />
-      <rect x="58.5" y="80" width="11" height="5" />
-      <polygon points="64,75.5 76.5,80 79,77 75,81 53,81 49,77 51.5,80" />
-      <rect x="60" y="71" width="8" height="4.5" />
-      <polygon points="64,67 74,71 76.5,68 72.5,72 55.5,72 51.5,68 54,71" />
-      <rect x="61" y="63" width="6" height="4" />
-      <polygon points="64,59.5 71.5,63 74,60 70,64 58,64 54,60 56.5,63" />
-      <rect x="63" y="50" width="2" height="9.5" />
-      <rect x="61.5" y="53" width="5" height="1.2" />
-      <circle cx="64" cy="49" r="1.8" />
-
-      {/* Buildings between pagoda and Fuji */}
-      <rect x="90" y="98" width="12" height="22" />
-      <rect x="105" y="88" width="14" height="32" />
-      <rect x="111" y="82" width="2" height="6" />
-      <rect x="122" y="104" width="10" height="16" />
-      <rect x="134" y="96" width="9" height="24" />
-      <ellipse cx="152" cy="94" rx="7" ry="3" />
-      <circle cx="156" cy="92.5" r="3" />
-
-      {/* Mt Fuji with a snow-capped peak */}
-      <path d="M158 120 Q186 90 200 70 Q202 68 205 66 Q208 68 210 70 Q224 90 252 120 Z" />
-      <path d="M193 84 Q197 74 205 66 Q213 74 217 84 L214 82 211 87 208 82 205 88 202 82 199 87 196 82 Z" fill="#faf7f0" />
-
-      {/* Clouds + buildings right of Fuji */}
-      <ellipse cx="256" cy="95" rx="8" ry="3.2" />
-      <circle cx="252" cy="94" r="3" />
-      <rect x="263" y="100" width="11" height="20" />
-      <rect x="277" y="92" width="12" height="28" />
-      <rect x="291" y="98" width="10" height="22" />
-      <rect x="303" y="104" width="9" height="16" />
-
-      {/* Tokyo Tower */}
-      <rect x="315" y="117" width="22" height="3" />
-      <polygon points="316,120 323,100 329,100 336,120" />
-      <rect x="318.5" y="113" width="15" height="1.6" />
-      <rect x="320.5" y="107" width="11" height="1.6" />
-      <rect x="320" y="98" width="12" height="4" />
-      <polygon points="323,98 324.5,80 327.5,80 329,98" />
-      <rect x="322" y="84" width="8" height="3.5" />
-      <polygon points="325,80 325.7,62 326.3,62 327,80" />
-      <rect x="325.4" y="48" width="1.2" height="14" />
-
-      {/* Torii gate */}
-      <rect x="351" y="88" width="4.5" height="32" />
-      <rect x="368.5" y="88" width="4.5" height="32" />
-      <path d="M342 84 Q362 79 382 84 L380 89 Q362 85 344 89 Z" />
-      <rect x="360" y="90" width="4" height="6" />
-      <rect x="347" y="96" width="30" height="4" />
-
-      {/* Right pine tree */}
-      <rect x="386.5" y="112" width="3" height="8" />
-      <polygon points="379,114 397,114 388,102" />
-      <polygon points="381,106 395,106 388,95" />
-      <polygon points="382.5,98 393.5,98 388,88" />
     </svg>
   );
 }
