@@ -13,9 +13,11 @@ import { storeTipUrl } from "@/lib/qr";
  */
 export function StoreSettings({
   origin,
+  storeId,
   store,
 }: {
   origin: string;
+  storeId: string;
   store: {
     name: string;
     slug: string;
@@ -36,6 +38,7 @@ export function StoreSettings({
     <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
       <div className="lg:min-w-0 lg:flex-1">
         <StoreSettingsForm
+          storeId={storeId}
           initialName={store.name}
           initialSlug={store.slug}
           initialGooglePlaceId={store.googlePlaceId}

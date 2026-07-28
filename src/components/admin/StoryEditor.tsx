@@ -17,7 +17,13 @@ const MAX_SLIDES = 8;
  * the whole list at once (replace-all) to `/api/admin/story` for the store the
  * top-bar switcher has selected.
  */
-export function StoryEditor({ initialSlides }: { initialSlides: StorySlideDraft[] }) {
+export function StoryEditor({
+  storeId,
+  initialSlides,
+}: {
+  storeId: string;
+  initialSlides: StorySlideDraft[];
+}) {
   const router = useRouter();
   const [slides, setSlides] = useState<StorySlideDraft[]>(
     initialSlides.length > 0 ? initialSlides : [EMPTY_SLIDE],
@@ -54,6 +60,7 @@ export function StoryEditor({ initialSlides }: { initialSlides: StorySlideDraft[
     try {
       const form = new FormData();
       form.append("file", file);
+      form.append("storeId", storeId);
       const res = await fetch("/api/admin/upload", { method: "POST", body: form });
       if (!res.ok) throw new Error("upload_failed");
       const { url } = (await res.json()) as { url: string };
@@ -82,7 +89,7 @@ export function StoryEditor({ initialSlides }: { initialSlides: StorySlideDraft[
       const res = await fetch("/api/admin/story", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slides: cleaned }),
+        body: JSON.stringify({ storeId, slides: cleaned }),
       });
       if (!res.ok) throw new Error("save_failed");
       setSlides(cleaned.length > 0 ? cleaned : [{ ...EMPTY_SLIDE }]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type SelectOption = { value: string; label: string };
@@ -17,6 +17,7 @@ export function Select({
   options,
   searchable = false,
   disabled = false,
+  loading = false,
   ariaLabel,
   placeholder = "選択",
   searchPlaceholder = "検索…",
@@ -29,6 +30,8 @@ export function Select({
   options: SelectOption[];
   searchable?: boolean;
   disabled?: boolean;
+  /** Show a spinner (instead of the chevron) and block interaction while data loads. */
+  loading?: boolean;
   ariaLabel?: string;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -120,24 +123,29 @@ export function Select({
     <div ref={rootRef} className={`relative min-w-0 ${className}`} onKeyDown={onKeyDown}>
       <button
         type="button"
-        disabled={disabled}
+        disabled={disabled || loading}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
+        aria-busy={loading}
         onClick={() => (open ? setOpen(false) : openMenu())}
-        className={`flex w-full items-center gap-2 rounded-full border border-neutral-300 py-2 pl-4 pr-3 text-sm font-semibold text-neutral-900 transition focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-60 ${
+        className={`flex w-full min-w-[8.5rem] items-center gap-2 rounded-lg border border-neutral-300 py-2 pl-4 pr-3 text-sm font-semibold text-neutral-900 transition focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-60 ${
           open ? "border-[var(--color-accent)]" : ""
         } ${triggerClassName}`}
       >
         <span className="min-w-0 flex-1 truncate text-left">{selected ? selected.label : placeholder}</span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
-        />
+        {loading ? (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--color-accent)]" />
+        ) : (
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        )}
       </button>
 
       {open ? (
         <div
-          className={`absolute z-50 mt-2 min-w-full max-w-[80vw] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)] ${
+          className={`absolute z-50 mt-2 min-w-full max-w-[80vw] overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)] ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -172,7 +180,7 @@ export function Select({
                       type="button"
                       onClick={() => choose(option.value)}
                       onMouseMove={() => setActiveIndex(index)}
-                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition ${
                         isActive ? "bg-[var(--color-accent)]/10" : ""
                       } ${isSelected ? "font-semibold text-[var(--color-accent)]" : "text-neutral-700"}`}
                     >

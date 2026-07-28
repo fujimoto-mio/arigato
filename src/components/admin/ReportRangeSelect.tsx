@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Select } from "@/components/admin/Select";
 
 const OPTIONS = [
@@ -26,6 +26,9 @@ export function ReportRangeSelect({
   todayISO: string;
 }) {
   const router = useRouter();
+  // Pending while the server re-renders the chart for the new range, so the
+  // select can show a spinner instead of looking frozen during the fetch.
+  const [pending, startTransition] = useTransition();
   const [value, setValue] = useState(selection);
   const [from, setFrom] = useState(fromISO);
   const [to, setTo] = useState(toISO);
@@ -39,11 +42,11 @@ export function ReportRangeSelect({
 
   function onSelect(next: string) {
     setValue(next);
-    if (next !== "custom") router.push(`/admin/reports?range=${next}`);
+    if (next !== "custom") startTransition(() => router.push(`/admin/reports?range=${next}`));
   }
 
   function applyCustom() {
-    if (from && to) router.push(`/admin/reports?from=${from}&to=${to}`);
+    if (from && to) startTransition(() => router.push(`/admin/reports?from=${from}&to=${to}`));
   }
 
   const inputClass =
@@ -58,7 +61,8 @@ export function ReportRangeSelect({
           onChange={onSelect}
           options={OPTIONS}
           ariaLabel="期間"
-          triggerClassName="font-medium"
+          loading={pending}
+          triggerClassName="min-w-[10rem] font-medium"
           align="right"
         />
 

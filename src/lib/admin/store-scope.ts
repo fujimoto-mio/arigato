@@ -29,6 +29,11 @@ export async function getAllStores(): Promise<AdminStore[]> {
   return prisma.store.findMany({ select: STORE_SELECT, orderBy: { name: "asc" } });
 }
 
+/** One store by id (any admin manages any store); null if it doesn't exist. */
+export async function getStore(storeId: string): Promise<AdminStore | null> {
+  return prisma.store.findUnique({ where: { id: storeId }, select: STORE_SELECT });
+}
+
 export type ActiveStore = {
   /** The active store's id, or null for the all-stores view. */
   activeStoreId: string | null;

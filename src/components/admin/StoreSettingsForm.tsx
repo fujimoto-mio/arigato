@@ -15,6 +15,7 @@ function slugify(value: string): string {
 }
 
 export function StoreSettingsForm({
+  storeId,
   initialName,
   initialSlug,
   initialGooglePlaceId,
@@ -24,6 +25,7 @@ export function StoreSettingsForm({
   onSavingChange,
   onSaved,
 }: {
+  storeId: string;
   initialName: string;
   initialSlug: string;
   initialGooglePlaceId: string | null;
@@ -68,7 +70,7 @@ export function StoreSettingsForm({
     onSavingChange?.(true);
 
     try {
-      const res = await fetch("/api/admin/settings", {
+      const res = await fetch(`/api/admin/stores/${storeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,11 +108,12 @@ export function StoreSettingsForm({
     try {
       const form = new FormData();
       form.append("file", file);
+      form.append("storeId", storeId);
       const uploadRes = await fetch("/api/admin/upload", { method: "POST", body: form });
       if (!uploadRes.ok) throw new Error("upload_failed");
       const { url } = (await uploadRes.json()) as { url: string };
 
-      const res = await fetch("/api/admin/settings", {
+      const res = await fetch(`/api/admin/stores/${storeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logoUrl: url }),

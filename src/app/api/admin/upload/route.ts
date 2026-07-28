@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { getActiveStore } from "@/lib/admin/store-scope";
+import { prisma } from "@/lib/prisma";
 import { supabaseServiceClient } from "@/lib/supabase/server";
 
 const BUCKET = "store-media";
@@ -22,13 +23,24 @@ export async function POST(request: Request) {
   const { error } = await requireAdminApi();
   if (error) return error;
 
-  const { activeStore } = await getActiveStore();
-  if (!activeStore) {
-    return NextResponse.json({ error: "no_store_selected" }, { status: 400 });
-  }
-
   const form = await request.formData();
   const file = form.get("file");
+
+  // The target store is named in the form (Store Management editor); fall back to
+  // the top-bar active store for any other caller.
+  const storeIdField = form.get("storeId");
+  let storeId = typeof storeIdField === "string" && storeIdField ? storeIdField : null;
+  if (storeId) {
+    const exists = await prisma.store.findUnique({ where: { id: storeId }, select: { id: true } });
+    if (!exists) storeId = null;
+  }
+  if (!storeId) {
+    const { activeStore } = await getActiveStore();
+    storeId = activeStore?.id ?? null;
+  }
+  if (!storeId) {
+    return NextResponse.json({ error: "no_store_selected" }, { status: 400 });
+  }
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "missing_file" }, { status: 400 });
@@ -45,7 +57,7 @@ export async function POST(request: Request) {
 
   const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
   // Store-scoped path keeps one store's uploads out of another's namespace.
-  const path = `${activeStore.id}/${crypto.randomUUID()}.${extension}`;
+  const path = `${storeId}/${crypto.randomUUID()}.${extension}`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
