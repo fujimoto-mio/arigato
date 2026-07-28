@@ -1,8 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Dancing_Script } from "next/font/google";
 import Image from "next/image";
 import { type ReactNode, useState } from "react";
+
+// Script face for the "Thank you" hero on the final screen (latin only; CJK
+// falls back gracefully).
+const scriptFont = Dancing_Script({ subsets: ["latin"], weight: "700", display: "swap" });
 import {
   FacebookIcon,
   GoogleIcon,
@@ -14,7 +19,7 @@ import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
-import { TIP_STEP } from "@/lib/tip";
+import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
 
 export type GuestStore = {
   slug: string;
@@ -25,10 +30,10 @@ export type GuestStore = {
   facebookUrl: string | null;
 };
 
-type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou" | "connect";
+type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
-const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou", "connect"];
+const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
@@ -177,18 +182,13 @@ export function GuestFlow({
     }
   }
 
-  function goReviews() {
-    if (store.googlePlaceId) window.open(googleMapsUrl(store.googlePlaceId), "_blank");
-    else goToStep("connect");
-  }
-
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-white">
       {/* Keyed on `step` so each section remounts and plays the slide-in; the
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
         {step === "landing" && <Landing store={store} onStart={() => goToStep("story")} />}
-      {step === "story" && <Story onNext={() => goToStep("support")} />}
+      {step === "story" && <Story onNext={() => goToStep("support")} onBack={() => goToStep("landing")} />}
       {step === "support" && (
         <Support
           amount={amount}
@@ -224,19 +224,7 @@ export function GuestFlow({
         />
       )}
       {step === "thankyou" && (
-        <ThankYou onHome={reset} onReviews={promote ? () => goToStep("connect") : null} />
-      )}
-      {step === "connect" && (
-        <Connect
-          store={store}
-          reviewUrl={googleReviewUrl}
-          promote={promote}
-          onBack={() => goToStep("thankyou")}
-          onHome={reset}
-          onStory={() => goToStep("story")}
-          onReviews={goReviews}
-          onSupport={() => goToStep("support")}
-        />
+        <ThankYou store={store} reviewUrl={googleReviewUrl} promote={promote} onHome={reset} />
       )}
       </div>
     </div>
@@ -278,7 +266,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
 
 /* ---------- Screen 2: Our Story (swipe carousel) ---------- */
 
-function Story({ onNext }: { onNext: () => void }) {
+function Story({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const t = useTranslations("story");
   const slides = t.raw("slides") as { title: string; body: string }[];
   const [index, setIndex] = useState(0);
@@ -317,7 +305,7 @@ function Story({ onNext }: { onNext: () => void }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <Header />
+      <Header onBack={onBack} />
       <div className="px-6 pt-2">
         <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{t("heading")}</h2>
         <div className="mt-1.5 h-1 w-12 rounded-full bg-[var(--color-accent)]" />
@@ -384,8 +372,9 @@ function Support({
   hasError: boolean;
 }) {
   const t = useTranslations("support");
-  // Require at least one tip step — the Next button is disabled at ¥0.
-  const canSubmit = !isSubmitting && amount >= TIP_STEP;
+  // ¥0 is allowed (review-only) — guests can continue without tipping. Only the
+  // card path needs a real amount, since Stripe can't charge ¥0.
+  const canSubmit = !isSubmitting && (!payByCard || amount >= CARD_MIN_AMOUNT);
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -635,244 +624,255 @@ function Review({
 
 /* ---------- Screen 5: Thank You ---------- */
 
-function ThankYou({ onHome, onReviews }: { onHome: () => void; onReviews: (() => void) | null }) {
-  const t = useTranslations("thankYou");
-  return (
-    <div className="flex flex-1 flex-col">
-      <Header />
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16 text-center">
-        <div className="relative text-[var(--color-accent)]">
-          <span className="flex h-24 w-24 items-center justify-center rounded-full border-[3px] border-current">
-            <svg viewBox="0 0 24 24" className="h-11 w-11" fill="currentColor" aria-hidden="true">
-              <path d="M12 21.3s-7.6-4.6-10.2-9.4C.4 8.9 1.8 5.1 5.5 5.1c2.1 0 3.7 1.3 4.7 2.9 1-1.6 2.6-2.9 4.7-2.9 3.7 0 5.1 3.8 3.7 6.8-2.6 4.8-10.2 9.4-10.2 9.4z" />
-            </svg>
-          </span>
-          <div className="absolute -right-1 -top-2 flex items-end gap-1">
-            <span className="h-3.5 w-1 -rotate-[8deg] rounded-full bg-current" />
-            <span className="h-4 w-1 rotate-[18deg] rounded-full bg-current" />
-            <span className="h-3 w-1 rotate-[44deg] rounded-full bg-current" />
-          </div>
-        </div>
-        <h1 className="mt-8 text-4xl font-bold uppercase tracking-tight">{t("title")}</h1>
-        <p className="mt-5 max-w-[13rem] text-base leading-relaxed text-neutral-500">
-          {t("subtitlePart1")}
-          <br />
-          {t("subtitlePart2")}
-        </p>
-
-        <div className="mt-12 w-full max-w-xs">
-          <button
-            type="button"
-            onClick={onHome}
-            className="w-full rounded-xl border border-[var(--color-accent)] py-4 text-center text-base font-semibold text-[var(--color-accent)]"
-          >
-            {t("backToTop")}
-          </button>
-          {onReviews ? (
-            <button
-              type="button"
-              onClick={onReviews}
-              className="mt-6 flex w-full items-center justify-center gap-1.5 text-base font-semibold text-[var(--color-accent)]"
-            >
-              {t("viewReviews")}
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Screen 6: Stay Connected ---------- */
-
-function Connect({
+function ThankYou({
   store,
   reviewUrl,
   promote,
-  onBack,
   onHome,
-  onStory,
-  onReviews,
-  onSupport,
 }: {
   store: GuestStore;
-  // The store's Google "write a review" link when the guest just left a
-  // qualifying rating; falls back to the general Maps listing otherwise.
+  // Store's Google "write a review" link when the rating qualified; else the
+  // general Maps listing (resolved inside FollowMenu).
   reviewUrl: string | null;
-  // Only positive reviewers (and neutral guests) see the follow/review buttons;
-  // a 1–3★ review turns this off so we never publicly promote it.
+  // A 1–3★ review keeps things private — no follow menu is shown.
   promote: boolean;
-  onBack: () => void;
   onHome: () => void;
-  onStory: () => void;
-  onReviews: () => void;
-  onSupport: () => void;
 }) {
-  const t = useTranslations("connect");
-  const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
-  const links = (
-    promote
-      ? [
-          store.instagramUrl
-            ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
-            : null,
-          store.facebookUrl
-            ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
-            : null,
-          googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
-        ]
-      : []
-  ).filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
-
+  const t = useTranslations("thankYou");
   return (
-    <div className="flex flex-1 flex-col pb-20">
-      <Header onBack={onBack} />
-      <div className="px-6 pt-4">
-        <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
-        <p className="mt-2 text-base leading-snug text-neutral-500">
-          {t("subtitleLine1")}
-          <br />
-          {t("subtitleLine2")}
-        </p>
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-[#f7f4ec]">
+      <Header />
 
-        <div className="mt-6 flex flex-col gap-3">
-          {links.length === 0 ? (
-            <p className="rounded-xl bg-neutral-50 p-4 text-center text-sm text-neutral-400">—</p>
-          ) : (
-            links.map((link) => (
-              <a
-                key={link.key}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium hover:bg-neutral-50"
-              >
-                <span className="flex items-center gap-3">
-                  {link.icon}
-                  {link.label}
-                </span>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
-              </a>
-            ))
-          )}
+      {/* Scattered cherry blossoms + falling petals */}
+      <Sakura className="pointer-events-none absolute left-5 top-24 h-11 w-11 rotate-[16deg] text-pink-200" />
+      <Sakura className="pointer-events-none absolute right-6 top-32 h-8 w-8 -rotate-6 text-pink-200" />
+      <Sakura className="pointer-events-none absolute left-9 top-44 h-6 w-6 rotate-[26deg] text-pink-200/80" />
+      <Sakura className="pointer-events-none absolute right-10 top-52 h-7 w-7 rotate-[8deg] text-pink-200/80" />
+      <Petal className="pointer-events-none absolute left-16 top-36 h-4 w-4 rotate-[40deg] text-pink-200/80" />
+      <Petal className="pointer-events-none absolute right-16 top-24 h-3.5 w-3.5 -rotate-[30deg] text-pink-200/70" />
+      <Petal className="pointer-events-none absolute left-6 top-60 h-3 w-3 rotate-[70deg] text-pink-200/70" />
+
+      {/* Heart accents */}
+      <Heart className="pointer-events-none absolute right-9 top-[86px] h-6 w-6 -rotate-[14deg] text-red-500" />
+      <Heart className="pointer-events-none absolute right-14 top-52 h-5 w-5 rotate-6 text-red-400" />
+      <Heart filled className="pointer-events-none absolute left-12 top-[268px] h-5 w-5 text-pink-300" />
+
+      <div className="relative z-10 flex flex-1 flex-col items-center px-6 pb-44 pt-4 text-center">
+        {/* Hero */}
+        <p className={`${scriptFont.className} mt-2 text-[64px] leading-none text-neutral-900`}>Thank you</p>
+        <p className="mt-1 text-sm font-semibold uppercase tracking-[0.26em] text-neutral-800">For your visit!</p>
+        <svg
+          viewBox="0 0 120 10"
+          className="mt-2 h-2.5 w-32 text-[#c8a256]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 6 Q 60 -1 110 4" />
+          <path d="M103 1 L113 4 L105 8" />
+        </svg>
+
+        {/* Body copy with a dotted, sakura-centred divider */}
+        <p className="mt-7 max-w-[15rem] text-[15px] leading-relaxed text-neutral-600">{t("subtitlePart1")}</p>
+        <div className="my-5 flex w-full max-w-[15rem] items-center gap-3 text-[#cbb07a]">
+          <span className="h-0 flex-1 border-t border-dotted border-current" />
+          <Sakura className="h-4 w-4 text-pink-300" />
+          <span className="h-0 flex-1 border-t border-dotted border-current" />
         </div>
+        <p className="max-w-[15rem] text-[15px] leading-relaxed text-neutral-600">{t("subtitlePart2")}</p>
+
+        {/* Follow menu directly below the thank-you, for positive reviewers. */}
+        {promote ? <FollowMenu store={store} reviewUrl={reviewUrl} className="mt-9 w-full max-w-xs" /> : null}
+
+        <button
+          type="button"
+          onClick={onHome}
+          className="mt-9 w-full max-w-xs rounded-xl border border-[var(--color-accent)] bg-white/60 py-4 text-center text-base font-semibold text-[var(--color-accent)]"
+        >
+          {t("backToTop")}
+        </button>
       </div>
 
-      {/* Full-bleed, edge-to-edge — anchored just above the bottom nav. */}
-      <div className="mt-auto grid grid-cols-2 gap-0.5">
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <Image src={STORY_IMAGES[0]} alt={store.name} fill sizes="224px" className="object-cover" />
-        </div>
-        <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-          <Image src={STORY_IMAGES[2]} alt={store.name} fill sizes="224px" className="object-cover" />
-        </div>
-      </div>
-
-      <BottomNav active="home" onHome={onHome} onStory={onStory} onReviews={onReviews} onSupport={onSupport} />
+      {/* Gold Japan skyline silhouette anchored to the bottom */}
+      <Skyline className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 w-full text-[#c8a256]" />
     </div>
   );
 }
 
-/* ---------- Bottom nav (screen 6) ---------- */
+/* ---------- Thank-you decorations ---------- */
 
-function BottomNav({
-  active,
-  onHome,
-  onStory,
-  onReviews,
-  onSupport,
-}: {
-  active: "home" | "story" | "reviews" | "support";
-  onHome: () => void;
-  onStory: () => void;
-  onReviews: () => void;
-  onSupport: () => void;
-}) {
-  const t = useTranslations("nav");
-  const iconProps = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className: "h-5 w-5",
-  };
-  const items: { key: "home" | "story" | "reviews" | "support"; label: string; icon: ReactNode; go: () => void }[] = [
-    {
-      key: "home",
-      label: t("home"),
-      go: onHome,
-      icon: (
-        <svg {...iconProps}>
-          <path d="M3 11.5 12 4l9 7.5" />
-          <path d="M5.5 10v9.5h13V10" />
-        </svg>
-      ),
-    },
-    {
-      key: "story",
-      label: t("story"),
-      go: onStory,
-      icon: (
-        <svg {...iconProps}>
-          <rect x="4" y="5" width="16" height="14" rx="2" />
-          <circle cx="9" cy="10" r="1.4" />
-          <path d="M4.5 16l4.5-3.5 3 2.5 3.5-4 4.5 5" />
-        </svg>
-      ),
-    },
-    {
-      key: "reviews",
-      label: t("reviews"),
-      go: onReviews,
-      icon: (
-        <svg {...iconProps}>
-          <path d="M12 4l2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8z" />
-        </svg>
-      ),
-    },
-    {
-      key: "support",
-      label: t("support"),
-      go: onSupport,
-      icon: (
-        <svg {...iconProps}>
-          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5z" />
-          <path d="M8 9h8M8 12.5h5" />
-        </svg>
-      ),
-    },
-  ];
+// A single cherry-blossom petal with the characteristic notched tip.
+const PETAL_PATH = "M0 0C-6 -5 -7 -15 -2.6 -20L0 -16.5 2.6 -20C7 -15 6 -5 0 0Z";
+
+/** Five-petal cherry blossom with a pale centre + stamens; colour via `text-*`. */
+function Sakura({ className = "" }: { className?: string }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 mx-auto flex max-w-md items-center justify-around border-t border-neutral-200 bg-white py-2">
-      {items.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          onClick={item.go}
-          className={`flex flex-1 flex-col items-center gap-1 py-1 text-[10px] ${
-            item.key === active ? "font-semibold text-[var(--color-accent)]" : "text-neutral-400"
-          }`}
-        >
-          {item.icon}
-          {item.label}
-        </button>
+    <svg viewBox="-24 -24 48 48" className={className} fill="currentColor" aria-hidden="true">
+      {[0, 72, 144, 216, 288].map((a) => (
+        <path key={a} transform={`rotate(${a})`} d={PETAL_PATH} />
       ))}
-    </nav>
+      <circle r="3" fill="#fff" opacity="0.7" />
+      <g fill="#fff" opacity="0.85">
+        {[0, 60, 120, 180, 240, 300].map((a) => (
+          <circle key={a} transform={`rotate(${a}) translate(0 -4.6)`} r="0.9" />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+/** Single falling petal; colour via `text-*`. */
+function Petal({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="-8 -22 16 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d={PETAL_PATH} />
+    </svg>
+  );
+}
+
+/** Heart accent — outline by default, solid when `filled`. Colour via `text-*`. */
+function Heart({ className = "", filled = false }: { className?: string; filled?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 32 29"
+      className={className}
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth={filled ? 0 : 2.4}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      {/* Smooth twin-lobe heart with a gentle dimple and a soft point. */}
+      <path d="M16 27C16 27 2 18.6 2 9.6 2 5.4 5.3 2.4 9.2 2.4 12 2.4 14.6 4 16 6.6 17.4 4 20 2.4 22.8 2.4 26.7 2.4 30 5.4 30 9.6 30 18.6 16 27 16 27Z" />
+    </svg>
+  );
+}
+
+/** Gold silhouette of a Japanese skyline — pagoda, Mt Fuji, Tokyo Tower, torii. */
+function Skyline({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 400 132" preserveAspectRatio="xMidYEnd meet" className={className} fill="currentColor" aria-hidden="true">
+      <rect x="0" y="120" width="400" height="12" />
+
+      {/* Left pine tree (layered) */}
+      <rect x="18.5" y="112" width="3" height="8" />
+      <polygon points="10,114 30,114 20,101" />
+      <polygon points="12,105 28,105 20,93" />
+      <polygon points="13.5,96 26.5,96 20,85" />
+
+      {/* Five-tier pagoda with upturned eaves */}
+      <rect x="54" y="101" width="20" height="19" />
+      <polygon points="64,95 82,101 84.5,98 80.5,102 47.5,102 43.5,98 46,101" />
+      <rect x="57" y="90" width="14" height="5" />
+      <polygon points="64,85 79,90 81.5,87 77.5,91 50.5,91 46.5,87 49,90" />
+      <rect x="58.5" y="80" width="11" height="5" />
+      <polygon points="64,75.5 76.5,80 79,77 75,81 53,81 49,77 51.5,80" />
+      <rect x="60" y="71" width="8" height="4.5" />
+      <polygon points="64,67 74,71 76.5,68 72.5,72 55.5,72 51.5,68 54,71" />
+      <rect x="61" y="63" width="6" height="4" />
+      <polygon points="64,59.5 71.5,63 74,60 70,64 58,64 54,60 56.5,63" />
+      <rect x="63" y="50" width="2" height="9.5" />
+      <rect x="61.5" y="53" width="5" height="1.2" />
+      <circle cx="64" cy="49" r="1.8" />
+
+      {/* Buildings between pagoda and Fuji */}
+      <rect x="90" y="98" width="12" height="22" />
+      <rect x="105" y="88" width="14" height="32" />
+      <rect x="111" y="82" width="2" height="6" />
+      <rect x="122" y="104" width="10" height="16" />
+      <rect x="134" y="96" width="9" height="24" />
+      <ellipse cx="152" cy="94" rx="7" ry="3" />
+      <circle cx="156" cy="92.5" r="3" />
+
+      {/* Mt Fuji with a snow-capped peak */}
+      <path d="M158 120 Q186 90 200 70 Q202 68 205 66 Q208 68 210 70 Q224 90 252 120 Z" />
+      <path d="M193 84 Q197 74 205 66 Q213 74 217 84 L214 82 211 87 208 82 205 88 202 82 199 87 196 82 Z" fill="#faf7f0" />
+
+      {/* Clouds + buildings right of Fuji */}
+      <ellipse cx="256" cy="95" rx="8" ry="3.2" />
+      <circle cx="252" cy="94" r="3" />
+      <rect x="263" y="100" width="11" height="20" />
+      <rect x="277" y="92" width="12" height="28" />
+      <rect x="291" y="98" width="10" height="22" />
+      <rect x="303" y="104" width="9" height="16" />
+
+      {/* Tokyo Tower */}
+      <rect x="315" y="117" width="22" height="3" />
+      <polygon points="316,120 323,100 329,100 336,120" />
+      <rect x="318.5" y="113" width="15" height="1.6" />
+      <rect x="320.5" y="107" width="11" height="1.6" />
+      <rect x="320" y="98" width="12" height="4" />
+      <polygon points="323,98 324.5,80 327.5,80 329,98" />
+      <rect x="322" y="84" width="8" height="3.5" />
+      <polygon points="325,80 325.7,62 326.3,62 327,80" />
+      <rect x="325.4" y="48" width="1.2" height="14" />
+
+      {/* Torii gate */}
+      <rect x="351" y="88" width="4.5" height="32" />
+      <rect x="368.5" y="88" width="4.5" height="32" />
+      <path d="M342 84 Q362 79 382 84 L380 89 Q362 85 344 89 Z" />
+      <rect x="360" y="90" width="4" height="6" />
+      <rect x="347" y="96" width="30" height="4" />
+
+      {/* Right pine tree */}
+      <rect x="386.5" y="112" width="3" height="8" />
+      <polygon points="379,114 397,114 388,102" />
+      <polygon points="381,106 395,106 388,95" />
+      <polygon points="382.5,98 393.5,98 388,88" />
+    </svg>
+  );
+}
+
+/* ---------- Follow menu (shown under Thank You) ---------- */
+
+function FollowMenu({
+  store,
+  reviewUrl,
+  className = "",
+}: {
+  store: GuestStore;
+  reviewUrl: string | null;
+  className?: string;
+}) {
+  const t = useTranslations("connect");
+  const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
+  const links = [
+    store.instagramUrl
+      ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
+      : null,
+    store.facebookUrl
+      ? { key: "facebook", label: t("facebook"), href: store.facebookUrl, icon: <FacebookIcon size={30} /> }
+      : null,
+    googleHref ? { key: "google", label: t("google"), href: googleHref, icon: <GoogleIcon size={30} /> } : null,
+  ].filter(Boolean) as { key: string; label: string; href: string; icon: ReactNode }[];
+
+  if (links.length === 0) return null;
+
+  return (
+    <div className={className}>
+      <div className="flex flex-col gap-3">
+        {links.map((link) => (
+          <a
+            key={link.key}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between rounded-xl border border-neutral-200 px-4 py-3 text-left text-sm font-medium hover:bg-neutral-50"
+          >
+            <span className="flex items-center gap-3">
+              {link.icon}
+              {link.label}
+            </span>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </a>
+        ))}
+      </div>
+    </div>
   );
 }
