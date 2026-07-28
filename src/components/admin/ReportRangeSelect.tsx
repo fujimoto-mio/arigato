@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Select } from "@/components/admin/Select";
 
 const OPTIONS = [
   { value: "today", label: "今日" },
@@ -52,32 +53,14 @@ export function ReportRangeSelect({
   return (
     <div className="flex flex-col items-start gap-1.5 sm:items-end">
       <div className="flex flex-wrap items-end gap-2">
-        <div className="relative">
-          <select
-            value={value}
-            onChange={(event) => onSelect(event.target.value)}
-            aria-label="期間"
-            className="block appearance-none rounded-full border border-neutral-300 py-2 pl-4 pr-9 text-sm font-medium focus:border-[var(--color-accent)] focus:outline-none"
-          >
-            {OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <svg
-            viewBox="0 0 24 24"
-            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </div>
+        <Select
+          value={value}
+          onChange={onSelect}
+          options={OPTIONS}
+          ariaLabel="期間"
+          triggerClassName="font-medium"
+          align="right"
+        />
 
         {value === "custom" ? (
           <>

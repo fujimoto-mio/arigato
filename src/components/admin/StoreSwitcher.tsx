@@ -26,7 +26,7 @@ export function StoreSwitcher({
   const [pending, startTransition] = useTransition();
 
   const options: SelectOption[] = [
-    { value: ALL_STORES, label: "すべての" },
+    { value: ALL_STORES, label: "すべて" },
     ...stores.map((store) => ({ value: store.id, label: store.name })),
   ];
 
@@ -43,7 +43,7 @@ export function StoreSwitcher({
         disabled={pending}
         ariaLabel="店舗を選択"
         searchPlaceholder="店舗名で検索…"
-        triggerClassName="max-w-[46vw] sm:max-w-[16rem]"
+        className="max-w-[46vw] sm:max-w-[16rem]"
         onChange={(value) => {
           startTransition(async () => {
             await setActiveStore(value);

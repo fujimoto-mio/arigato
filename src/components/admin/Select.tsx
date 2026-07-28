@@ -20,6 +20,7 @@ export function Select({
   ariaLabel,
   placeholder = "選択",
   searchPlaceholder = "検索…",
+  className = "",
   triggerClassName = "",
   align = "left",
 }: {
@@ -31,6 +32,9 @@ export function Select({
   ariaLabel?: string;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Extra classes for the root wrapper (mainly width control). */
+  className?: string;
+  /** Extra classes for the trigger button. */
   triggerClassName?: string;
   align?: "left" | "right";
 }) {
@@ -113,7 +117,7 @@ export function Select({
   }
 
   return (
-    <div ref={rootRef} className="relative min-w-0" onKeyDown={onKeyDown}>
+    <div ref={rootRef} className={`relative min-w-0 ${className}`} onKeyDown={onKeyDown}>
       <button
         type="button"
         disabled={disabled}
