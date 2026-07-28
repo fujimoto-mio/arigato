@@ -46,12 +46,14 @@
     "amountLabel": "팁 금액",
     "addNote": "+¥100을 눌러 팁 추가",
     "addNoteSub": "(¥0부터 원하는 금액까지)",
-    "cardCheckbox": "신용카드로 결제",
+    "cardCheckbox": "온라인으로 결제",
     "cardHint": "Apple Pay·Google Pay·카드 지원.",
     "cashHint": "카드를 사용하지 않으면 계산 시 카운터에서 정산합니다.",
     "secure": "안전한 결제",
     "next": "다음",
-    "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요."
+    "errorGeneric": "문제가 발생했습니다. 다시 시도해 주세요.",
+    "methodCash": "현금 (카운터에서 결제)",
+    "methodCard": "신용 / 체크카드"
   },
   "payment": {
     "heading": "팁 결제 완료",
@@ -63,7 +65,8 @@
     "otherOptions": "다른 방법",
     "errorGeneric": "결제 중 문제가 발생했습니다. 다시 시도해 주세요.",
     "errorCard": "카드가 거절되었습니다. 정보를 확인하거나 다른 카드를 사용해 주세요.",
-    "notConfigured": "현재 결제를 이용할 수 없습니다."
+    "notConfigured": "현재 결제를 이용할 수 없습니다.",
+    "payByCardInstead": "카드로 결제"
   },
   "review": {
     "heading": "리뷰 남기기",

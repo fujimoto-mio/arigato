@@ -13,16 +13,33 @@ import { LogoBadge } from "@/components/flow/brand";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { stripePromise } from "@/lib/stripeClient";
 
-function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; onPaid: () => void }) {
+function PaymentInner({
+  slug,
+  tipId,
+  preferredWallet,
+  onPaid,
+}: {
+  slug: string;
+  tipId: string;
+  // The wallet the guest picked on the tip screen; the payment screen leads with
+  // it and hides the card form until we learn it isn't available.
+  preferredWallet: "applepay" | "googlepay" | null;
+  onPaid: () => void;
+}) {
   const t = useTranslations("payment");
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Apple Pay / Google Pay only render where the browser + device support them
-  // (Safari with a Wallet card, Chrome signed in with a Google Pay card). Track
-  // availability so the "other options" divider only appears when a wallet shows.
-  const [walletAvailable, setWalletAvailable] = useState(false);
+  // null while the Express element is still checking availability. Apple Pay /
+  // Google Pay only render where the browser + device (and Stripe account)
+  // support them; when a specific wallet was chosen and it isn't available, we
+  // fall back to the card form.
+  const [walletShown, setWalletShown] = useState<boolean | null>(preferredWallet ? null : false);
+  const [forceCard, setForceCard] = useState(false);
+
+  const showCard = !preferredWallet || walletShown === false || forceCard;
+  const walletOnly = Boolean(preferredWallet) && walletShown === true && !forceCard;
 
   async function confirm() {
     if (!stripe || !elements) return;
@@ -67,43 +84,62 @@ function PaymentInner({ slug, tipId, onPaid }: { slug: string; tipId: string; on
 
   return (
     <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-      {/* Apple Pay / Google Pay buttons. Link is disabled so no "stripe"/Link
-          branding appears; the card form below covers everyone else. */}
+      {/* Apple Pay / Google Pay buttons. When the guest chose a specific wallet,
+          only that one is offered; Link is disabled so no "stripe"/Link branding
+          appears. */}
       <ExpressCheckoutElement
         onConfirm={() => void confirm()}
-        onReady={({ availablePaymentMethods }) => setWalletAvailable(Boolean(availablePaymentMethods))}
+        onReady={({ availablePaymentMethods }) => {
+          if (process.env.NODE_ENV !== "production") {
+            // Debug: shows which wallets Stripe reports as available on this device.
+            console.log("[express-checkout] availablePaymentMethods:", availablePaymentMethods);
+          }
+          setWalletShown(Boolean(availablePaymentMethods));
+        }}
         options={{
           paymentMethods: {
-            applePay: "auto",
-            googlePay: "auto",
+            applePay: preferredWallet === "googlepay" ? "never" : "auto",
+            googlePay: preferredWallet === "applepay" ? "never" : "auto",
             link: "never",
             amazonPay: "never",
             paypal: "never",
           },
         }}
       />
-      {walletAvailable ? (
+      {showCard && walletShown === true ? (
         <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-400">
           <span className="h-px flex-1 bg-neutral-200" />
           {t("otherOptions")}
           <span className="h-px flex-1 bg-neutral-200" />
         </div>
       ) : null}
-      {/* Card entry. Wallets are handled by the Express element above, so keep them
-          off here to avoid a duplicate button. */}
-      <PaymentElement options={{ layout: "tabs", wallets: { applePay: "never", googlePay: "never" } }} />
-      {error ? (
-        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-          {error}
-        </p>
+      {showCard ? (
+        <>
+          {/* Card entry. Wallets are handled by the Express element above, so keep
+              them off here to avoid a duplicate button. */}
+          <PaymentElement options={{ layout: "tabs", wallets: { applePay: "never", googlePay: "never" } }} />
+          {error ? (
+            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={!stripe || isSubmitting}
+            className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
+          >
+            {isSubmitting ? t("processing") : hasFailed ? t("retryButton") : t("payButton")}
+          </button>
+        </>
+      ) : walletOnly ? (
+        <button
+          type="button"
+          onClick={() => setForceCard(true)}
+          className="py-1 text-center text-sm font-medium text-[var(--color-accent)]"
+        >
+          {t("payByCardInstead")}
+        </button>
       ) : null}
-      <button
-        type="submit"
-        disabled={!stripe || isSubmitting}
-        className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
-      >
-        {isSubmitting ? t("processing") : hasFailed ? t("retryButton") : t("payButton")}
-      </button>
       <p className="flex items-center justify-center gap-1.5 text-center text-xs text-neutral-400">
         <svg
           viewBox="0 0 24 24"
@@ -130,6 +166,7 @@ export function CardPayment({
   clientSecret,
   amount,
   locale,
+  preferredWallet,
   onPaid,
   onBack,
 }: {
@@ -138,6 +175,7 @@ export function CardPayment({
   clientSecret: string;
   amount: number;
   locale: "ja" | "en" | "ko" | "zh";
+  preferredWallet: "applepay" | "googlepay" | null;
   onPaid: () => void;
   onBack: () => void;
 }) {
@@ -188,7 +226,7 @@ export function CardPayment({
               },
             }}
           >
-            <PaymentInner slug={slug} tipId={tipId} onPaid={onPaid} />
+            <PaymentInner slug={slug} tipId={tipId} preferredWallet={preferredWallet} onPaid={onPaid} />
           </Elements>
         ) : (
           <p className="mt-6 text-sm text-red-600">{t("notConfigured")}</p>

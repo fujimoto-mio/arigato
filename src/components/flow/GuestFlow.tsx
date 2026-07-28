@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Dancing_Script } from "next/font/google";
 import Image from "next/image";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 // Script face for the "Thank you" hero on the final screen (latin only; CJK
 // falls back gracefully).
@@ -40,6 +40,23 @@ const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg",
 
 function googleMapsUrl(placeId: string) {
   return `https://www.google.com/maps/place/?q=place_id:${placeId}`;
+}
+
+/** Eased window scroll — gentler than the browser's default smooth behaviour. */
+function smoothScrollToY(targetY: number, duration = 900) {
+  const startY = window.scrollY;
+  const diff = targetY - startY;
+  if (Math.abs(diff) < 4) return;
+  let startTs: number | null = null;
+  function frame(ts: number) {
+    if (startTs === null) startTs = ts;
+    const p = Math.min(1, (ts - startTs) / duration);
+    // easeInOutCubic
+    const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+    window.scrollTo(0, startY + diff * eased);
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
 
 /* ---------- Header + shared controls ---------- */
@@ -128,7 +145,10 @@ export function GuestFlow({
     setStep(next);
   }
   const [amount, setAmount] = useState(0);
+  // Default is cash (settled at the register); the guest opts into online pay.
   const [payByCard, setPayByCard] = useState(false);
+  // Which online method the guest picked — leads the payment screen with it.
+  const [payMethod, setPayMethod] = useState<"card" | "applepay" | "googlepay">("card");
   const [tipId, setTipId] = useState<string | null>(resumeTipId);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -148,6 +168,7 @@ export function GuestFlow({
     setError(null);
     setGoogleReviewUrl(null);
     setPromote(true);
+    setPayMethod("card");
     goToStep("landing");
   }
 
@@ -194,6 +215,8 @@ export function GuestFlow({
           setAmount={setAmount}
           payByCard={payByCard}
           setPayByCard={setPayByCard}
+          method={payMethod}
+          setMethod={setPayMethod}
           onNext={startCheckout}
           onBack={() => goToStep("landing")}
           isSubmitting={isSubmitting}
@@ -207,6 +230,7 @@ export function GuestFlow({
           clientSecret={clientSecret}
           amount={amount}
           locale={locale}
+          preferredWallet={payMethod === "card" ? null : payMethod}
           onPaid={() => goToStep("review")}
           onBack={() => goToStep("support")}
         />
@@ -238,6 +262,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
   const t = useTranslations("story");
   const tc = useTranslations("common");
   const slides = t.raw("slides") as { title: string; body: string }[];
+  const nextRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex flex-1 flex-col pb-10">
       <Header />
@@ -266,8 +291,18 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
 
-      {/* Scroll hint */}
-      <div className="flex justify-center pt-6 text-[var(--color-accent)]">
+      {/* Scroll hint — taps down to the Next button */}
+      <button
+        type="button"
+        aria-label="Scroll to bottom"
+        onClick={() => {
+          const el = nextRef.current;
+          if (!el) return;
+          const target = window.scrollY + el.getBoundingClientRect().bottom - window.innerHeight + 24;
+          smoothScrollToY(Math.max(0, target));
+        }}
+        className="flex justify-center pt-6 text-[var(--color-accent)]"
+      >
         <svg
           viewBox="0 0 24 24"
           className="h-6 w-6 animate-bounce"
@@ -280,7 +315,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
-      </div>
+      </button>
 
       {/* Our Story — read by scrolling down */}
       <div className="px-8 pt-6 text-center">
@@ -312,7 +347,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
       </div>
 
       {/* Closing + Next → tip screen */}
-      <div className="mt-16 px-6">
+      <div ref={nextRef} className="mt-16 px-6">
         <div className="mx-auto mb-9 h-px w-16 bg-neutral-200" />
         <AccentButton onClick={onStart}>
           <span className="flex items-center justify-center gap-2">
@@ -327,13 +362,35 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
   );
 }
 
-/* ---------- Screen 3: Support (tip counter + card checkbox) ---------- */
+/* ---------- Payment-method glyphs ---------- */
+
+function AppleGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 8.5 7.34c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.98 4.05zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+    </svg>
+  );
+}
+
+function CardGlyph({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect x="2" y="5" width="20" height="14" rx="2.5" fill="#d1a15c" />
+      <rect x="2" y="8" width="20" height="3" fill="#9c7434" />
+      <rect x="5" y="14" width="6" height="2" rx="1" fill="#f3e6cf" />
+    </svg>
+  );
+}
+
+/* ---------- Screen 3: Support (tip counter + payment method) ---------- */
 
 function Support({
   amount,
   setAmount,
   payByCard,
   setPayByCard,
+  method,
+  setMethod,
   onNext,
   onBack,
   isSubmitting,
@@ -343,6 +400,8 @@ function Support({
   setAmount: (updater: (prev: number) => number) => void;
   payByCard: boolean;
   setPayByCard: (value: boolean) => void;
+  method: "card" | "applepay" | "googlepay";
+  setMethod: (value: "card" | "applepay" | "googlepay") => void;
   onNext: () => void;
   onBack: () => void;
   isSubmitting: boolean;
@@ -352,6 +411,13 @@ function Support({
   // ¥0 is allowed (review-only) — guests can continue without tipping. Only the
   // card path needs a real amount, since Stripe can't charge ¥0.
   const canSubmit = !isSubmitting && (!payByCard || amount >= CARD_MIN_AMOUNT);
+
+  // Online methods; the pick leads the payment screen with that wallet.
+  const payOptions: { key: "card" | "applepay" | "googlepay"; label: string; glyph: ReactNode }[] = [
+    { key: "card", label: t("methodCard"), glyph: <CardGlyph className="h-5 w-6" /> },
+    { key: "applepay", label: "Apple Pay", glyph: <AppleGlyph className="h-4 w-4 text-neutral-900" /> },
+    { key: "googlepay", label: "Google Pay", glyph: <GoogleIcon size={18} /> },
+  ];
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -392,18 +458,52 @@ function Support({
         <p>{t("addNoteSub")}</p>
       </div>
 
-      <label className="mx-6 mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-4">
-        <input
-          type="checkbox"
-          checked={payByCard}
-          onChange={(e) => setPayByCard(e.target.checked)}
-          className="mt-0.5 h-5 w-5 accent-[var(--color-accent)]"
-        />
-        <span className="text-sm">
-          <span className="font-semibold">{t("cardCheckbox")}</span>
-          <span className="mt-0.5 block text-xs text-neutral-500">{payByCard ? t("cardHint") : t("cashHint")}</span>
-        </span>
-      </label>
+      <div className="mx-6 mt-5">
+        {/* Cash is the default; ticking this opts into online payment. */}
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-4">
+          <input
+            type="checkbox"
+            checked={payByCard}
+            onChange={(e) => setPayByCard(e.target.checked)}
+            className="mt-0.5 h-5 w-5 accent-[var(--color-accent)]"
+          />
+          <span className="text-sm">
+            <span className="font-semibold">{t("cardCheckbox")}</span>
+            <span className="mt-0.5 block text-xs leading-snug text-neutral-500">
+              {payByCard ? t("cardHint") : t("cashHint")}
+            </span>
+          </span>
+        </label>
+
+        {/* Online method picker — shown only when paying online */}
+        {payByCard ? (
+          <div className="mt-2.5 flex flex-col gap-2">
+            {payOptions.map((opt) => {
+              const selected = method === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setMethod(opt.key)}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 text-left transition ${
+                    selected ? "border-[var(--color-accent)] bg-[#fbf7f0]" : "border-neutral-200 hover:bg-neutral-50"
+                  }`}
+                >
+                  <span
+                    className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
+                      selected ? "border-[var(--color-accent)]" : "border-neutral-300"
+                    }`}
+                  >
+                    {selected ? <span className="h-2 w-2 rounded-full bg-[var(--color-accent)]" /> : null}
+                  </span>
+                  <span className="flex h-6 w-7 shrink-0 items-center justify-center">{opt.glyph}</span>
+                  <span className="flex-1 text-sm font-semibold text-neutral-900">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
 
       {hasError ? <p className="mt-4 px-6 text-center text-sm text-red-600">{t("errorGeneric")}</p> : null}
 
