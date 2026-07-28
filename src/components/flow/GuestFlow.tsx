@@ -696,8 +696,14 @@ function ThankYou({
         </button>
       </div>
 
-      {/* Gold Japan skyline silhouette anchored to the bottom */}
-      <Skyline className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 w-full text-[#c8a256]" />
+      {/* Gold Japan skyline artwork anchored to the bottom */}
+      <Image
+        src="/lp/skyline.png"
+        alt=""
+        width={889}
+        height={345}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-auto w-full"
+      />
     </div>
   );
 }
@@ -748,81 +754,6 @@ function Heart({ className = "", filled = false }: { className?: string; filled?
     >
       {/* Smooth twin-lobe heart with a gentle dimple and a soft point. */}
       <path d="M16 27C16 27 2 18.6 2 9.6 2 5.4 5.3 2.4 9.2 2.4 12 2.4 14.6 4 16 6.6 17.4 4 20 2.4 22.8 2.4 26.7 2.4 30 5.4 30 9.6 30 18.6 16 27 16 27Z" />
-    </svg>
-  );
-}
-
-/** Gold silhouette of a Japanese skyline — pagoda, Mt Fuji, Tokyo Tower, torii. */
-function Skyline({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 400 132" preserveAspectRatio="xMidYEnd meet" className={className} fill="currentColor" aria-hidden="true">
-      <rect x="0" y="120" width="400" height="12" />
-
-      {/* Left pine tree (layered) */}
-      <rect x="18.5" y="112" width="3" height="8" />
-      <polygon points="10,114 30,114 20,101" />
-      <polygon points="12,105 28,105 20,93" />
-      <polygon points="13.5,96 26.5,96 20,85" />
-
-      {/* Five-tier pagoda with upturned eaves */}
-      <rect x="54" y="101" width="20" height="19" />
-      <polygon points="64,95 82,101 84.5,98 80.5,102 47.5,102 43.5,98 46,101" />
-      <rect x="57" y="90" width="14" height="5" />
-      <polygon points="64,85 79,90 81.5,87 77.5,91 50.5,91 46.5,87 49,90" />
-      <rect x="58.5" y="80" width="11" height="5" />
-      <polygon points="64,75.5 76.5,80 79,77 75,81 53,81 49,77 51.5,80" />
-      <rect x="60" y="71" width="8" height="4.5" />
-      <polygon points="64,67 74,71 76.5,68 72.5,72 55.5,72 51.5,68 54,71" />
-      <rect x="61" y="63" width="6" height="4" />
-      <polygon points="64,59.5 71.5,63 74,60 70,64 58,64 54,60 56.5,63" />
-      <rect x="63" y="50" width="2" height="9.5" />
-      <rect x="61.5" y="53" width="5" height="1.2" />
-      <circle cx="64" cy="49" r="1.8" />
-
-      {/* Buildings between pagoda and Fuji */}
-      <rect x="90" y="98" width="12" height="22" />
-      <rect x="105" y="88" width="14" height="32" />
-      <rect x="111" y="82" width="2" height="6" />
-      <rect x="122" y="104" width="10" height="16" />
-      <rect x="134" y="96" width="9" height="24" />
-      <ellipse cx="152" cy="94" rx="7" ry="3" />
-      <circle cx="156" cy="92.5" r="3" />
-
-      {/* Mt Fuji with a snow-capped peak */}
-      <path d="M158 120 Q186 90 200 70 Q202 68 205 66 Q208 68 210 70 Q224 90 252 120 Z" />
-      <path d="M193 84 Q197 74 205 66 Q213 74 217 84 L214 82 211 87 208 82 205 88 202 82 199 87 196 82 Z" fill="#faf7f0" />
-
-      {/* Clouds + buildings right of Fuji */}
-      <ellipse cx="256" cy="95" rx="8" ry="3.2" />
-      <circle cx="252" cy="94" r="3" />
-      <rect x="263" y="100" width="11" height="20" />
-      <rect x="277" y="92" width="12" height="28" />
-      <rect x="291" y="98" width="10" height="22" />
-      <rect x="303" y="104" width="9" height="16" />
-
-      {/* Tokyo Tower */}
-      <rect x="315" y="117" width="22" height="3" />
-      <polygon points="316,120 323,100 329,100 336,120" />
-      <rect x="318.5" y="113" width="15" height="1.6" />
-      <rect x="320.5" y="107" width="11" height="1.6" />
-      <rect x="320" y="98" width="12" height="4" />
-      <polygon points="323,98 324.5,80 327.5,80 329,98" />
-      <rect x="322" y="84" width="8" height="3.5" />
-      <polygon points="325,80 325.7,62 326.3,62 327,80" />
-      <rect x="325.4" y="48" width="1.2" height="14" />
-
-      {/* Torii gate */}
-      <rect x="351" y="88" width="4.5" height="32" />
-      <rect x="368.5" y="88" width="4.5" height="32" />
-      <path d="M342 84 Q362 79 382 84 L380 89 Q362 85 344 89 Z" />
-      <rect x="360" y="90" width="4" height="6" />
-      <rect x="347" y="96" width="30" height="4" />
-
-      {/* Right pine tree */}
-      <rect x="386.5" y="112" width="3" height="8" />
-      <polygon points="379,114 397,114 388,102" />
-      <polygon points="381,106 395,106 388,95" />
-      <polygon points="382.5,98 393.5,98 388,88" />
     </svg>
   );
 }
