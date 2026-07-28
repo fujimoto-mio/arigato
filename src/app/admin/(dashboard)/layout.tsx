@@ -22,7 +22,7 @@ export const viewport: Viewport = { themeColor: "#171717" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  const { email, adminUserId } = await requireAdmin();
+  const { adminUserId } = await requireAdmin();
   const { activeStoreId, activeStore, stores } = await getActiveStore();
   const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
@@ -68,10 +68,6 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         <header className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <StoreSwitcher stores={stores} activeStoreId={activeStoreId} />
-            <p className="hidden truncate text-xs text-neutral-500 sm:block">
-              {activeStore ? `/s/${activeStore.slug}` : `${stores.length} 店舗`}
-              {email ? ` · ${email}` : ""}
-            </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <PwaInstallButton />
