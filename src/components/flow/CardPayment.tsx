@@ -7,8 +7,9 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
+import type { StripeExpressCheckoutElementOptions } from "@stripe/stripe-js";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { LogoBadge } from "@/components/flow/brand";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { stripePromise } from "@/lib/stripeClient";
@@ -40,6 +41,21 @@ function PaymentInner({
 
   const showCard = !preferredWallet || walletShown === false || forceCard;
   const walletOnly = Boolean(preferredWallet) && walletShown === true && !forceCard;
+
+  // Stable reference so the Express Checkout element isn't recreated on every
+  // render (which would cancel the in-flight Apple/Google Pay iframe load).
+  const expressOptions = useMemo<StripeExpressCheckoutElementOptions>(
+    () => ({
+      paymentMethods: {
+        applePay: preferredWallet === "googlepay" ? "never" : "auto",
+        googlePay: preferredWallet === "applepay" ? "never" : "auto",
+        link: "never",
+        amazonPay: "never",
+        paypal: "never",
+      },
+    }),
+    [preferredWallet],
+  );
 
   async function confirm() {
     if (!stripe || !elements) return;
@@ -90,21 +106,13 @@ function PaymentInner({
       <ExpressCheckoutElement
         onConfirm={() => void confirm()}
         onReady={({ availablePaymentMethods }) => {
-          if (process.env.NODE_ENV !== "production") {
-            // Debug: shows which wallets Stripe reports as available on this device.
-            console.log("[express-checkout] availablePaymentMethods:", availablePaymentMethods);
-          }
+          // TEMP debug (visible in production too): which wallets Stripe reports.
+          // undefined/empty => wallet unavailable (usually domain not registered
+          // in Stripe, wallet disabled, or unsupported browser). Remove later.
+          console.log("[express-checkout] availablePaymentMethods:", availablePaymentMethods);
           setWalletShown(Boolean(availablePaymentMethods));
         }}
-        options={{
-          paymentMethods: {
-            applePay: preferredWallet === "googlepay" ? "never" : "auto",
-            googlePay: preferredWallet === "applepay" ? "never" : "auto",
-            link: "never",
-            amazonPay: "never",
-            paypal: "never",
-          },
-        }}
+        options={expressOptions}
       />
       {showCard && walletShown === true ? (
         <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-400">
