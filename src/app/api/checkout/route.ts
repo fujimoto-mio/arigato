@@ -61,12 +61,14 @@ export async function POST(request: Request) {
   });
 
   // Single platform account (no Connect) — all card tips settle to one account.
-  // `card` covers the card form plus the Apple Pay / Google Pay wallets; Link is
-  // intentionally excluded so no "stripe"/Link branding shows to guests.
+  // The Express Checkout Element needs automatic_payment_methods to surface
+  // Apple Pay / Google Pay; card is included automatically. `allow_redirects:
+  // "never"` keeps it to card + wallets (no redirect methods). Link is hidden in
+  // the UI (link: "never" on the elements) so no "stripe"/Link branding shows.
   const paymentIntent = await stripe.paymentIntents.create({
     amount,
     currency: "jpy",
-    payment_method_types: ["card"],
+    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
     metadata: { tipId: tip.id, storeSlug: store.slug, tableLabel: tableLabel ?? "" },
   });
 

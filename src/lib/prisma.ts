@@ -10,7 +10,17 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
   }
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaPg({
+    connectionString,
+    // Recycle idle connections before Supabase's pooler drops them, and fail
+    // fast rather than hanging forever on a dead socket — the classic "checkout
+    // pending forever" after a long-running dev server has sat idle.
+    max: 5,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 15_000,
+    query_timeout: 20_000,
+    keepAlive: true,
+  });
   return new PrismaClient({ adapter });
 }
 
