@@ -12,7 +12,10 @@ export default async function StorePage({
   const { slug } = await params;
   const { t, paid } = await searchParams;
 
-  const store = await prisma.store.findUnique({ where: { slug } });
+  const store = await prisma.store.findUnique({
+    where: { slug },
+    include: { storySlides: { orderBy: { sortOrder: "asc" } } },
+  });
   if (!store) {
     notFound();
   }
@@ -26,6 +29,12 @@ export default async function StorePage({
         googlePlaceId: store.googlePlaceId,
         instagramUrl: store.instagramUrl,
         facebookUrl: store.facebookUrl,
+        // Per-store "Our Story" slides; empty falls back to the stock story.
+        storySlides: store.storySlides.map((slide) => ({
+          title: slide.title,
+          body: slide.body,
+          imageUrl: slide.imageUrl,
+        })),
       }}
       tableLabel={t?.trim() || null}
       resumeTipId={paid?.trim() || null}

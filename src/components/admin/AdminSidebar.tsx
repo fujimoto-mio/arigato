@@ -63,6 +63,14 @@ function LogoutIcon({ className }: IconProps) {
     </svg>
   );
 }
+function BookIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5z" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    </svg>
+  );
+}
 function GearIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -88,6 +96,7 @@ const NAV: NavItem[] = [
   { href: "/admin/tips", label: "チップ履歴", short: "チップ", Icon: YenIcon },
   { href: "/admin/reviews", label: "口コミ一覧", short: "口コミ", Icon: StarIcon },
   { href: "/admin/reports", label: "レポート", short: "レポート", Icon: ChartIcon },
+  { href: "/admin/story", label: "ストーリー", short: "物語", Icon: BookIcon },
   { href: "/admin/settings", label: "設定", short: "設定", Icon: GearIcon },
 ];
 

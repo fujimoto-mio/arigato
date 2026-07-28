@@ -21,6 +21,8 @@ import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
 
+export type StorySlideContent = { title: string; body: string; imageUrl: string | null };
+
 export type GuestStore = {
   slug: string;
   name: string;
@@ -28,6 +30,8 @@ export type GuestStore = {
   googlePlaceId: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
+  // Per-store "Our Story" slides; empty falls back to the stock story text.
+  storySlides: StorySlideContent[];
 };
 
 type Step = "landing" | "support" | "payment" | "review" | "thankyou";
@@ -256,7 +260,15 @@ export function GuestFlow({
 function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
   const t = useTranslations("story");
   const tc = useTranslations("common");
-  const slides = t.raw("slides") as { title: string; body: string }[];
+  // A store's own slides win; otherwise fall back to the stock story text (which
+  // carries no image, so it uses the stock photos below).
+  const stockSlides = t.raw("slides") as { title: string; body: string }[];
+  const slides: StorySlideContent[] =
+    store.storySlides.length > 0
+      ? store.storySlides
+      : stockSlides.map((slide) => ({ ...slide, imageUrl: null }));
+  // Cover: the first slide's own photo when set, else the stock cover.
+  const coverImage = slides[0]?.imageUrl ?? STORY_IMAGES[0];
   const nextRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex flex-1 flex-col pb-10">
@@ -276,7 +288,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
       {/* Cover — full-bleed with a soft gradient foot */}
       <div className="relative mt-8 aspect-[4/3] overflow-hidden bg-neutral-100">
         <Image
-          src={STORY_IMAGES[0]}
+          src={coverImage}
           alt={store.name}
           fill
           sizes="(max-width: 448px) 100vw, 448px"
@@ -320,10 +332,10 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
 
       <div className="mt-9 flex flex-col gap-16">
         {slides.map((slide, i) => (
-          <section key={slide.title} className="px-6">
+          <section key={`${i}-${slide.title}`} className="px-6">
             <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-neutral-100 shadow-[0_12px_34px_rgba(0,0,0,0.09)]">
               <Image
-                src={STORY_IMAGES[(i + 1) % STORY_IMAGES.length]}
+                src={slide.imageUrl ?? STORY_IMAGES[(i + 1) % STORY_IMAGES.length]}
                 alt={slide.title}
                 fill
                 sizes="(max-width: 448px) 100vw, 448px"
