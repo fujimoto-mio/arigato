@@ -18,7 +18,7 @@ async function ensureBucket(supabase: ReturnType<typeof supabaseServiceClient>) 
   });
 }
 
-/** Upload a store logo. Returns the public URL to persist. */
+/** Upload a store image (cover / story photo). Returns the public URL to persist. */
 export async function POST(request: Request) {
   const { error } = await requireAdminApi();
   if (error) return error;

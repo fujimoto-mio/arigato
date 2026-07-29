@@ -49,7 +49,7 @@ export default async function AdminStoreEditPage({
             name: store.name,
             slug: store.slug,
             googlePlaceId: store.googlePlaceId,
-            logoUrl: store.logoUrl,
+            coverImageUrl: store.coverImageUrl,
             instagramUrl: store.instagramUrl,
             facebookUrl: store.facebookUrl,
           }}
@@ -62,7 +62,12 @@ export default async function AdminStoreEditPage({
         <p className="mb-5 text-sm text-neutral-500">
           QRコードから開くお客様の画面に表示される「Our Story」です。未設定の場合は標準のストーリーが表示されます。
         </p>
-        <StoryEditor storeId={store.id} initialSlides={slides} />
+        <StoryEditor
+          storeId={store.id}
+          storeName={store.name}
+          coverImageUrl={store.coverImageUrl}
+          initialSlides={slides}
+        />
       </section>
 
       {/* Danger zone */}

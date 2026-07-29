@@ -8,7 +8,7 @@ export type AdminStore = {
   id: string;
   slug: string;
   name: string;
-  logoUrl: string | null;
+  coverImageUrl: string | null;
   googlePlaceId: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
@@ -18,7 +18,7 @@ const STORE_SELECT = {
   id: true,
   slug: true,
   name: true,
-  logoUrl: true,
+  coverImageUrl: true,
   googlePlaceId: true,
   instagramUrl: true,
   facebookUrl: true,

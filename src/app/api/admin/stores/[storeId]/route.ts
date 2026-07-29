@@ -34,10 +34,10 @@ const patchSchema = z.object({
   googlePlaceId: emptyToNull(200),
   instagramUrl: urlOrEmpty,
   facebookUrl: urlOrEmpty,
-  logoUrl: z.string().url().nullable().optional(),
+  coverImageUrl: z.string().url().nullable().optional(),
 });
 
-/** Update one store's info (name, slug, Place ID, socials, logo). */
+/** Update one store's info (name, slug, Place ID, socials, cover image). */
 export async function PATCH(request: Request, { params }: { params: Promise<{ storeId: string }> }) {
   const { error } = await requireAdminApi();
   if (error) return error;
@@ -69,7 +69,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ st
       id: updated.id,
       slug: updated.slug,
       name: updated.name,
-      logoUrl: updated.logoUrl,
+      coverImageUrl: updated.coverImageUrl,
       googlePlaceId: updated.googlePlaceId,
       instagramUrl: updated.instagramUrl,
       facebookUrl: updated.facebookUrl,

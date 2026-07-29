@@ -10,7 +10,7 @@ model Store {
   id            String      @id @default(cuid())
   slug          String      @unique
   name          String
-  logoUrl       String?
+  coverImageUrl String?
   googlePlaceId String?
   instagramUrl  String?
   facebookUrl   String?

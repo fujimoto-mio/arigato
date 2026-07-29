@@ -3,6 +3,25 @@ import { z } from "zod";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
+// Empty string clears an optional field back to null.
+const emptyToNull = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((value) => (value.length === 0 ? null : value))
+    .nullable()
+    .optional();
+
+const urlOrEmpty = z
+  .string()
+  .trim()
+  .max(300)
+  .transform((value) => (value.length === 0 ? null : value))
+  .nullable()
+  .optional()
+  .refine((value) => value == null || /^https?:\/\//.test(value), "invalid_url");
+
 const createSchema = z.object({
   name: z.string().trim().min(1).max(80),
   // The slug is the guest URL (`/s/<slug>`); it must stay URL-safe and unique.
@@ -12,6 +31,9 @@ const createSchema = z.object({
     .min(1)
     .max(50)
     .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "invalid_slug"),
+  googlePlaceId: emptyToNull(200),
+  instagramUrl: urlOrEmpty,
+  facebookUrl: urlOrEmpty,
 });
 
 /** Create a new store. Any admin manages every store, so no auth wiring needed. */
@@ -31,7 +53,13 @@ export async function POST(request: Request) {
   }
 
   const store = await prisma.store.create({
-    data: { name: parsed.data.name, slug: parsed.data.slug },
+    data: {
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      googlePlaceId: parsed.data.googlePlaceId,
+      instagramUrl: parsed.data.instagramUrl,
+      facebookUrl: parsed.data.facebookUrl,
+    },
   });
 
   return NextResponse.json({ store: { id: store.id, slug: store.slug, name: store.name } });

@@ -8,7 +8,7 @@ export default function AdminSettingsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">設定</h1>
       <p className="-mt-2 text-sm text-neutral-500">
-        店舗情報・ストーリー・QRコードは「店舗管理」から編集できます。
+        通知やログインパスワードなど、この管理画面の設定を行います。
       </p>
 
       <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">

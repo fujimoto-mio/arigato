@@ -1,9 +1,10 @@
 "use client";
 
-import Image from "next/image";
+import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
+import { uploadStoreImage } from "@/components/admin/StorySlidesField";
 
 /** Store name → URL-safe slug: lowercase, non-alphanumerics become hyphens. */
 function slugify(value: string): string {
@@ -19,7 +20,7 @@ export function StoreSettingsForm({
   initialName,
   initialSlug,
   initialGooglePlaceId,
-  initialLogoUrl,
+  initialCoverImageUrl,
   initialInstagramUrl,
   initialFacebookUrl,
   onSavingChange,
@@ -29,12 +30,12 @@ export function StoreSettingsForm({
   initialName: string;
   initialSlug: string;
   initialGooglePlaceId: string | null;
-  initialLogoUrl: string | null;
+  initialCoverImageUrl: string | null;
   initialInstagramUrl: string | null;
   initialFacebookUrl: string | null;
   // Let a parent mirror the save into the QR preview (spinner + new URL).
   onSavingChange?: (saving: boolean) => void;
-  onSaved?: (store: { name: string; slug: string }) => void;
+  onSaved?: (store: { name: string; slug: string; googlePlaceId: string }) => void;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
@@ -47,12 +48,33 @@ export function StoreSettingsForm({
   const [googlePlaceId, setGooglePlaceId] = useState(initialGooglePlaceId ?? "");
   const [instagramUrl, setInstagramUrl] = useState(initialInstagramUrl ?? "");
   const [facebookUrl, setFacebookUrl] = useState(initialFacebookUrl ?? "");
-  const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
+  // Intro image: the saved URL, plus a locally-picked file that isn't uploaded
+  // until 保存, with an object URL to preview it and a "removed" flag.
+  const [savedCover, setSavedCover] = useState(initialCoverImageUrl);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const slugChanged = slug !== savedSlug;
+  const coverDisplay = coverPreview ?? (coverRemoved ? null : savedCover);
+
+  function selectCover(file: File) {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+    setCoverRemoved(false);
+    setError(null);
+  }
+
+  function removeCover() {
+    if (coverPreview) URL.revokeObjectURL(coverPreview);
+    setCoverFile(null);
+    setCoverPreview(null);
+    setCoverRemoved(true);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -70,6 +92,22 @@ export function StoreSettingsForm({
     onSavingChange?.(true);
 
     try {
+      // Resolve the intro image: upload a newly-picked file, or clear it. Only
+      // included in the PATCH when it actually changed.
+      const coverPatch: { coverImageUrl?: string | null } = {};
+      let nextCover: string | null | undefined;
+      if (coverFile) {
+        try {
+          nextCover = await uploadStoreImage(storeId, coverFile);
+        } catch {
+          throw new Error("紹介画像をアップロードできませんでした。もう一度お試しください。");
+        }
+        coverPatch.coverImageUrl = nextCover;
+      } else if (coverRemoved) {
+        nextCover = null;
+        coverPatch.coverImageUrl = null;
+      }
+
       const res = await fetch(`/api/admin/stores/${storeId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -79,6 +117,7 @@ export function StoreSettingsForm({
           googlePlaceId: googlePlaceId.trim(),
           instagramUrl: instagramUrl.trim(),
           facebookUrl: facebookUrl.trim(),
+          ...coverPatch,
         }),
       });
       if (!res.ok) {
@@ -89,9 +128,14 @@ export function StoreSettingsForm({
         throw new Error("保存できませんでした。もう一度お試しください。");
       }
       setSavedSlug(slug.trim());
+      if (nextCover !== undefined) setSavedCover(nextCover);
+      if (coverPreview) URL.revokeObjectURL(coverPreview);
+      setCoverFile(null);
+      setCoverPreview(null);
+      setCoverRemoved(false);
       setConfirmOpen(false);
       setStatus("saved");
-      onSaved?.({ name: name.trim(), slug: slug.trim() });
+      onSaved?.({ name: name.trim(), slug: slug.trim(), googlePlaceId: googlePlaceId.trim() });
       router.refresh();
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err) {
@@ -100,29 +144,6 @@ export function StoreSettingsForm({
       setStatus("idle");
     } finally {
       onSavingChange?.(false);
-    }
-  }
-
-  async function handleLogo(file: File) {
-    setError(null);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("storeId", storeId);
-      const uploadRes = await fetch("/api/admin/upload", { method: "POST", body: form });
-      if (!uploadRes.ok) throw new Error("upload_failed");
-      const { url } = (await uploadRes.json()) as { url: string };
-
-      const res = await fetch(`/api/admin/stores/${storeId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logoUrl: url }),
-      });
-      if (!res.ok) throw new Error("save_failed");
-      setLogoUrl(url);
-      router.refresh();
-    } catch {
-      setError("ロゴをアップロードできませんでした。もう一度お試しください。");
     }
   }
 
@@ -208,28 +229,48 @@ export function StoreSettingsForm({
       </label>
 
       <div className="text-sm font-medium text-neutral-700">
-        店舗ロゴ
-        <div className="mt-2 flex items-center gap-3">
-          <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-neutral-100">
-            {logoUrl ? (
-              <Image src={logoUrl} alt="Store logo" fill sizes="64px" className="object-cover" />
+        紹介画像
+        <p className="mt-0.5 text-xs font-normal text-neutral-500">
+          お客様のQR画面のトップに大きく表示されます（横4：縦3）。未設定の場合はストーリー1枚目の画像が使われます。
+        </p>
+        <div className="mt-2 max-w-xs">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-neutral-100">
+            {coverDisplay ? (
+              // Local object URLs and Supabase URLs alike — a plain img avoids
+              // next/image's remote/blob constraints for this preview.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverDisplay} alt="紹介画像" className="absolute inset-0 h-full w-full object-cover" />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-xl">🏠</span>
+              <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-neutral-300">
+                <ImagePlus className="h-8 w-8" strokeWidth={1.5} />
+              </span>
             )}
           </div>
-          <label className="cursor-pointer rounded-full border border-neutral-300 px-4 py-2 text-xs font-medium hover:bg-neutral-100">
-            アップロード
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void handleLogo(file);
-                event.target.value = "";
-              }}
-            />
-          </label>
+          <div className="mt-2 flex items-center gap-3">
+            <label className="cursor-pointer rounded-full border border-neutral-300 px-4 py-2 text-xs font-medium hover:bg-neutral-100">
+              {coverDisplay ? "画像を変更" : "アップロード"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) selectCover(file);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+            {coverDisplay ? (
+              <button
+                type="button"
+                onClick={removeCover}
+                className="text-xs font-medium text-neutral-400 hover:text-red-500"
+              >
+                削除
+              </button>
+            ) : null}
+          </div>
+          {coverFile ? <p className="mt-1 text-[11px] text-neutral-400">保存時にアップロードされます</p> : null}
         </div>
       </div>
 

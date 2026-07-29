@@ -25,7 +25,7 @@ export default async function StorePage({
       store={{
         slug: store.slug,
         name: store.name,
-        logoUrl: store.logoUrl,
+        coverImageUrl: store.coverImageUrl,
         googlePlaceId: store.googlePlaceId,
         instagramUrl: store.instagramUrl,
         facebookUrl: store.facebookUrl,
