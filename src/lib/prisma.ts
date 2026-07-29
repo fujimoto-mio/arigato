@@ -12,11 +12,12 @@ function createPrismaClient() {
   }
   const adapter = new PrismaPg({
     connectionString,
-    // Force this connection's session timezone to UTC. The database default is
-    // Asia/Tokyo (so Supabase Studio / raw SQL show JST), but a non-UTC session
-    // makes Prisma read timestamptz values shifted by the offset — so the app
-    // must pin UTC and convert to JST in the display layer (@/lib/admin/period).
-    options: "-c timezone=UTC",
+    // Pin this connection's session timezone to Asia/Tokyo, matching the database
+    // default. Over the Supabase pooler, Prisma reads/writes timestamptz so the
+    // JS Date's UTC components equal the JST wall-clock — so the whole app works
+    // in "JST wall-clock" space: display values as-is and compute day boundaries
+    // as naive JST (see @/lib/admin/period). No offset conversion anywhere.
+    options: "-c timezone=Asia/Tokyo",
     // Recycle idle connections before Supabase's pooler drops them, and fail
     // fast rather than hanging forever on a dead socket — the classic "checkout
     // pending forever" after a long-running dev server has sat idle.

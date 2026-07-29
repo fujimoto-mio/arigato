@@ -9,8 +9,9 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 function tokyoLongDate(value: Date): string {
+  // Date already holds the JST wall-clock in its UTC components (see @/lib/prisma).
   return new Date(value).toLocaleDateString("ja-JP", {
-    timeZone: "Asia/Tokyo",
+    timeZone: "UTC",
     year: "numeric",
     month: "long",
     day: "numeric",
