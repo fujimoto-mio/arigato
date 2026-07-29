@@ -1,9 +1,12 @@
 import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
 
-const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const privateKey = process.env.VAPID_PRIVATE_KEY;
-const subject = process.env.VAPID_SUBJECT || "mailto:admin@tipjapan.com";
+// Strip any surrounding quotes — a quoted VAPID key fails signing (all pushes
+// silently error), a common .env mistake.
+const unquote = (value: string | undefined) => value?.replace(/^["']|["']$/g, "");
+const publicKey = unquote(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+const privateKey = unquote(process.env.VAPID_PRIVATE_KEY);
+const subject = unquote(process.env.VAPID_SUBJECT) || "mailto:admin@tipjapan.com";
 
 let configured = false;
 function ensureConfigured(): boolean {
@@ -17,17 +20,19 @@ function ensureConfigured(): boolean {
 export type PushPayload = { title: string; body: string; url?: string; tag?: string };
 
 /**
- * Send a Web Push notification to every subscribed admin device for a store.
- * Dead subscriptions (404/410) are pruned. Failures are logged, never thrown —
- * a missed notification must not fail the request that recorded a real tip.
+ * Send a Web Push notification to every subscribed admin device. A single admin
+ * manages every store and wants every store's notifications, so this ignores the
+ * store — all admin devices are notified. Dead subscriptions (404/410) are
+ * pruned. Failures are logged, never thrown — a missed notification must not
+ * fail the request that recorded a real tip.
  */
-export async function sendStorePush(storeId: string, payload: PushPayload): Promise<void> {
+export async function sendStorePush(payload: PushPayload): Promise<void> {
   if (!ensureConfigured()) {
     console.error("web push: VAPID keys are not set");
     return;
   }
 
-  const subs = await prisma.pushSubscription.findMany({ where: { storeId } });
+  const subs = await prisma.pushSubscription.findMany();
   if (subs.length === 0) return;
 
   const body = JSON.stringify(payload);

@@ -3,6 +3,7 @@ import { type NotificationItem, NotificationsList } from "@/components/admin/Not
 import { PendingSwap, TableNavProvider } from "@/components/admin/TableNav";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatUsdApprox, formatYen } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +20,10 @@ export default async function AdminNotificationsPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
-  const { store, adminUserId } = await requireAdmin();
+  const { adminUserId } = await requireAdmin();
+  const { activeStoreId } = await getActiveStore();
   const { page: pageParam } = await searchParams;
-  const where = { storeId: store.id, status: "succeeded" as const };
+  const where = { ...storeScope(activeStoreId), status: "succeeded" as const };
 
   const total = await prisma.tip.count({ where });
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -29,7 +31,7 @@ export default async function AdminNotificationsPage({
 
   const tips = await prisma.tip.findMany({
     where,
-    include: { review: true },
+    include: { review: true, store: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
@@ -44,10 +46,11 @@ export default async function AdminNotificationsPage({
 
   const items: NotificationItem[] = tips.map((tip) => ({
     id: tip.id,
+    storeName: tip.store.name,
+    hasAmount: tip.amount > 0,
     amountYen: formatYen(tip.amount),
     amountUsd: formatUsdApprox(tip.amount),
     createdAtLabel: formatTokyoTime(tip.createdAt),
-    tableText: tip.tableLabel ? `${tip.tableLabel}番` : "—",
     paymentLabel: tip.paymentMethod === "card" ? "カード" : "現金",
     isUnread: !readSet.has(tip.id),
     hasReview: Boolean(tip.review),

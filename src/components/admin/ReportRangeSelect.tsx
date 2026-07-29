@@ -1,10 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Select } from "@/components/admin/Select";
 
 const OPTIONS = [
-  { value: "today", label: "今日" },
   { value: "7", label: "過去7日間" },
   { value: "14", label: "過去14日間" },
   { value: "30", label: "過去1ヶ月" },
@@ -12,37 +11,54 @@ const OPTIONS = [
   { value: "custom", label: "カスタム期間" },
 ];
 
-/** Single period dropdown for the reports chart; reveals date inputs for custom. */
+export type RangeParams = { range?: string; from?: string; to?: string };
+
+/**
+ * Period picker for the reports chart; reveals date inputs for a custom range.
+ * Reports only the chosen range via `onChange` — the parent refetches just the
+ * chart, so no page navigation / URL change happens.
+ */
 export function ReportRangeSelect({
   selection,
   fromISO,
   toISO,
   todayISO,
+  onChange,
 }: {
   selection: string;
   fromISO: string;
   toISO: string;
   todayISO: string;
+  onChange: (params: RangeParams) => void;
 }) {
-  const router = useRouter();
   const [value, setValue] = useState(selection);
   const [from, setFrom] = useState(fromISO);
   const [to, setTo] = useState(toISO);
 
-  // Keep the dropdown in sync when the URL (and thus the server selection) changes.
+  // Re-sync when the parent's resolved range changes (e.g. the store switched).
   const [lastSelection, setLastSelection] = useState(selection);
   if (selection !== lastSelection) {
     setLastSelection(selection);
     setValue(selection);
   }
+  const [lastFrom, setLastFrom] = useState(fromISO);
+  if (fromISO !== lastFrom) {
+    setLastFrom(fromISO);
+    setFrom(fromISO);
+  }
+  const [lastTo, setLastTo] = useState(toISO);
+  if (toISO !== lastTo) {
+    setLastTo(toISO);
+    setTo(toISO);
+  }
 
   function onSelect(next: string) {
     setValue(next);
-    if (next !== "custom") router.push(`/admin/reports?range=${next}`);
+    if (next !== "custom") onChange({ range: next });
   }
 
   function applyCustom() {
-    if (from && to) router.push(`/admin/reports?from=${from}&to=${to}`);
+    if (from && to) onChange({ from, to });
   }
 
   const inputClass =
@@ -52,32 +68,14 @@ export function ReportRangeSelect({
   return (
     <div className="flex flex-col items-start gap-1.5 sm:items-end">
       <div className="flex flex-wrap items-end gap-2">
-        <div className="relative">
-          <select
-            value={value}
-            onChange={(event) => onSelect(event.target.value)}
-            aria-label="期間"
-            className="block appearance-none rounded-full border border-neutral-300 py-2 pl-4 pr-9 text-sm font-medium focus:border-[var(--color-accent)] focus:outline-none"
-          >
-            {OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <svg
-            viewBox="0 0 24 24"
-            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </div>
+        <Select
+          value={value}
+          onChange={onSelect}
+          options={OPTIONS}
+          ariaLabel="期間"
+          triggerClassName="min-w-[10rem] font-medium"
+          align="right"
+        />
 
         {value === "custom" ? (
           <>

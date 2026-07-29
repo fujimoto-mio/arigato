@@ -18,16 +18,21 @@ import {
 import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
-import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
+import { type LocaleText, pickLocaleText } from "@/lib/story";
 import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
+
+export type StorySlideContent = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
 export type GuestStore = {
   slug: string;
   name: string;
-  logoUrl: string | null;
+  // Landing cover/intro image; falls back to the first story slide, then stock.
+  coverImageUrl: string | null;
   googlePlaceId: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
+  // Per-store "Our Story" slides; empty falls back to the stock story text.
+  storySlides: StorySlideContent[];
 };
 
 type Step = "landing" | "support" | "payment" | "review" | "thankyou";
@@ -151,11 +156,11 @@ export function GuestFlow({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Set when the just-submitted review qualifies for the store's Google review
-  // page (rating high enough + store has a Place ID); offered on Stay Connected.
+  // The store's Google review page (when it has a Place ID), offered on Stay
+  // Connected after any review.
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
-  // Whether to show the follow/review buttons on Stay Connected. Positive by
-  // default; a low-rating review (1–3★) turns it off so we never promote it.
+  // Whether to show the follow/review buttons on Stay Connected — always on now
+  // (every rating is offered Google / Facebook / Instagram).
   const [promote, setPromote] = useState(true);
 
   function reset() {
@@ -256,7 +261,20 @@ export function GuestFlow({
 function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
   const t = useTranslations("story");
   const tc = useTranslations("common");
-  const slides = t.raw("slides") as { title: string; body: string }[];
+  const { locale } = useLocaleSwitcher();
+  // A store's own slides win, resolved to the guest's language (with fallback);
+  // otherwise fall back to the stock story text (no image → stock photos below).
+  const stockSlides = t.raw("slides") as { title: string; body: string }[];
+  const slides: { title: string; body: string; imageUrl: string | null }[] =
+    store.storySlides.length > 0
+      ? store.storySlides.map((slide) => ({
+          title: pickLocaleText(slide.title, locale),
+          body: pickLocaleText(slide.body, locale),
+          imageUrl: slide.imageUrl,
+        }))
+      : stockSlides.map((slide) => ({ title: slide.title, body: slide.body, imageUrl: null }));
+  // Cover: the store's intro image if set, else the first slide's photo, else stock.
+  const coverImage = store.coverImageUrl ?? slides[0]?.imageUrl ?? STORY_IMAGES[0];
   const nextRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex flex-1 flex-col pb-10">
@@ -276,7 +294,7 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
       {/* Cover — full-bleed with a soft gradient foot */}
       <div className="relative mt-8 aspect-[4/3] overflow-hidden bg-neutral-100">
         <Image
-          src={STORY_IMAGES[0]}
+          src={coverImage}
           alt={store.name}
           fill
           sizes="(max-width: 448px) 100vw, 448px"
@@ -320,10 +338,10 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
 
       <div className="mt-9 flex flex-col gap-16">
         {slides.map((slide, i) => (
-          <section key={slide.title} className="px-6">
+          <section key={`${i}-${slide.title}`} className="px-6">
             <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-neutral-100 shadow-[0_12px_34px_rgba(0,0,0,0.09)]">
               <Image
-                src={STORY_IMAGES[(i + 1) % STORY_IMAGES.length]}
+                src={slide.imageUrl ?? STORY_IMAGES[(i + 1) % STORY_IMAGES.length]}
                 alt={slide.title}
                 fill
                 sizes="(max-width: 448px) 100vw, 448px"
@@ -474,10 +492,9 @@ function Review({
   onBack,
 }: {
   tipId: string;
-  // googleReviewUrl is non-null when the rating qualifies for the store's Google
-  // review page — offered later on the Stay Connected screen, not jumped to here.
-  // `promote` is true only for positive ratings (>= PUBLIC_REVIEW_MIN_RATING);
-  // low ratings are kept private and never shown the follow/review buttons.
+  // googleReviewUrl is the store's Google review page (when it has a Place ID) —
+  // offered later on the Stay Connected screen, not jumped to here. `promote` is
+  // always true now: every rating is shown the Google review + SNS follow buttons.
   onDone: (googleReviewUrl: string | null, promote: boolean) => void;
   onBack: () => void;
 }) {
@@ -525,9 +542,9 @@ function Review({
       });
       if (!res.ok) throw new Error("review_failed");
       const { redirectUrl } = (await res.json()) as { redirectUrl: string | null };
-      // Always continue to Thank You / Stay Connected in-app; the Google review
-      // link (if any) is offered as a button there, not an automatic redirect.
-      onDone(redirectUrl, rating >= PUBLIC_REVIEW_MIN_RATING);
+      // Always continue to Thank You / Stay Connected in-app, and always offer the
+      // Google review + SNS follow buttons regardless of rating (no review gating).
+      onDone(redirectUrl, true);
     } catch {
       setError(t("errorGeneric"));
       setIsSubmitting(false);

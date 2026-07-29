@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { Select } from "@/components/admin/Select";
 import { useTableNav } from "@/components/admin/TableNav";
 
 export type FilterDef = {
@@ -115,32 +116,14 @@ export function TableToolbar({
       {filters.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {filters.map((filter) => (
-            <div key={filter.param} className="relative">
-              <select
-                value={sp.get(filter.param) ?? ""}
-                onChange={(event) => navigate({ [filter.param]: event.target.value })}
-                aria-label={filter.label}
-                className="appearance-none rounded-full border border-neutral-300 py-2 pl-4 pr-9 text-sm focus:border-[var(--color-accent)] focus:outline-none"
-              >
-                {filter.options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <svg
-                viewBox="0 0 24 24"
-                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </div>
+            <Select
+              key={filter.param}
+              value={sp.get(filter.param) ?? ""}
+              onChange={(value) => navigate({ [filter.param]: value })}
+              options={filter.options}
+              ariaLabel={filter.label}
+              triggerClassName="font-medium"
+            />
           ))}
         </div>
       ) : null}

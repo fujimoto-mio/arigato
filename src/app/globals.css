@@ -30,6 +30,28 @@ body {
   }
 }
 
+/* Loading-skeleton sheen: a soft highlight sweeping left→right across a
+   placeholder (e.g. the reports chart while a new range loads). */
+@keyframes skeleton-sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-sheen {
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  animation: skeleton-sheen 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-sheen {
+    animation: none;
+  }
+}
+
 /* Guest-flow section transitions: the next screen slides in from the right,
    going back slides in from the left — a native phone-swipe feel. */
 @keyframes flow-screen-fwd {

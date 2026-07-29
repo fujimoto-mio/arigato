@@ -52,7 +52,7 @@ export function StoreQrCard({
       <p className="text-base font-bold text-neutral-900">{storeName}</p>
 
       {busy ? (
-        <div className="flex h-[220px] w-[220px] items-center justify-center rounded-lg bg-neutral-100">
+        <div className="flex h-[256px] w-[256px] max-w-full items-center justify-center rounded-lg bg-neutral-100">
           <svg
             className="h-9 w-9 animate-spin text-[var(--color-accent)]"
             viewBox="0 0 24 24"
@@ -67,20 +67,20 @@ export function StoreQrCard({
       ) : (
         // Data URL, so next/image optimisation is neither possible nor useful here.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={dataUrl} alt={`QR code for ${storeName}`} width={220} height={220} className="rounded-lg" />
+        <img src={dataUrl} alt={`QR code for ${storeName}`} width={256} height={256} className="h-auto w-full max-w-[256px] rounded-lg" />
       )}
 
       <p className="break-all font-mono text-xs text-neutral-500">{tipUrl}</p>
 
       {busy ? (
-        <span className="w-full cursor-default rounded-full bg-neutral-300 px-5 py-2 text-center text-sm font-semibold text-white">
+        <span className="cursor-default rounded-full bg-neutral-300 px-6 py-2 text-center text-sm font-semibold text-white">
           生成中…
         </span>
       ) : (
         <a
           href={dataUrl}
           download={downloadName}
-          className="w-full rounded-full bg-neutral-900 px-5 py-2 text-center text-sm font-semibold text-white"
+          className="rounded-full bg-neutral-900 px-6 py-2 text-center text-sm font-semibold text-white"
         >
           PNGをダウンロード
         </a>

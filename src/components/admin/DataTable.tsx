@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RowModal } from "@/components/admin/RowModal";
 import { TableBody, TablePager } from "@/components/admin/TableNav";
 
 export type Column<T> = {
@@ -23,6 +24,8 @@ export type DataTableProps<T> = {
   minWidthClass?: string;
   /** Extra classes applied to every body cell (e.g. "align-top" for tall rows). */
   bodyCellClassName?: string;
+  /** When set, rows become clickable and open a detail modal with this content. */
+  renderDetail?: (row: T) => { title: string; body: ReactNode };
 
   // --- Pagination (server-side). Omit `total` to render without a footer. ---
   page?: number;
@@ -60,6 +63,7 @@ export function DataTable<T>({
   emptyLabel,
   minWidthClass = "min-w-[640px]",
   bodyCellClassName = "",
+  renderDetail,
   page,
   pageSize,
   total,
@@ -96,15 +100,27 @@ export function DataTable<T>({
                 </td>
               </tr>
             ) : (
-              rows.map((row, index) => (
-                <tr key={rowKey(row)} className={`border-b border-neutral-50 ${rowClassName?.(row, index) ?? ""}`}>
-                  {columns.map((col) => (
-                    <td key={col.key} className={`px-4 py-3 ${bodyCellClassName} ${col.className ?? ""}`}>
-                      {col.render(row)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map((row, index) => {
+                const cells = columns.map((col) => (
+                  <td key={col.key} className={`px-4 py-3 ${bodyCellClassName} ${col.className ?? ""}`}>
+                    {col.render(row)}
+                  </td>
+                ));
+                const rowCls = rowClassName?.(row, index) ?? "";
+                if (renderDetail) {
+                  const { title, body } = renderDetail(row);
+                  return (
+                    <RowModal key={rowKey(row)} cells={cells} title={title} className={rowCls}>
+                      {body}
+                    </RowModal>
+                  );
+                }
+                return (
+                  <tr key={rowKey(row)} className={`border-b border-neutral-50 ${rowCls}`}>
+                    {cells}
+                  </tr>
+                );
+              })
             )}
           </TableBody>
         </table>

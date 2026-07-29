@@ -1,15 +1,19 @@
+import type { ReactNode } from "react";
 import { type Column, DataTable } from "@/components/admin/DataTable";
+import { DetailRow } from "@/components/admin/RowModal";
 import { Stars } from "@/components/admin/Stars";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { GoogleIcon } from "@/components/flow/brand";
-import { requireAdmin } from "@/lib/admin/auth";
 import { formatTokyoTime, formatYen } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 10;
+// The 要対応 (≤3★) table is action-focused, so it shows fewer rows per page.
+const PRIVATE_PAGE_SIZE = 5;
 
 type ReviewRow = {
   id: string;
@@ -17,7 +21,7 @@ type ReviewRow = {
   comment: string | null;
   createdAt: Date;
   redirectedToGoogle: boolean;
-  tableLabel: string | null;
+  storeName: string;
   amount: number;
   photoUrls: string[];
 };
@@ -25,6 +29,65 @@ type ReviewRow = {
 function parsePage(value: string | undefined): number {
   const n = Number.parseInt(value ?? "1", 10);
   return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function reviewDetail(row: ReviewRow): { title: string; body: ReactNode } {
+  return {
+    title: "口コミ詳細",
+    body: (
+      <>
+        <div className="rounded-xl border border-neutral-100 p-5 text-center">
+          <p className="text-4xl font-bold text-[var(--color-accent)]">{formatYen(row.amount)}</p>
+        </div>
+        <dl className="mt-4 divide-y divide-neutral-100 text-sm">
+          <DetailRow label="店舗" value={row.storeName} />
+          <DetailRow label="受信日時" value={formatTokyoTime(row.createdAt)} />
+          <DetailRow label="評価">
+            <span className="flex items-center justify-end gap-1">
+              <Stars rating={row.rating} /> {row.rating.toFixed(1)}
+            </span>
+          </DetailRow>
+          <DetailRow label="口コミ誘導">
+            {row.redirectedToGoogle ? (
+              <span className="inline-flex items-center gap-1.5 text-[var(--color-accent)]">
+                <GoogleIcon size={14} /> Googleに誘導
+              </span>
+            ) : (
+              <span className="text-neutral-400">—</span>
+            )}
+          </DetailRow>
+        </dl>
+        {row.comment ? (
+          <div className="mt-4">
+            <p className="text-sm font-medium text-neutral-700">口コミ内容</p>
+            <p className="mt-2 whitespace-pre-line rounded-xl bg-neutral-50 p-4 text-sm text-neutral-800">
+              {row.comment}
+            </p>
+          </div>
+        ) : null}
+        {row.photoUrls.length > 0 ? (
+          <div className="mt-4">
+            <p className="text-sm font-medium text-neutral-700">投稿写真</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {row.photoUrls.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative aspect-square overflow-hidden rounded-lg bg-neutral-100"
+                >
+                  {/* Guest-uploaded Supabase URLs; plain img avoids remote-loader config. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="投稿写真" className="h-full w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </>
+    ),
+  };
 }
 
 const baseColumns: Column<ReviewRow>[] = [
@@ -35,10 +98,10 @@ const baseColumns: Column<ReviewRow>[] = [
     render: (row) => formatTokyoTime(row.createdAt),
   },
   {
-    key: "table",
-    header: "テーブル番号",
-    className: "whitespace-nowrap",
-    render: (row) => (row.tableLabel ? `${row.tableLabel}番` : "—"),
+    key: "store",
+    header: "店舗",
+    className: "whitespace-nowrap font-medium",
+    render: (row) => row.storeName,
   },
   {
     key: "rating",
@@ -104,7 +167,7 @@ function toRow(review: {
   createdAt: Date;
   redirectedToGoogle: boolean;
   photoUrls: string[];
-  tip: { amount: number; tableLabel: string | null };
+  tip: { amount: number; store: { name: string } };
 }): ReviewRow {
   return {
     id: review.id,
@@ -112,7 +175,7 @@ function toRow(review: {
     comment: review.comment,
     createdAt: review.createdAt,
     redirectedToGoogle: review.redirectedToGoogle,
-    tableLabel: review.tip.tableLabel,
+    storeName: review.tip.store.name,
     amount: review.tip.amount,
     photoUrls: review.photoUrls,
   };
@@ -123,39 +186,40 @@ export default async function AdminReviewsPage({
 }: {
   searchParams: Promise<{ pubPage?: string; privPage?: string }>;
 }) {
-  const { store } = await requireAdmin();
+  const { activeStoreId } = await getActiveStore();
+  const scope = storeScope(activeStoreId);
   const { pubPage: pubParam, privPage: privParam } = await searchParams;
 
   // Same threshold the guest flow branches on (see /api/reviews).
-  const publicWhere = { storeId: store.id, rating: { gte: PUBLIC_REVIEW_MIN_RATING } };
-  const privateWhere = { storeId: store.id, rating: { lt: PUBLIC_REVIEW_MIN_RATING } };
+  const publicWhere = { ...scope, rating: { gte: PUBLIC_REVIEW_MIN_RATING } };
+  const privateWhere = { ...scope, rating: { lt: PUBLIC_REVIEW_MIN_RATING } };
 
   const [publicCount, privateCount, avgAgg] = await Promise.all([
     prisma.review.count({ where: publicWhere }),
     prisma.review.count({ where: privateWhere }),
-    prisma.review.aggregate({ where: { storeId: store.id }, _avg: { rating: true } }),
+    prisma.review.aggregate({ where: { ...scope }, _avg: { rating: true } }),
   ]);
   const average = avgAgg._avg.rating ? avgAgg._avg.rating.toFixed(2) : "—";
 
   const publicPageCount = Math.max(1, Math.ceil(publicCount / PAGE_SIZE));
-  const privatePageCount = Math.max(1, Math.ceil(privateCount / PAGE_SIZE));
+  const privatePageCount = Math.max(1, Math.ceil(privateCount / PRIVATE_PAGE_SIZE));
   const pubPage = Math.min(parsePage(pubParam), publicPageCount);
   const privPage = Math.min(parsePage(privParam), privatePageCount);
 
   const [publicReviews, privateReviews] = await Promise.all([
     prisma.review.findMany({
       where: publicWhere,
-      include: { tip: true },
+      include: { tip: { include: { store: { select: { name: true } } } } },
       orderBy: { createdAt: "desc" },
       skip: (pubPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
     prisma.review.findMany({
       where: privateWhere,
-      include: { tip: true },
+      include: { tip: { include: { store: { select: { name: true } } } } },
       orderBy: { createdAt: "desc" },
-      skip: (privPage - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      skip: (privPage - 1) * PRIVATE_PAGE_SIZE,
+      take: PRIVATE_PAGE_SIZE,
     }),
   ]);
 
@@ -181,18 +245,18 @@ export default async function AdminReviewsPage({
       <section className="flex flex-col gap-3">
         <div>
           <h2 className="text-lg font-bold">要対応（3★以下）</h2>
-          <p className="text-sm text-neutral-500">公開もGoogle・SNSへの誘導もされません。店舗チームだけが確認できます。</p>
         </div>
         <TableNavProvider>
           <DataTable
             columns={baseColumns}
             rows={privateReviews.map(toRow)}
             rowKey={(row) => row.id}
+            renderDetail={reviewDetail}
             emptyLabel="低評価はありません。"
             minWidthClass="min-w-[720px]"
             bodyCellClassName="align-top py-4"
             page={privPage}
-            pageSize={PAGE_SIZE}
+            pageSize={PRIVATE_PAGE_SIZE}
             total={privateCount}
             basePath="/admin/reviews"
             pageParam="privPage"
@@ -204,15 +268,13 @@ export default async function AdminReviewsPage({
       <section className="flex flex-col gap-3">
         <div>
           <h2 className="text-lg font-bold">公開（4★以上）</h2>
-          <p className="text-sm text-neutral-500">
-            これらのお客様にはGoogleレビューやSNS（Facebook・Instagram）フォローをご案内しました。
-          </p>
         </div>
         <TableNavProvider>
           <DataTable
             columns={[...baseColumns, guideColumn]}
             rows={publicReviews.map(toRow)}
             rowKey={(row) => row.id}
+            renderDetail={reviewDetail}
             emptyLabel="まだ口コミはありません。"
             minWidthClass="min-w-[820px]"
             bodyCellClassName="align-top py-4"

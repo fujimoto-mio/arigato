@@ -5,8 +5,11 @@ import { AdminToaster } from "@/components/admin/AdminToaster";
 import { PushPrompt } from "@/components/admin/PushPrompt";
 import { PwaInstallButton } from "@/components/admin/PwaInstallButton";
 import { PwaRegister } from "@/components/admin/PwaRegister";
+import { StoreSwitchContent, StoreSwitchProvider } from "@/components/admin/StoreSwitch";
+import { StoreSwitcher } from "@/components/admin/StoreSwitcher";
 import { requireAdmin } from "@/lib/admin/auth";
 import { startOfTokyoDay } from "@/lib/admin/period";
+import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -20,28 +23,34 @@ export const viewport: Viewport = { themeColor: "#171717" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  const { store, email, adminUserId } = await requireAdmin();
+  const { adminUserId } = await requireAdmin();
+  const { activeStoreId, stores } = await getActiveStore();
+  const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
 
   const [tipsAgg, reviewsAgg, unreadCount] = await Promise.all([
     prisma.tip.aggregate({
-      where: { storeId: store.id, status: "succeeded", createdAt: { gte: todayStart } },
+      where: { ...scope, status: "succeeded", createdAt: { gte: todayStart } },
       _sum: { amount: true },
       _count: true,
     }),
     prisma.review.aggregate({
-      where: { storeId: store.id, createdAt: { gte: todayStart } },
+      where: { ...scope, createdAt: { gte: todayStart } },
       _count: true,
       _avg: { rating: true },
     }),
     prisma.tip.count({
       where: {
-        storeId: store.id,
+        ...scope,
         status: "succeeded",
         notificationReads: { none: { adminUserId } },
       },
     }),
   ]);
+
+  // The in-app toast always covers every store — a single admin wants every
+  // store's tips/reviews regardless of the selected store.
+  const toasterStoreIds = stores.map((s) => s.id);
 
   const summary: AdminSummary = {
     tipCount: tipsAgg._count,
@@ -54,16 +63,13 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     <div className="flex min-h-screen bg-neutral-50">
       <PwaRegister />
       <PushPrompt />
-      <AdminToaster storeId={store.id} />
+      <AdminToaster storeIds={toasterStoreIds} />
       <AdminSidebar summary={summary} notifCount={unreadCount} />
+      <StoreSwitchProvider>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-bold">{store.name}</h1>
-            <p className="truncate text-xs text-neutral-500">
-              /s/{store.slug}
-              {email ? ` · ${email}` : ""}
-            </p>
+        <header className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <StoreSwitcher stores={stores} activeStoreId={activeStoreId} />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <PwaInstallButton />
@@ -85,8 +91,11 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
             <AdminMobileLogout />
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">{children}</main>
+        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">
+          <StoreSwitchContent>{children}</StoreSwitchContent>
+        </main>
       </div>
+      </StoreSwitchProvider>
     </div>
   );
 }
