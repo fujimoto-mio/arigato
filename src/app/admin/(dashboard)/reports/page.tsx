@@ -9,8 +9,9 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 function tokyoLongDate(value: Date): string {
+  // value is a naive-JST Date (see @/lib/admin/period) — read its UTC components.
   return new Date(value).toLocaleDateString("ja-JP", {
-    timeZone: "Asia/Tokyo",
+    timeZone: "UTC",
     year: "numeric",
     month: "long",
     day: "numeric",

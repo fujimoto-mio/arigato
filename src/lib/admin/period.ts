@@ -1,20 +1,23 @@
 const TOKYO_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 /**
- * Start of the given instant's Asia/Tokyo calendar day, as a UTC Date.
- * Stores read their numbers in JST, so "today" must not follow the server's zone.
+ * Timestamps are stored as JST (GMT+9) wall-clock in the DB (naive `timestamp`),
+ * so Prisma reads a Date whose UTC components already hold the JST time. These
+ * helpers therefore work in that "naive JST" space:
+ *  - display: format the UTC components as-is (timeZone: "UTC").
+ *  - boundaries: return the JST-day midnight as a naive-JST Date, which lines up
+ *    with the stored values for comparisons and filters.
  */
+
+/** Start of the current Asia/Tokyo (JST) calendar day, as a naive-JST Date. */
 export function startOfTokyoDay(instant: Date = new Date()): Date {
+  // `instant` is a real UTC moment; shift to the JST wall-clock, then take its
+  // date at midnight (kept as naive-JST, i.e. no offset subtracted back off).
   const shifted = new Date(instant.getTime() + TOKYO_OFFSET_MS);
-  const midnightShifted = Date.UTC(
-    shifted.getUTCFullYear(),
-    shifted.getUTCMonth(),
-    shifted.getUTCDate(),
-  );
-  return new Date(midnightShifted - TOKYO_OFFSET_MS);
+  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
 }
 
-/** Start of the Tokyo day `days` days before today. */
+/** Start of the Tokyo day `days` days before today (JST has no DST → fixed 24h). */
 export function startOfTokyoDaysAgo(days: number, instant: Date = new Date()): Date {
   const start = startOfTokyoDay(instant);
   return new Date(start.getTime() - days * 24 * 60 * 60 * 1000);
@@ -36,8 +39,9 @@ export function formatUsdApprox(yen: number): string {
 }
 
 export function formatTokyoTime(value: Date | string): string {
+  // Stored value is already JST wall-clock (naive) — show its UTC components.
   return new Date(value).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo",
+    timeZone: "UTC",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
