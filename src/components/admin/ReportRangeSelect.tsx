@@ -1,11 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Select } from "@/components/admin/Select";
 
 const OPTIONS = [
-  { value: "today", label: "今日" },
   { value: "7", label: "過去7日間" },
   { value: "14", label: "過去14日間" },
   { value: "30", label: "過去1ヶ月" },
@@ -13,40 +11,54 @@ const OPTIONS = [
   { value: "custom", label: "カスタム期間" },
 ];
 
-/** Single period dropdown for the reports chart; reveals date inputs for custom. */
+export type RangeParams = { range?: string; from?: string; to?: string };
+
+/**
+ * Period picker for the reports chart; reveals date inputs for a custom range.
+ * Reports only the chosen range via `onChange` — the parent refetches just the
+ * chart, so no page navigation / URL change happens.
+ */
 export function ReportRangeSelect({
   selection,
   fromISO,
   toISO,
   todayISO,
+  onChange,
 }: {
   selection: string;
   fromISO: string;
   toISO: string;
   todayISO: string;
+  onChange: (params: RangeParams) => void;
 }) {
-  const router = useRouter();
-  // Pending while the server re-renders the chart for the new range, so the
-  // select can show a spinner instead of looking frozen during the fetch.
-  const [pending, startTransition] = useTransition();
   const [value, setValue] = useState(selection);
   const [from, setFrom] = useState(fromISO);
   const [to, setTo] = useState(toISO);
 
-  // Keep the dropdown in sync when the URL (and thus the server selection) changes.
+  // Re-sync when the parent's resolved range changes (e.g. the store switched).
   const [lastSelection, setLastSelection] = useState(selection);
   if (selection !== lastSelection) {
     setLastSelection(selection);
     setValue(selection);
   }
+  const [lastFrom, setLastFrom] = useState(fromISO);
+  if (fromISO !== lastFrom) {
+    setLastFrom(fromISO);
+    setFrom(fromISO);
+  }
+  const [lastTo, setLastTo] = useState(toISO);
+  if (toISO !== lastTo) {
+    setLastTo(toISO);
+    setTo(toISO);
+  }
 
   function onSelect(next: string) {
     setValue(next);
-    if (next !== "custom") startTransition(() => router.push(`/admin/reports?range=${next}`));
+    if (next !== "custom") onChange({ range: next });
   }
 
   function applyCustom() {
-    if (from && to) startTransition(() => router.push(`/admin/reports?from=${from}&to=${to}`));
+    if (from && to) onChange({ from, to });
   }
 
   const inputClass =
@@ -61,7 +73,6 @@ export function ReportRangeSelect({
           onChange={onSelect}
           options={OPTIONS}
           ariaLabel="期間"
-          loading={pending}
           triggerClassName="min-w-[10rem] font-medium"
           align="right"
         />
