@@ -31,7 +31,7 @@ export default async function AdminNotificationsPage({
 
   const tips = await prisma.tip.findMany({
     where,
-    include: { review: true },
+    include: { review: true, store: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
@@ -46,10 +46,11 @@ export default async function AdminNotificationsPage({
 
   const items: NotificationItem[] = tips.map((tip) => ({
     id: tip.id,
+    storeName: tip.store.name,
+    hasAmount: tip.amount > 0,
     amountYen: formatYen(tip.amount),
     amountUsd: formatUsdApprox(tip.amount),
     createdAtLabel: formatTokyoTime(tip.createdAt),
-    tableText: tip.tableLabel ? `${tip.tableLabel}番` : "—",
     paymentLabel: tip.paymentMethod === "card" ? "カード" : "現金",
     isUnread: !readSet.has(tip.id),
     hasReview: Boolean(tip.review),

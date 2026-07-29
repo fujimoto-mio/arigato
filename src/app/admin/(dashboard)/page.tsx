@@ -1,4 +1,4 @@
-import { Armchair, Coins, HandCoins, MessageSquareText, Star, Wallet } from "lucide-react";
+import { Coins, HandCoins, MessageSquareText, Star, Store, Wallet } from "lucide-react";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { type Column, DataTable } from "@/components/admin/DataTable";
@@ -10,11 +10,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-type TipWithReview = Prisma.TipGetPayload<{ include: { review: true } }>;
-
-function tableText(label: string | null) {
-  return label ? `${label}番` : "—";
-}
+type TipWithReview = Prisma.TipGetPayload<{ include: { review: true; store: { select: { name: true } } } }>;
 
 export default async function AdminDashboardPage() {
   const { activeStoreId } = await getActiveStore();
@@ -25,7 +21,7 @@ export default async function AdminDashboardPage() {
   const [tips, tipsAgg, reviewsAgg] = await Promise.all([
     prisma.tip.findMany({
       where: { ...scope, status: "succeeded" },
-      include: { review: true },
+      include: { review: true, store: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
@@ -152,12 +148,14 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-4 border-y border-neutral-100 py-5 sm:grid-cols-4 sm:divide-x sm:divide-neutral-100">
-        <StatCol label="テーブル番号" icon={<Armchair className="h-6 w-6" strokeWidth={1.6} />}>
-          {tableText(tip.tableLabel)}
+        <StatCol label="店舗" icon={<Store className="h-6 w-6" strokeWidth={1.6} />}>
+          <span className="text-base">{tip.store.name}</span>
         </StatCol>
         <StatCol label="チップ金額" icon={<Coins className="h-6 w-6" strokeWidth={1.6} />}>
           <span className="text-[var(--color-accent)]">{formatYen(tip.amount)}</span>
-          <span className="mt-0.5 block text-[11px] font-normal text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
+          {tip.amount > 0 ? (
+            <span className="mt-0.5 block text-[11px] font-normal text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
+          ) : null}
         </StatCol>
         <StatCol label="評価" icon={<Star className="h-6 w-6" strokeWidth={1.6} />}>
           {review ? (
@@ -216,10 +214,10 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       render: (tip) => formatTokyoTime(tip.createdAt),
     },
     {
-      key: "table",
-      header: "テーブル番号",
-      className: "whitespace-nowrap",
-      render: (tip) => tableText(tip.tableLabel),
+      key: "store",
+      header: "店舗",
+      className: "whitespace-nowrap font-medium",
+      render: (tip) => tip.store.name,
     },
     {
       key: "amount",
@@ -228,7 +226,9 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       render: (tip) => (
         <>
           <span className="font-bold">{formatYen(tip.amount)}</span>
-          <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
+          {tip.amount > 0 ? (
+            <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
+          ) : null}
         </>
       ),
     },

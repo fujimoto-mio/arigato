@@ -1,6 +1,6 @@
 "use client";
 
-import { Armchair, Clock, Coins, CreditCard, Share2, Star } from "lucide-react";
+import { Clock, Coins, CreditCard, Share2, Star, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { markNotificationRead } from "@/app/admin/(dashboard)/notifications/actions";
@@ -9,10 +9,12 @@ import { GoogleIcon } from "@/components/flow/brand";
 
 export type NotificationItem = {
   id: string;
+  storeName: string;
+  // Whether an actual tip amount was given (¥0 = review-only) — drives the row icon.
+  hasAmount: boolean;
   amountYen: string;
   amountUsd: string;
   createdAtLabel: string;
-  tableText: string;
   paymentLabel: string;
   isUnread: boolean;
   hasReview: boolean;
@@ -33,16 +35,18 @@ const iconProps = {
   "aria-hidden": true,
 };
 
-function KindIcon({ hasReview }: { hasReview: boolean }) {
-  return hasReview ? (
-    <svg {...iconProps}>
-      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5z" />
-      <path d="M8 9h8M8 12.5h5" />
-    </svg>
-  ) : (
+// A tip amount shows the yen icon; a ¥0 (review-only) interaction shows the
+// message icon.
+function KindIcon({ hasAmount }: { hasAmount: boolean }) {
+  return hasAmount ? (
     <svg {...iconProps}>
       <circle cx="12" cy="12" r="9" />
       <path d="M9 8l3 4 3-4M9 13h6M9 16h6M12 12v4" />
+    </svg>
+  ) : (
+    <svg {...iconProps}>
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5z" />
+      <path d="M8 9h8M8 12.5h5" />
     </svg>
   );
 }
@@ -78,17 +82,25 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
               }`}
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-                <KindIcon hasReview={item.hasReview} />
+                <KindIcon hasAmount={item.hasAmount} />
               </span>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {item.hasReview ? "チップと口コミが届きました" : "チップが届きました"}
-                  </p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neutral-900">
+                      {item.hasReview ? "チップと口コミが届きました" : "チップが届きました"}
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-[var(--color-accent)]">
+                      <Store className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+                      <span className="truncate">{item.storeName}</span>
+                    </p>
+                  </div>
                   <div className="shrink-0 text-right">
                     <span className="font-bold text-[var(--color-accent)]">{item.amountYen}</span>
-                    <span className="block text-[11px] text-neutral-400">（{item.amountUsd}）</span>
+                    {item.hasAmount ? (
+                      <span className="block text-[11px] text-neutral-400">（{item.amountUsd}）</span>
+                    ) : null}
                   </div>
                 </div>
 
@@ -96,7 +108,6 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
                   {isUnread ? (
                     <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">未読</span>
                   ) : null}
-                  {item.tableText !== "—" ? <span>{item.tableText}</span> : null}
                   <span>{item.createdAtLabel}</span>
                   {item.rating !== null ? (
                     <span className="flex items-center gap-1">
@@ -146,14 +157,18 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
         </button>
 
         <h3 className="text-lg font-bold">{item.hasReview ? "チップと口コミ" : "チップ"}</h3>
+        <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-[var(--color-accent)]">
+          <Store className="h-4 w-4 shrink-0" strokeWidth={1.9} />
+          <span className="truncate">{item.storeName}</span>
+        </p>
 
         <div className="mt-4 rounded-xl border border-neutral-100 p-5 text-center">
           <p className="text-4xl font-bold text-[var(--color-accent)]">{item.amountYen}</p>
-          <p className="mt-1 text-xs text-neutral-400">（{item.amountUsd}）</p>
+          {item.hasAmount ? <p className="mt-1 text-xs text-neutral-400">（{item.amountUsd}）</p> : null}
         </div>
 
         <dl className="mt-4 divide-y divide-neutral-100 text-sm">
-          <InfoRow label="テーブル番号" icon={<Armchair className="h-4 w-4" strokeWidth={1.75} />} value={item.tableText} />
+          <InfoRow label="店舗" icon={<Store className="h-4 w-4" strokeWidth={1.75} />} value={item.storeName} />
           <InfoRow label="受信日時" icon={<Clock className="h-4 w-4" strokeWidth={1.75} />} value={item.createdAtLabel} />
           <InfoRow
             label="支払方法"

@@ -1,6 +1,7 @@
 import { Coins, CreditCard } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import { type Column, DataTable } from "@/components/admin/DataTable";
+import { DetailRow } from "@/components/admin/RowModal";
 import { Stars } from "@/components/admin/Stars";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { TableToolbar } from "@/components/admin/TableToolbar";
@@ -15,16 +16,12 @@ const PAGE_SIZE = 10;
 type TipRow = {
   id: string;
   createdAt: Date;
-  tableLabel: string | null;
+  storeName: string;
   paymentMethod: "cash" | "card";
   amount: number;
   rating: number | null;
   comment: string | null;
 };
-
-function tableText(label: string | null) {
-  return label ? `${label}番` : "—";
-}
 
 function parsePage(value: string | undefined): number {
   const n = Number.parseInt(value ?? "1", 10);
@@ -45,7 +42,7 @@ export default async function AdminTipsPage({
   const term = q?.trim();
   if (term) {
     where.OR = [
-      { tableLabel: { contains: term, mode: "insensitive" } },
+      { store: { name: { contains: term, mode: "insensitive" } } },
       { review: { comment: { contains: term, mode: "insensitive" } } },
     ];
   }
@@ -58,7 +55,7 @@ export default async function AdminTipsPage({
   const [tips, agg] = await Promise.all([
     prisma.tip.findMany({
       where,
-      include: { review: true },
+      include: { review: true, store: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -69,7 +66,7 @@ export default async function AdminTipsPage({
   const rows: TipRow[] = tips.map((tip) => ({
     id: tip.id,
     createdAt: tip.createdAt,
-    tableLabel: tip.tableLabel,
+    storeName: tip.store.name,
     paymentMethod: tip.paymentMethod,
     amount: tip.amount,
     rating: tip.review?.rating ?? null,
@@ -84,10 +81,10 @@ export default async function AdminTipsPage({
       render: (row) => formatTokyoTime(row.createdAt),
     },
     {
-      key: "table",
-      header: "テーブル番号",
-      className: "whitespace-nowrap",
-      render: (row) => tableText(row.tableLabel),
+      key: "store",
+      header: "店舗",
+      className: "whitespace-nowrap font-medium",
+      render: (row) => row.storeName,
     },
     {
       key: "method",
@@ -111,7 +108,9 @@ export default async function AdminTipsPage({
       render: (row) => (
         <>
           <span className="font-bold">{formatYen(row.amount)}</span>
-          <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(row.amount)}）</span>
+          {row.amount > 0 ? (
+            <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(row.amount)}）</span>
+          ) : null}
         </>
       ),
     },
@@ -150,7 +149,7 @@ export default async function AdminTipsPage({
       <TableNavProvider>
         <TableToolbar
           searchParam="q"
-          searchPlaceholder="テーブル番号・口コミで検索"
+          searchPlaceholder="店舗名・口コミで検索"
           filters={[
             {
               param: "method",
@@ -171,6 +170,41 @@ export default async function AdminTipsPage({
           emptyLabel={term || method ? "条件に一致するチップはありません。" : "まだチップはありません。"}
           minWidthClass="min-w-[760px]"
           bodyCellClassName="align-top"
+          renderDetail={(row) => ({
+            title: "チップ・口コミ詳細",
+            body: (
+              <>
+                <div className="rounded-xl border border-neutral-100 p-5 text-center">
+                  <p className="text-4xl font-bold text-[var(--color-accent)]">{formatYen(row.amount)}</p>
+                  {row.amount > 0 ? (
+                    <p className="mt-1 text-xs text-neutral-400">（{formatUsdApprox(row.amount)}）</p>
+                  ) : null}
+                </div>
+                <dl className="mt-4 divide-y divide-neutral-100 text-sm">
+                  <DetailRow label="店舗" value={row.storeName} />
+                  <DetailRow label="受信日時" value={formatTokyoTime(row.createdAt)} />
+                  <DetailRow label="支払方法" value={row.paymentMethod === "card" ? "カード" : "現金"} />
+                  <DetailRow label="評価">
+                    {row.rating !== null ? (
+                      <span className="flex items-center justify-end gap-1">
+                        <Stars rating={row.rating} /> {row.rating.toFixed(1)}
+                      </span>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </DetailRow>
+                </dl>
+                {row.comment ? (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-neutral-700">口コミ内容</p>
+                    <p className="mt-2 whitespace-pre-line rounded-xl bg-neutral-50 p-4 text-sm text-neutral-800">
+                      {row.comment}
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            ),
+          })}
           page={page}
           pageSize={PAGE_SIZE}
           total={total}

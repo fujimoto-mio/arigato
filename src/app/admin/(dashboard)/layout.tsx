@@ -5,6 +5,7 @@ import { AdminToaster } from "@/components/admin/AdminToaster";
 import { PushPrompt } from "@/components/admin/PushPrompt";
 import { PwaInstallButton } from "@/components/admin/PwaInstallButton";
 import { PwaRegister } from "@/components/admin/PwaRegister";
+import { StoreSwitchContent, StoreSwitchProvider } from "@/components/admin/StoreSwitch";
 import { StoreSwitcher } from "@/components/admin/StoreSwitcher";
 import { requireAdmin } from "@/lib/admin/auth";
 import { startOfTokyoDay } from "@/lib/admin/period";
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const { adminUserId } = await requireAdmin();
-  const { activeStoreId, activeStore, stores } = await getActiveStore();
+  const { activeStoreId, stores } = await getActiveStore();
   const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
 
@@ -47,9 +48,9 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
     }),
   ]);
 
-  // Channels the toaster listens on: just the active store, or every store in
-  // the all-stores view.
-  const toasterStoreIds = activeStore ? [activeStore.id] : stores.map((s) => s.id);
+  // The in-app toast always covers every store — a single admin wants every
+  // store's tips/reviews regardless of the selected store.
+  const toasterStoreIds = stores.map((s) => s.id);
 
   const summary: AdminSummary = {
     tipCount: tipsAgg._count,
@@ -64,6 +65,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
       <PushPrompt />
       <AdminToaster storeIds={toasterStoreIds} />
       <AdminSidebar summary={summary} notifCount={unreadCount} />
+      <StoreSwitchProvider>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
@@ -89,8 +91,11 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
             <AdminMobileLogout />
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">{children}</main>
+        <main className="flex-1 px-4 py-6 pb-24 md:px-8 md:pb-8">
+          <StoreSwitchContent>{children}</StoreSwitchContent>
+        </main>
       </div>
+      </StoreSwitchProvider>
     </div>
   );
 }

@@ -111,7 +111,9 @@ export default async function AdminReportsPage({
         </div>
       </section>
 
-      <ReportChart initial={chart} />
+      {/* Keyed on the active store so switching stores remounts the chart with
+          the new store's data (client state is seeded from `initial` on mount). */}
+      <ReportChart key={activeStoreId ?? "all"} initial={chart} />
     </div>
   );
 }

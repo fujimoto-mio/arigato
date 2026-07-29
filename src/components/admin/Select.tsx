@@ -129,7 +129,7 @@ export function Select({
         aria-label={ariaLabel}
         aria-busy={loading}
         onClick={() => (open ? setOpen(false) : openMenu())}
-        className={`flex w-full min-w-[8.5rem] items-center gap-2 rounded-lg border border-neutral-300 py-2 pl-4 pr-3 text-sm font-semibold text-neutral-900 transition focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-60 ${
+        className={`flex w-full items-center gap-2 rounded-lg border border-neutral-300 py-2 pl-4 pr-3 text-sm font-semibold text-neutral-900 transition focus:border-[var(--color-accent)] focus:outline-none disabled:opacity-60 ${
           open ? "border-[var(--color-accent)]" : ""
         } ${triggerClassName}`}
       >

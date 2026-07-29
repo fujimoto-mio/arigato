@@ -146,49 +146,61 @@ function RangeStat({ label, value, accent }: { label: string; value: string; acc
   );
 }
 
+// A ghost of the real chart — a gentle placeholder line + area over the same
+// gridlines and axes — so the range change reads as "this chart is loading".
+const GHOST_LINE = "0,64 17,48 33,58 50,30 67,46 83,40 100,56";
+const GHOST_AREA = `0,100 ${GHOST_LINE} 100,100`;
+
 /** Pulsing placeholder shown in place of the chart while a new range loads. */
 function ChartSkeleton() {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4" aria-hidden="true">
-      <div className="mb-4 flex flex-wrap gap-x-8 gap-y-2 border-b border-neutral-100 pb-4">
+    <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4" aria-hidden="true">
+      {/* Sheen sweep across the whole card for a livelier "loading" feel. */}
+      <div className="skeleton-sheen pointer-events-none absolute inset-0 z-10" />
+
+      <div className="mb-4 flex flex-wrap gap-x-8 gap-y-3 border-b border-neutral-100 pb-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex flex-col gap-1.5">
-            <div className="h-3 w-14 animate-pulse rounded bg-neutral-100" />
-            <div className="h-5 w-20 animate-pulse rounded bg-neutral-200" />
+          <div key={i} className="flex flex-col gap-2">
+            <div className="h-2.5 w-12 rounded-full bg-neutral-100" />
+            <div className="h-5 w-20 rounded-md bg-neutral-200/70" />
           </div>
         ))}
       </div>
 
-      <div className="relative h-56">
+      <div className="relative h-56 animate-pulse">
+        {/* Y gridlines + tick placeholders */}
         {[0, 0.25, 0.5, 0.75, 1].map((f) => (
           <div key={f} className="absolute inset-x-0 flex -translate-y-1/2 items-center" style={{ top: `${6 + f * 90}%` }}>
-            <span className="mr-2 h-2.5 w-12 shrink-0 animate-pulse rounded bg-neutral-100" />
+            <span className="mr-2 h-2 w-11 shrink-0 rounded-full bg-neutral-100" />
             <span className="h-px flex-1 bg-neutral-100" />
           </div>
         ))}
-        <div className="absolute inset-y-0 left-14 right-0 flex items-end gap-2 pb-4">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-1 animate-pulse rounded-t bg-neutral-100"
-              style={{ height: `${30 + ((i * 37) % 55)}%` }}
+
+        {/* Ghost line + area over the plot region */}
+        <div className="absolute inset-y-0 left-14 right-0">
+          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polygon points={GHOST_AREA} fill="rgb(245 245 245)" />
+            <polyline
+              points={GHOST_LINE}
+              fill="none"
+              stroke="rgb(214 214 214)"
+              strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
+              strokeLinejoin="round"
+              strokeLinecap="round"
             />
-          ))}
+          </svg>
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-center gap-2 border-t border-neutral-100 pt-4">
-        <svg
-          className="h-4 w-4 animate-spin text-[var(--color-accent)]"
-          viewBox="0 0 24 24"
-          fill="none"
-          role="status"
-          aria-label="読み込み中"
-        >
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4z" />
-        </svg>
-        <span className="text-xs text-neutral-400">読み込み中…</span>
+      {/* X-axis label placeholders */}
+      <div className="mt-2 flex gap-1 border-t border-neutral-100 pt-3">
+        <div className="w-14 shrink-0" />
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="flex flex-1 justify-center">
+            <span className="h-2 w-8 animate-pulse rounded-full bg-neutral-100" />
+          </div>
+        ))}
       </div>
     </div>
   );
