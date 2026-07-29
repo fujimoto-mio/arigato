@@ -18,9 +18,10 @@ import {
 import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
+import { type LocaleText, pickLocaleText } from "@/lib/story";
 import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
 
-export type StorySlideContent = { title: string; body: string; imageUrl: string | null };
+export type StorySlideContent = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
 export type GuestStore = {
   slug: string;
@@ -260,13 +261,18 @@ export function GuestFlow({
 function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
   const t = useTranslations("story");
   const tc = useTranslations("common");
-  // A store's own slides win; otherwise fall back to the stock story text (which
-  // carries no image, so it uses the stock photos below).
+  const { locale } = useLocaleSwitcher();
+  // A store's own slides win, resolved to the guest's language (with fallback);
+  // otherwise fall back to the stock story text (no image → stock photos below).
   const stockSlides = t.raw("slides") as { title: string; body: string }[];
-  const slides: StorySlideContent[] =
+  const slides: { title: string; body: string; imageUrl: string | null }[] =
     store.storySlides.length > 0
-      ? store.storySlides
-      : stockSlides.map((slide) => ({ ...slide, imageUrl: null }));
+      ? store.storySlides.map((slide) => ({
+          title: pickLocaleText(slide.title, locale),
+          body: pickLocaleText(slide.body, locale),
+          imageUrl: slide.imageUrl,
+        }))
+      : stockSlides.map((slide) => ({ title: slide.title, body: slide.body, imageUrl: null }));
   // Cover: the store's intro image if set, else the first slide's photo, else stock.
   const coverImage = store.coverImageUrl ?? slides[0]?.imageUrl ?? STORY_IMAGES[0];
   const nextRef = useRef<HTMLDivElement>(null);

@@ -8,13 +8,14 @@ import { StoreQrCard } from "@/components/admin/StoreQrCard";
 import { StoryPreview } from "@/components/admin/StoryPreview";
 import {
   EMPTY_STORY_SLIDE,
-  type StorySlideDraft,
   type StorySlideState,
   StorySlidesField,
   uploadStoreImage,
   uploadStorySlides,
 } from "@/components/admin/StorySlidesField";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/messages";
 import { storeTipUrl } from "@/lib/qr";
+import { hasAnyText } from "@/lib/story";
 
 /** Store name → URL-safe slug: lowercase, non-alphanumerics become hyphens. */
 function slugify(value: string): string {
@@ -42,6 +43,7 @@ export function StoreCreateForm({ origin }: { origin: string }) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [slides, setSlides] = useState<StorySlideState[]>([{ ...EMPTY_STORY_SLIDE }]);
+  const [storyLocale, setStoryLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -63,9 +65,9 @@ export function StoreCreateForm({ origin }: { origin: string }) {
 
     // Validate the story before creating anything, so a half-filled slide doesn't
     // leave a store behind.
-    const storyToSave = slides.filter((s) => s.title.trim() || s.body.trim() || s.file || s.imageUrl);
-    if (storyToSave.some((s) => !s.title.trim() || !s.body.trim())) {
-      setError("ストーリーの各スライドにタイトルと本文を入力してください。");
+    const storyToSave = slides.filter((s) => hasAnyText(s.title) || hasAnyText(s.body) || s.file || s.imageUrl);
+    if (storyToSave.some((s) => !hasAnyText(s.title))) {
+      setError("ストーリーの各スライドに、いずれかの言語でタイトルを入力してください。");
       return;
     }
 
@@ -119,7 +121,7 @@ export function StoreCreateForm({ origin }: { origin: string }) {
     }
   }
 
-  const previewSlides: StorySlideDraft[] = slides.map((s) => ({
+  const previewSlides = slides.map((s) => ({
     title: s.title,
     body: s.body,
     imageUrl: s.previewUrl ?? s.imageUrl,
@@ -273,7 +275,12 @@ export function StoreCreateForm({ origin }: { origin: string }) {
         <p className="mb-5 text-sm text-neutral-500">
           QRコードから開くお客様の画面に表示される「Our Story」です。未設定の場合は標準のストーリーが表示されます。
         </p>
-        <StorySlidesField slides={slides} onChange={setSlides} />
+        <StorySlidesField
+          slides={slides}
+          onChange={setSlides}
+          activeLocale={storyLocale}
+          onLocaleChange={setStoryLocale}
+        />
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
@@ -307,6 +314,7 @@ export function StoreCreateForm({ origin }: { origin: string }) {
         slides={previewSlides}
         storeName={name.trim() || "店舗"}
         coverImageUrl={coverPreview}
+        initialLocale={storyLocale}
         onClose={() => setPreviewOpen(false)}
       />
     </form>

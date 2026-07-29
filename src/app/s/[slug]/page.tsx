@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { GuestFlow } from "@/components/flow/GuestFlow";
 import { prisma } from "@/lib/prisma";
+import { toLocaleText } from "@/lib/story";
 
 export default async function StorePage({
   params,
@@ -29,10 +30,10 @@ export default async function StorePage({
         googlePlaceId: store.googlePlaceId,
         instagramUrl: store.instagramUrl,
         facebookUrl: store.facebookUrl,
-        // Per-store "Our Story" slides; empty falls back to the stock story.
+        // Per-store "Our Story" slides (locale maps); empty falls back to stock.
         storySlides: store.storySlides.map((slide) => ({
-          title: slide.title,
-          body: slide.body,
+          title: toLocaleText(slide.title),
+          body: toLocaleText(slide.body),
           imageUrl: slide.imageUrl,
         })),
       }}

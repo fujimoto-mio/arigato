@@ -7,6 +7,7 @@ import { StoryEditor, type StorySlideDraft } from "@/components/admin/StoryEdito
 import { getStore } from "@/lib/admin/store-scope";
 import { resolveAppOrigin } from "@/lib/origin";
 import { prisma } from "@/lib/prisma";
+import { toLocaleText } from "@/lib/story";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,11 @@ export default async function AdminStoreEditPage({
 
   const slides: StorySlideDraft[] = (
     await prisma.storySlide.findMany({ where: { storeId: store.id }, orderBy: { sortOrder: "asc" } })
-  ).map((slide) => ({ title: slide.title, body: slide.body, imageUrl: slide.imageUrl }));
+  ).map((slide) => ({
+    title: toLocaleText(slide.title),
+    body: toLocaleText(slide.body),
+    imageUrl: slide.imageUrl,
+  }));
 
   return (
     <div className="flex flex-col gap-6">

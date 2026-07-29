@@ -12,13 +12,15 @@ import {
   toStorySlideState,
   uploadStorySlides,
 } from "@/components/admin/StorySlidesField";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/messages";
+import { hasAnyText } from "@/lib/story";
 
 export type { StorySlideDraft };
 
 /**
- * Per-store "Our Story" editor. Picking a photo previews it locally; nothing is
- * uploaded until Save, when photos upload and the whole list is written
- * (replace-all) to `/api/admin/story`.
+ * Per-store, multi-language "Our Story" editor. Title/body are entered per
+ * language; picking a photo previews it locally and uploads on save, when the
+ * whole list is written (replace-all) to `/api/admin/story`.
  */
 export function StoryEditor({
   storeId,
@@ -35,6 +37,7 @@ export function StoryEditor({
   const [slides, setSlides] = useState<StorySlideState[]>(
     initialSlides.length > 0 ? initialSlides.map(toStorySlideState) : [{ ...EMPTY_STORY_SLIDE }],
   );
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -44,8 +47,8 @@ export function StoryEditor({
     setError(null);
     try {
       const cleaned = await uploadStorySlides(storeId, slides);
-      if (cleaned.some((slide) => !slide.title || !slide.body)) {
-        setError("各スライドにタイトルと本文を入力してください。");
+      if (cleaned.some((slide) => !hasAnyText(slide.title))) {
+        setError("各スライドに、いずれかの言語でタイトルを入力してください。");
         setStatus("idle");
         return;
       }
@@ -67,8 +70,9 @@ export function StoryEditor({
     }
   }
 
-  // What the preview shows: the locally-picked photo when present, else the saved one.
-  const previewSlides: StorySlideDraft[] = slides.map((slide) => ({
+  // Raw locale maps for the preview (which has its own language switcher), with
+  // the locally-picked photo when present.
+  const previewSlides = slides.map((slide) => ({
     title: slide.title,
     body: slide.body,
     imageUrl: slide.previewUrl ?? slide.imageUrl,
@@ -76,7 +80,7 @@ export function StoryEditor({
 
   return (
     <div className="flex flex-col gap-5">
-      <StorySlidesField slides={slides} onChange={setSlides} />
+      <StorySlidesField slides={slides} onChange={setSlides} activeLocale={locale} onLocaleChange={setLocale} />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -105,6 +109,7 @@ export function StoryEditor({
         slides={previewSlides}
         storeName={storeName}
         coverImageUrl={coverImageUrl}
+        initialLocale={locale}
         onClose={() => setPreviewOpen(false)}
       />
     </div>

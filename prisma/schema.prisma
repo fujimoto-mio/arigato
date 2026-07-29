@@ -79,13 +79,17 @@ model AdminUser {
   @@index([storeId])
 }
 
-/** Per-store "Our Story" slide on the guest landing (single language). */
+/**
+ * Per-store "Our Story" slide on the guest landing. `title` and `body` are
+ * locale maps — { en, ja, ko, zh } — so the story shows in each guest's
+ * language (see @/lib/story).
+ */
 model StorySlide {
   id        String   @id @default(cuid())
   storeId   String
   sortOrder Int      @default(0)
-  title     String
-  body      String
+  title     Json
+  body      Json
   imageUrl  String?
   createdAt DateTime @default(now())
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)

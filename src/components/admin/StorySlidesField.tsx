@@ -1,14 +1,22 @@
 "use client";
 
 import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Plus, Trash2 } from "lucide-react";
+import { LOCALES, type Locale } from "@/i18n/messages";
+import { cleanLocaleText, hasAnyText, type LocaleText, LOCALE_LABELS } from "@/lib/story";
 
-export type StorySlideDraft = { title: string; body: string; imageUrl: string | null };
+export type StorySlideDraft = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
-// A slide being edited: the persisted `imageUrl` plus a locally-picked `file`
-// that isn't uploaded until save, with `previewUrl` (object URL) to show it.
+// A slide being edited: the persisted values plus a locally-picked `file` that
+// isn't uploaded until save, with `previewUrl` (object URL) to show it.
 export type StorySlideState = StorySlideDraft & { file: File | null; previewUrl: string | null };
 
-export const EMPTY_STORY_SLIDE: StorySlideState = { title: "", body: "", imageUrl: null, file: null, previewUrl: null };
+export const EMPTY_STORY_SLIDE: StorySlideState = {
+  title: {},
+  body: {},
+  imageUrl: null,
+  file: null,
+  previewUrl: null,
+};
 export const MAX_STORY_SLIDES = 8;
 
 export function toStorySlideState(draft: StorySlideDraft): StorySlideState {
@@ -28,7 +36,7 @@ export async function uploadStoreImage(storeId: string, file: File): Promise<str
 
 /**
  * Upload any newly-picked slide photos for the given store, then return the
- * cleaned slide list (fully-empty slides dropped). Throws if an upload fails.
+ * cleaned slide list (locales trimmed, fully-empty slides dropped).
  */
 export async function uploadStorySlides(
   storeId: string,
@@ -41,26 +49,46 @@ export async function uploadStorySlides(
       imageUrl = await uploadStoreImage(storeId, slide.file);
       if (slide.previewUrl) URL.revokeObjectURL(slide.previewUrl);
     }
-    resolved.push({ title: slide.title.trim(), body: slide.body.trim(), imageUrl });
+    const title = cleanLocaleText(slide.title);
+    const body = cleanLocaleText(slide.body);
+    if (hasAnyText(title) || hasAnyText(body) || imageUrl) {
+      resolved.push({ title, body, imageUrl });
+    }
   }
-  return resolved.filter((slide) => slide.title || slide.body || slide.imageUrl);
+  return resolved;
 }
 
 /**
- * Controlled editor for the "Our Story" slides — title, body, and an optional
- * photo per slide, in display order. Picking a photo only previews it locally;
- * the parent uploads on save (see uploadStorySlides). Used by both the store
- * editor and the new-store page.
+ * Controlled editor for the "Our Story" slides. Each slide has a title, body,
+ * and optional photo; title/body are entered per language via the tab bar
+ * (empty languages fall back to another on the guest side). Picking a photo only
+ * previews it locally; the parent uploads on save (see uploadStorySlides).
  */
 export function StorySlidesField({
   slides,
   onChange,
+  activeLocale,
+  onLocaleChange,
 }: {
   slides: StorySlideState[];
   onChange: (slides: StorySlideState[]) => void;
+  activeLocale: Locale;
+  onLocaleChange: (locale: Locale) => void;
 }) {
-  function update(index: number, patch: Partial<StorySlideState>) {
-    onChange(slides.map((slide, i) => (i === index ? { ...slide, ...patch } : slide)));
+  // Which languages have any content, to hint on the tabs.
+  const filled = new Set<Locale>();
+  for (const slide of slides) {
+    for (const locale of LOCALES) {
+      if (slide.title[locale]?.trim() || slide.body[locale]?.trim()) filled.add(locale);
+    }
+  }
+
+  function setText(index: number, field: "title" | "body", value: string) {
+    onChange(
+      slides.map((slide, i) =>
+        i === index ? { ...slide, [field]: { ...slide[field], [activeLocale]: value } } : slide,
+      ),
+    );
   }
 
   function addSlide() {
@@ -97,6 +125,34 @@ export function StorySlidesField({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Language tabs */}
+      <div>
+        <div className="inline-flex flex-wrap gap-1 rounded-full border border-neutral-200 bg-neutral-50 p-1">
+          {LOCALES.map((locale) => (
+            <button
+              key={locale}
+              type="button"
+              onClick={() => onLocaleChange(locale)}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                activeLocale === locale
+                  ? "bg-[var(--color-accent)] text-white"
+                  : "text-neutral-500 hover:text-neutral-800"
+              }`}
+            >
+              {LOCALE_LABELS[locale]}
+              {filled.has(locale) ? (
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${activeLocale === locale ? "bg-white" : "bg-[var(--color-accent)]"}`}
+                />
+              ) : null}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-xs text-neutral-400">
+          言語ごとに入力できます。未入力の言語は他の言語で表示されます。画像・並び順は全言語で共通です。
+        </p>
+      </div>
+
       <div className="flex flex-col gap-5">
         {slides.map((slide, index) => {
           const displayUrl = slide.previewUrl ?? slide.imageUrl;
@@ -138,7 +194,7 @@ export function StorySlidesField({
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row">
-                {/* Image */}
+                {/* Image (shared across languages) */}
                 <div className="sm:w-40 sm:shrink-0">
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-100">
                     {displayUrl ? (
@@ -179,23 +235,23 @@ export function StorySlidesField({
                   ) : null}
                 </div>
 
-                {/* Text */}
+                {/* Text for the active language */}
                 <div className="flex min-w-0 flex-1 flex-col gap-3">
                   <label className="block text-sm font-medium text-neutral-700">
-                    タイトル
+                    タイトル（{LOCALE_LABELS[activeLocale]}）
                     <input
-                      value={slide.title}
-                      onChange={(event) => update(index, { title: event.target.value })}
+                      value={slide.title[activeLocale] ?? ""}
+                      onChange={(event) => setText(index, "title", event.target.value)}
                       maxLength={120}
                       placeholder="例：おもてなしの心"
                       className="mt-1 w-full rounded-lg border border-neutral-300 p-2.5 text-sm"
                     />
                   </label>
                   <label className="block text-sm font-medium text-neutral-700">
-                    本文
+                    本文（{LOCALE_LABELS[activeLocale]}）
                     <textarea
-                      value={slide.body}
-                      onChange={(event) => update(index, { body: event.target.value })}
+                      value={slide.body[activeLocale] ?? ""}
+                      onChange={(event) => setText(index, "body", event.target.value)}
                       maxLength={2000}
                       rows={4}
                       placeholder="お店の想いやこだわりをお書きください。"

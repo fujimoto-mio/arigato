@@ -34,7 +34,13 @@ const patchSchema = z.object({
   googlePlaceId: emptyToNull(200),
   instagramUrl: urlOrEmpty,
   facebookUrl: urlOrEmpty,
-  coverImageUrl: z.string().url().nullable().optional(),
+  // https Supabase URL (uploads) or a local /path (stock placeholders).
+  coverImageUrl: z
+    .string()
+    .max(500)
+    .nullable()
+    .optional()
+    .refine((value) => value == null || /^(https?:\/\/|\/)/.test(value), "invalid_url"),
 });
 
 /** Update one store's info (name, slug, Place ID, socials, cover image). */

@@ -1,21 +1,20 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogoBadge, Wordmark } from "@/components/flow/brand";
-import type { StorySlideDraft } from "@/components/admin/StorySlidesField";
+import { DEFAULT_LOCALE, type Locale, LOCALES, messagesByLocale } from "@/i18n/messages";
+import { type LocaleText, LOCALE_LABELS, pickLocaleText } from "@/lib/story";
 
 // Same stock fallbacks the guest landing uses when a slide has no photo, so the
 // preview matches what customers actually see.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
 
-// Default (English) guest copy shown on the QR landing's first screen.
-const TAGLINE = "Discover the story behind our restaurant.";
-const TAKE_A_LOOK = "Take a look!";
+type PreviewSlide = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
 /**
- * Phone-framed preview of the store's QR landing first screen as guests see it:
- * the hero, cover, and the "Our Story" slides. Renders the current (unsaved)
+ * Phone-framed preview of the store's QR landing first screen, with a language
+ * switcher so each locale's story can be checked. Renders the current (unsaved)
  * draft — including locally-picked photos — so edits show live.
  */
 export function StoryPreview({
@@ -23,14 +22,24 @@ export function StoryPreview({
   slides,
   storeName,
   coverImageUrl,
+  initialLocale = DEFAULT_LOCALE,
   onClose,
 }: {
   open: boolean;
-  slides: StorySlideDraft[];
+  slides: PreviewSlide[];
   storeName: string;
   coverImageUrl: string | null;
+  initialLocale?: Locale;
   onClose: () => void;
 }) {
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  // Follow the editor's active language when it changes (still overridable here).
+  const [lastInitial, setLastInitial] = useState(initialLocale);
+  if (initialLocale !== lastInitial) {
+    setLastInitial(initialLocale);
+    setLocale(initialLocale);
+  }
+
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
@@ -42,8 +51,13 @@ export function StoryPreview({
 
   if (!open) return null;
 
+  const m = messagesByLocale[locale];
   const filled = slides
-    .map((slide) => ({ title: slide.title.trim(), body: slide.body.trim(), imageUrl: slide.imageUrl }))
+    .map((slide) => ({
+      title: pickLocaleText(slide.title, locale),
+      body: pickLocaleText(slide.body, locale),
+      imageUrl: slide.imageUrl,
+    }))
     .filter((slide) => slide.title || slide.body || slide.imageUrl);
   const coverImage = coverImageUrl ?? filled[0]?.imageUrl ?? STORY_IMAGES[0];
 
@@ -69,9 +83,24 @@ export function StoryPreview({
         </button>
 
         <div className="overflow-y-auto pb-2">
-          {/* Header (logo only; the live page also has a language switcher) */}
-          <header className="flex items-start justify-between px-5 pt-5">
-            <span className="min-h-9" />
+          {/* Header: language switcher + logo (the live page has a similar menu) */}
+          <header className="flex items-start justify-between gap-2 px-5 pt-5">
+            <div className="flex flex-wrap gap-1">
+              {LOCALES.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLocale(l)}
+                  className={`rounded-full px-2 py-1 text-[11px] font-semibold transition ${
+                    locale === l
+                      ? "bg-[var(--color-accent)] text-white"
+                      : "bg-neutral-100 text-neutral-500 hover:text-neutral-800"
+                  }`}
+                >
+                  {LOCALE_LABELS[l]}
+                </button>
+              ))}
+            </div>
             <LogoBadge />
           </header>
 
@@ -79,10 +108,10 @@ export function StoryPreview({
           <div className="px-8 pt-6 text-center">
             <Wordmark className="text-[52px] leading-none tracking-tight" />
             <p className="mx-auto mt-6 max-w-[16rem] text-[13px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-700">
-              {TAGLINE}
+              {m.story.tagline}
             </p>
             <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-              {TAKE_A_LOOK}
+              {m.story.takeALook}
             </p>
           </div>
 
@@ -111,13 +140,13 @@ export function StoryPreview({
 
           {/* Our Story heading */}
           <div className="px-8 pt-6 text-center">
-            <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">Our Story</h2>
+            <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">{m.story.heading}</h2>
             <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
           </div>
 
           {filled.length === 0 ? (
             <div className="px-8 py-12 text-center text-sm text-neutral-400">
-              スライドが未設定です。お客様には標準のストーリーが表示されます。
+              この言語のスライドが未設定です。他の言語の内容が表示されます。
             </div>
           ) : (
             <div className="mt-9 flex flex-col gap-14">
@@ -152,11 +181,11 @@ export function StoryPreview({
             <div className="mx-auto mb-9 h-px w-16 bg-neutral-200" />
             <div className="w-full rounded-2xl bg-[var(--color-accent)] py-4 text-center font-bold text-white">
               <span className="flex items-center justify-center gap-2">
-                Next <span className="text-lg">›</span>
+                {m.common.next} <span className="text-lg">›</span>
               </span>
             </div>
             <p className="mt-4 text-center text-xs tracking-wide text-neutral-400">
-              Powered by <span className="font-bold text-neutral-600">ARIGATO TiP</span>
+              {m.story.poweredByPrefix} <span className="font-bold text-neutral-600">ARIGATO TiP</span>
             </p>
           </div>
         </div>
