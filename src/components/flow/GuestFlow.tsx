@@ -18,7 +18,6 @@ import {
 import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
-import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
 
 export type StorySlideContent = { title: string; body: string; imageUrl: string | null };
@@ -26,7 +25,8 @@ export type StorySlideContent = { title: string; body: string; imageUrl: string 
 export type GuestStore = {
   slug: string;
   name: string;
-  logoUrl: string | null;
+  // Landing cover/intro image; falls back to the first story slide, then stock.
+  coverImageUrl: string | null;
   googlePlaceId: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
@@ -155,11 +155,11 @@ export function GuestFlow({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Set when the just-submitted review qualifies for the store's Google review
-  // page (rating high enough + store has a Place ID); offered on Stay Connected.
+  // The store's Google review page (when it has a Place ID), offered on Stay
+  // Connected after any review.
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
-  // Whether to show the follow/review buttons on Stay Connected. Positive by
-  // default; a low-rating review (1–3★) turns it off so we never promote it.
+  // Whether to show the follow/review buttons on Stay Connected — always on now
+  // (every rating is offered Google / Facebook / Instagram).
   const [promote, setPromote] = useState(true);
 
   function reset() {
@@ -267,8 +267,8 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
     store.storySlides.length > 0
       ? store.storySlides
       : stockSlides.map((slide) => ({ ...slide, imageUrl: null }));
-  // Cover: the first slide's own photo when set, else the stock cover.
-  const coverImage = slides[0]?.imageUrl ?? STORY_IMAGES[0];
+  // Cover: the store's intro image if set, else the first slide's photo, else stock.
+  const coverImage = store.coverImageUrl ?? slides[0]?.imageUrl ?? STORY_IMAGES[0];
   const nextRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex flex-1 flex-col pb-10">
@@ -486,10 +486,9 @@ function Review({
   onBack,
 }: {
   tipId: string;
-  // googleReviewUrl is non-null when the rating qualifies for the store's Google
-  // review page — offered later on the Stay Connected screen, not jumped to here.
-  // `promote` is true only for positive ratings (>= PUBLIC_REVIEW_MIN_RATING);
-  // low ratings are kept private and never shown the follow/review buttons.
+  // googleReviewUrl is the store's Google review page (when it has a Place ID) —
+  // offered later on the Stay Connected screen, not jumped to here. `promote` is
+  // always true now: every rating is shown the Google review + SNS follow buttons.
   onDone: (googleReviewUrl: string | null, promote: boolean) => void;
   onBack: () => void;
 }) {
@@ -537,9 +536,9 @@ function Review({
       });
       if (!res.ok) throw new Error("review_failed");
       const { redirectUrl } = (await res.json()) as { redirectUrl: string | null };
-      // Always continue to Thank You / Stay Connected in-app; the Google review
-      // link (if any) is offered as a button there, not an automatic redirect.
-      onDone(redirectUrl, rating >= PUBLIC_REVIEW_MIN_RATING);
+      // Always continue to Thank You / Stay Connected in-app, and always offer the
+      // Google review + SNS follow buttons regardless of rating (no review gating).
+      onDone(redirectUrl, true);
     } catch {
       setError(t("errorGeneric"));
       setIsSubmitting(false);

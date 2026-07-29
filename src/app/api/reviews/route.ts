@@ -3,7 +3,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendStorePush } from "@/lib/push";
 import { broadcastReview } from "@/lib/realtime";
-import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
 import { stripe } from "@/lib/stripe";
 
 const bodySchema = z.object({
@@ -49,7 +48,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "payment_not_completed" }, { status: 400 });
   }
 
-  const redirectedToGoogle = rating >= PUBLIC_REVIEW_MIN_RATING && Boolean(tip.store.googlePlaceId);
+  // Every rating is offered the Google review page (no review gating) whenever
+  // the store has a Place ID.
+  const redirectedToGoogle = Boolean(tip.store.googlePlaceId);
 
   const review = await prisma.review.create({
     data: {
@@ -79,8 +80,10 @@ export async function POST(request: Request) {
       tableLabel: tip.tableLabel,
       createdAt: review.createdAt.toISOString(),
     }),
-    sendStorePush(tip.storeId, {
-      title: "新しいチップ・口コミが届きました",
+    sendStorePush({
+      // Lead with the store name so a single admin managing many stores can tell
+      // at a glance which store the tip/review is for.
+      title: `${tip.store.name}｜新しいチップ・口コミが届きました`,
       body: pushBody,
       tag: `tip-${tip.id}`,
     }),
