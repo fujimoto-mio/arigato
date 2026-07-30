@@ -1,27 +1,29 @@
 import { startOfTokyoDay, startOfTokyoDaysAgo } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
 
-const TOKYO_OFFSET_MS = 9 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_RANGE_DAYS = 60;
 const RANGE_DAYS: Record<string, number> = { today: 1, "7": 7, "14": 14, "30": 30, "60": 60 };
 
+// These Dates carry the JST wall-clock in their UTC components (the Prisma
+// connection is pinned to Asia/Tokyo — see @/lib/prisma), so read/build them
+// against "UTC" to get the JST calendar day without a double offset.
 function tokyoDayKey(value: Date): string {
-  return new Date(value).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", month: "2-digit", day: "2-digit" });
+  return new Date(value).toLocaleDateString("ja-JP", { timeZone: "UTC", month: "2-digit", day: "2-digit" });
 }
 
 function tokyoWeekday(value: Date): string {
-  return new Date(value).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", weekday: "short" });
+  return new Date(value).toLocaleDateString("ja-JP", { timeZone: "UTC", weekday: "short" });
 }
 
 function tokyoISODate(value: Date): string {
-  return new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Tokyo" });
+  return new Date(value).toLocaleDateString("en-CA", { timeZone: "UTC" });
 }
 
 function parseTokyoDate(value: string | undefined): Date | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const [y, m, d] = value.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d) - TOKYO_OFFSET_MS);
+  const dt = new Date(Date.UTC(y, m - 1, d)); // JST midnight in UTC components
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 

@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Coins, HandCoins, Star, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { ReportChart } from "@/components/admin/ReportChart";
-import { formatYen, startOfTokyoDay, startOfTokyoDaysAgo } from "@/lib/admin/period";
+import { formatUsd, startOfTokyoDay, startOfTokyoDaysAgo } from "@/lib/admin/period";
 import { getReportChart } from "@/lib/admin/report-chart";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
@@ -9,8 +9,9 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 function tokyoLongDate(value: Date): string {
+  // Date already holds the JST wall-clock in its UTC components (see @/lib/prisma).
   return new Date(value).toLocaleDateString("ja-JP", {
-    timeZone: "Asia/Tokyo",
+    timeZone: "UTC",
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -77,14 +78,14 @@ export default async function AdminReportsPage({
           />
           <Metric
             label="チップ合計金額"
-            value={formatYen(today.tipTotal)}
+            value={formatUsd(today.tipTotal)}
             accent
             delta={<Delta current={today.tipTotal} previous={yesterday.tipTotal} />}
             icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />}
           />
           <Metric
             label="平均チップ"
-            value={today.tipCount > 0 ? formatYen(Math.round(today.avgTip)) : "—"}
+            value={today.tipCount > 0 ? formatUsd(Math.round(today.avgTip)) : "—"}
             delta={<Delta current={today.avgTip} previous={yesterday.avgTip} />}
             icon={<Coins className="h-4 w-4" strokeWidth={1.75} />}
           />
@@ -101,8 +102,8 @@ export default async function AdminReportsPage({
         <h2 className="mb-3 text-sm font-bold text-neutral-700">累計</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Metric label="チップ件数" value={`${all.tipCount.toLocaleString("ja-JP")} 件`} icon={<HandCoins className="h-4 w-4" strokeWidth={1.75} />} />
-          <Metric label="チップ合計金額" value={formatYen(all.tipTotal)} accent icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />} />
-          <Metric label="平均チップ" value={all.tipCount > 0 ? formatYen(Math.round(all.avgTip)) : "—"} icon={<Coins className="h-4 w-4" strokeWidth={1.75} />} />
+          <Metric label="チップ合計金額" value={formatUsd(all.tipTotal)} accent icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />} />
+          <Metric label="平均チップ" value={all.tipCount > 0 ? formatUsd(Math.round(all.avgTip)) : "—"} icon={<Coins className="h-4 w-4" strokeWidth={1.75} />} />
           <Metric
             label="平均評価"
             value={all.reviewCount > 0 ? `${all.avgRating.toFixed(2)}（${all.reviewCount}件）` : "—"}

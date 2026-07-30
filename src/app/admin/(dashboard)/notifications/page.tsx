@@ -2,7 +2,7 @@ import { Pagination } from "@/components/admin/DataTable";
 import { type NotificationItem, NotificationsList } from "@/components/admin/NotificationsList";
 import { PendingSwap, TableNavProvider } from "@/components/admin/TableNav";
 import { requireAdmin } from "@/lib/admin/auth";
-import { formatTokyoTime, formatUsdApprox, formatYen } from "@/lib/admin/period";
+import { formatTokyoTime, formatUsd } from "@/lib/admin/period";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
@@ -48,8 +48,7 @@ export default async function AdminNotificationsPage({
     id: tip.id,
     storeName: tip.store.name,
     hasAmount: tip.amount > 0,
-    amountYen: formatYen(tip.amount),
-    amountUsd: formatUsdApprox(tip.amount),
+    amount: formatUsd(tip.amount),
     createdAtLabel: formatTokyoTime(tip.createdAt),
     paymentLabel: tip.paymentMethod === "card" ? "カード" : "現金",
     isUnread: !readSet.has(tip.id),

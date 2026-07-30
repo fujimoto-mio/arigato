@@ -1,13 +1,14 @@
 /**
- * Tip amount rules. The guest sets the amount with a ¥0-start counter that adds
- * TIP_STEP per tap (matches the "+¥100" reference frame); any amount from ¥0 up
- * to TIP_MAX is allowed, so long as it is a whole multiple of the step.
+ * Tip amount rules. Amounts are stored in US-dollar cents — Stripe's smallest
+ * USD unit — so $1 = 100. The guest sets the amount with a $0-start counter that
+ * adds TIP_STEP (one dollar) per tap; any amount from $0 up to TIP_MAX is
+ * allowed, so long as it is a whole multiple of the step.
  */
-export const TIP_STEP = 100;
+export const TIP_STEP = 100; // one dollar, in cents
 export const TIP_MIN = 0;
-export const TIP_MAX = 100_000;
+export const TIP_MAX = 100_000; // $1,000, in cents
 
-/** Stripe rejects tiny/zero JPY charges, so card payment needs a real amount. */
+/** Stripe rejects tiny/zero charges, so a card tip needs a real amount ($1). */
 export const CARD_MIN_AMOUNT = TIP_STEP;
 
 export function isValidTipAmount(amount: number): boolean {

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   // Cash: nothing is charged — record the tip and notify the register so it can
-  // be settled at checkout. Zero-yen (review-only) is allowed here.
+  // be settled at checkout. A $0 (review-only) tip is allowed here.
   if (paymentMethod === "cash") {
     const tip = await prisma.tip.create({
       data: {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ tipId: tip.id, mode: "cash" });
   }
 
-  // Card: Stripe can't charge ¥0, so a card tip needs a real amount.
+  // Card: Stripe can't charge $0, so a card tip needs a real amount.
   if (amount < CARD_MIN_AMOUNT) {
     return NextResponse.json({ error: "amount_too_low_for_card" }, { status: 400 });
   }
@@ -66,8 +66,8 @@ export async function POST(request: Request) {
   // "never"` keeps it to card + wallets (no redirect methods). Link is hidden in
   // the UI (link: "never" on the elements) so no "stripe"/Link branding shows.
   const paymentIntent = await stripe.paymentIntents.create({
-    amount,
-    currency: "jpy",
+    amount, // USD cents
+    currency: "usd",
     automatic_payment_methods: { enabled: true, allow_redirects: "never" },
     metadata: { tipId: tip.id, storeSlug: store.slug, tableLabel: tableLabel ?? "" },
   });

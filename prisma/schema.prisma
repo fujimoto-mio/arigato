@@ -14,7 +14,7 @@ model Store {
   googlePlaceId String?
   instagramUrl  String?
   facebookUrl   String?
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
   tips          Tip[]
   admins        AdminUser[]
   pushSubscriptions PushSubscription[]
@@ -41,7 +41,7 @@ model Tip {
   paymentMethod         PaymentMethod @default(cash)
   status                TipStatus     @default(pending)
   stripePaymentIntentId String?       @unique
-  createdAt             DateTime      @default(now())
+  createdAt             DateTime      @default(now()) @db.Timestamptz(3)
   store                 Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   review                Review?
   notificationReads     NotificationRead[]
@@ -57,7 +57,7 @@ model Review {
   comment            String?
   photoUrls          String[] @default([])
   redirectedToGoogle Boolean  @default(false)
-  createdAt          DateTime @default(now())
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
   tip                Tip      @relation(fields: [tipId], references: [id], onDelete: Cascade)
 
   @@index([storeId])
@@ -72,7 +72,7 @@ model AdminUser {
   supabaseUserId    String             @unique
   email             String             @unique
   role              String             @default("owner")
-  createdAt         DateTime           @default(now())
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
   store             Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
   notificationReads NotificationRead[]
 
@@ -91,7 +91,7 @@ model StorySlide {
   title     Json
   body      Json
   imageUrl  String?
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@index([storeId])
@@ -107,7 +107,7 @@ model PushSubscription {
   endpoint    String   @unique
   p256dh      String
   auth        String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
   store       Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
 
   @@index([storeId])
@@ -118,7 +118,7 @@ model NotificationRead {
   id          String    @id @default(cuid())
   adminUserId String
   tipId       String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
   admin       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
   tip         Tip       @relation(fields: [tipId], references: [id], onDelete: Cascade)
 

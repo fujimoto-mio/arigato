@@ -3,7 +3,7 @@
 import { Coins, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { type ReviewEvent, REVIEW_EVENT, storeChannelName } from "@/lib/realtime";
+import { type ReviewEvent, REVIEW_EVENT, type TipEvent, TIP_EVENT, storeChannelName } from "@/lib/realtime";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Toast = { id: number; title: string; body: string };
@@ -65,15 +65,25 @@ export function AdminToaster({ storeIds }: { storeIds: string[] }) {
     const channels = ids.map((storeId) =>
       supabase
         .channel(storeChannelName(storeId))
-        // One combined notification per interaction, fired after the review.
+        // Combined tip+review notification (guest left a rating).
         .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
           const review = payload as ReviewEvent;
           chimeRef.current();
           addToast(
             "新しいチップ・口コミが届きました",
-            `¥${Number(review.amount).toLocaleString("ja-JP")} ・ ★${Number(review.rating).toFixed(1)}${
+            `$${(Number(review.amount) / 100).toLocaleString("en-US")} ・ ★${Number(review.rating).toFixed(1)}${
               review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
             }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
+          );
+          router.refresh();
+        })
+        // Tip on its own (guest tipped without leaving a review).
+        .on("broadcast", { event: TIP_EVENT }, ({ payload }) => {
+          const tip = payload as TipEvent;
+          chimeRef.current();
+          addToast(
+            "新しいチップが届きました",
+            `$${(Number(tip.amount) / 100).toLocaleString("en-US")}${tip.tableLabel ? ` ・ ${tip.tableLabel}番` : ""}`,
           );
           router.refresh();
         })

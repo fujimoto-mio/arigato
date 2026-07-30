@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   // One combined notification for the whole interaction (tip + review), fired
   // once here after the review — not separately at tip time. Awaited so both
   // the toast broadcast and the push complete before this invocation ends.
-  const pushBody = `¥${tip.amount.toLocaleString("ja-JP")} ・ ★${review.rating.toFixed(1)}${
+  const pushBody = `$${(tip.amount / 100).toLocaleString("en-US")} ・ ★${review.rating.toFixed(1)}${
     tip.tableLabel ? ` ・ ${tip.tableLabel}番` : ""
   }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`;
 

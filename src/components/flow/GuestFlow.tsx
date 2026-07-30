@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Dancing_Script } from "next/font/google";
 import Image from "next/image";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 // Script face for the "Thank you" hero on the final screen (latin only; CJK
 // falls back gracefully).
@@ -23,6 +23,10 @@ import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
 
 export type StorySlideContent = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
+// A review photo held on the Support screen before the tip exists: kept as the
+// picked file plus an object-URL preview, uploaded once the tip has an id.
+type ReviewPhoto = { file: File; preview: string };
+
 export type GuestStore = {
   slug: string;
   name: string;
@@ -35,33 +39,20 @@ export type GuestStore = {
   storySlides: StorySlideContent[];
 };
 
-type Step = "landing" | "support" | "payment" | "review" | "thankyou";
+type Step = "landing" | "support" | "payment" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
-const STEP_ORDER: Step[] = ["landing", "support", "payment", "review", "thankyou"];
+// Three guest-facing pages: the main page (cover + tip + story), the tip/review
+// page (Support: rating + comment + photos), and Thank You. The review is
+// captured on Support and submitted after the tip succeeds; the card payment is
+// a sub-step of Support, not a separate page.
+const STEP_ORDER: Step[] = ["landing", "support", "payment", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
 
 function googleMapsUrl(placeId: string) {
   return `https://www.google.com/maps/place/?q=place_id:${placeId}`;
-}
-
-/** Eased window scroll — gentler than the browser's default smooth behaviour. */
-function smoothScrollToY(targetY: number, duration = 900) {
-  const startY = window.scrollY;
-  const diff = targetY - startY;
-  if (Math.abs(diff) < 4) return;
-  let startTs: number | null = null;
-  function frame(ts: number) {
-    if (startTs === null) startTs = ts;
-    const p = Math.min(1, (ts - startTs) / duration);
-    // easeInOutCubic
-    const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-    window.scrollTo(0, startY + diff * eased);
-    if (p < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
 }
 
 /* ---------- Header + shared controls ---------- */
@@ -126,6 +117,49 @@ function AccentButton({
   );
 }
 
+/** Tip amount card: big amount, minus/plus in $1 steps ($0 floor). Shared by the
+ *  TOP page (leads above the story) and the Support screen (confirm + pay). The
+ *  amount is a shared state so both stay in sync. */
+function TipCounter({
+  amount,
+  setAmount,
+}: {
+  amount: number;
+  setAmount: (updater: (prev: number) => number) => void;
+}) {
+  const t = useTranslations("support");
+  // Amounts are USD cents; the counter moves in whole dollars.
+  const dollars = (amount / 100).toLocaleString("en-US");
+  return (
+    <div className="rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+      <div className="text-center">
+        <p className="text-5xl font-bold text-neutral-900">${dollars}</p>
+        <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
+      </div>
+      <hr className="my-5 border-neutral-200" />
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          aria-label="decrease"
+          disabled={amount <= 0}
+          onClick={() => setAmount((prev) => Math.max(0, prev - TIP_STEP))}
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
+        >
+          <span className="h-0.5 w-4 rounded-full bg-current" />
+        </button>
+        <span className="text-3xl font-bold text-neutral-900">${dollars}</span>
+        <button
+          type="button"
+          onClick={() => setAmount((prev) => prev + TIP_STEP)}
+          className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
+        >
+          +${TIP_STEP / 100}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Orchestrator ---------- */
 
 export function GuestFlow({
@@ -136,11 +170,12 @@ export function GuestFlow({
   store: GuestStore;
   tableLabel: string | null;
   // Set after a card returns from a 3-D Secure redirect (?paid=<tipId>): the tip
-  // is already paid, so resume straight at the review step.
+  // is already paid. Card redirects are disabled, so this is a rare fallback —
+  // the review draft is gone on reload, so resume straight at Thank You.
   resumeTipId?: string | null;
 }) {
   const { locale } = useLocaleSwitcher();
-  const [step, setStep] = useState<Step>(resumeTipId ? "review" : "landing");
+  const [step, setStep] = useState<Step>(resumeTipId ? "thankyou" : "landing");
   // +1 when moving forward through the flow, -1 when going back — drives the
   // slide direction so a section transition reads like a real phone swipe.
   const [direction, setDirection] = useState(1);
@@ -149,7 +184,16 @@ export function GuestFlow({
     setDirection(STEP_ORDER.indexOf(next) >= STEP_ORDER.indexOf(step) ? 1 : -1);
     setStep(next);
   }
-  const [amount, setAmount] = useState(0);
+
+  // Each screen remounts on step change but the window keeps the previous
+  // screen's scroll offset — so a tall new screen would open mid-page. Reset to
+  // the top whenever the step changes.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+  // Tip starts at $1 (the counter leads the TOP page); the guest can lower it to
+  // $0 (review-only) or raise it in $1 steps.
+  const [amount, setAmount] = useState(TIP_STEP);
   // Default is cash (settled at the register); the guest opts into online pay.
   const [payByCard, setPayByCard] = useState(false);
   const [tipId, setTipId] = useState<string | null>(resumeTipId);
@@ -163,14 +207,25 @@ export function GuestFlow({
   // (every rating is offered Google / Facebook / Instagram).
   const [promote, setPromote] = useState(true);
 
+  // Review draft — captured on the Support screen alongside the tip, submitted
+  // once the tip has succeeded (after payment for card). Photos are held as
+  // deferred files (with object-URL previews) since the upload needs a tip id.
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
+
   function reset() {
-    setAmount(0);
+    setAmount(TIP_STEP);
     setPayByCard(false);
     setTipId(null);
     setClientSecret(null);
     setError(null);
     setGoogleReviewUrl(null);
     setPromote(true);
+    setRating(0);
+    setComment("");
+    for (const p of photos) URL.revokeObjectURL(p.preview);
+    setPhotos([]);
     goToStep("landing");
   }
 
@@ -193,10 +248,12 @@ export function GuestFlow({
       const data = (await res.json()) as { tipId: string; mode: "cash" | "card"; clientSecret?: string };
       setTipId(data.tipId);
       if (data.mode === "card" && data.clientSecret) {
+        // Card: pay first, then submit the review once the charge succeeds.
         setClientSecret(data.clientSecret);
         goToStep("payment");
       } else {
-        goToStep("review");
+        // Cash: the tip is already recorded — submit the review now.
+        await finishWithReview(data.tipId);
       }
     } catch {
       setError("support");
@@ -205,18 +262,75 @@ export function GuestFlow({
     }
   }
 
+  // Finish the interaction, then continue to Thank You. If the guest left a
+  // rating, upload the deferred photos (they need the now-existing tip id) and
+  // submit the review — that call also notifies the admin. Without a rating the
+  // review is skipped, so notify the admin of the tip on its own. The tip is
+  // already recorded, so any hiccup here still lands on Thank You.
+  async function finishWithReview(tid: string) {
+    try {
+      if (rating > 0) {
+        const photoUrls: string[] = [];
+        for (const { file } of photos) {
+          const form = new FormData();
+          form.append("file", file);
+          form.append("tipId", tid);
+          const res = await fetch("/api/reviews/photo", { method: "POST", body: form });
+          if (res.ok) {
+            const { url } = (await res.json()) as { url: string };
+            photoUrls.push(url);
+          }
+        }
+        const res = await fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tipId: tid,
+            rating,
+            comment: comment.trim() || undefined,
+            photoUrls: photoUrls.length ? photoUrls : undefined,
+          }),
+        });
+        if (res.ok) {
+          const { redirectUrl } = (await res.json()) as { redirectUrl: string | null };
+          setGoogleReviewUrl(redirectUrl);
+        }
+      } else {
+        // Tip without a review — still alert the admin / register.
+        await fetch("/api/tips/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tipId: tid }),
+        });
+      }
+    } catch {
+      // Best effort — the tip is recorded regardless; fall through to Thank You.
+    } finally {
+      setPromote(true);
+      goToStep("thankyou");
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-white">
       {/* Keyed on `step` so each section remounts and plays the slide-in; the
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
-        {step === "landing" && <Landing store={store} onStart={() => goToStep("support")} />}
+        {step === "landing" && (
+          <Landing store={store} amount={amount} setAmount={setAmount} onStart={() => goToStep("support")} />
+        )}
       {step === "support" && (
         <Support
           amount={amount}
           setAmount={setAmount}
           payByCard={payByCard}
           setPayByCard={setPayByCard}
+          rating={rating}
+          setRating={setRating}
+          comment={comment}
+          setComment={setComment}
+          photos={photos}
+          setPhotos={setPhotos}
           onNext={startCheckout}
           onBack={() => goToStep("landing")}
           isSubmitting={isSubmitting}
@@ -231,18 +345,7 @@ export function GuestFlow({
           amount={amount}
           locale={locale}
           preferredWallet={null}
-          onPaid={() => goToStep("review")}
-          onBack={() => goToStep("support")}
-        />
-      )}
-      {step === "review" && tipId && (
-        <Review
-          tipId={tipId}
-          onDone={(reviewUrl, promoteFlag) => {
-            setGoogleReviewUrl(reviewUrl);
-            setPromote(promoteFlag);
-            goToStep("thankyou");
-          }}
+          onPaid={() => finishWithReview(tipId)}
           onBack={() => goToStep("support")}
         />
       )}
@@ -254,28 +357,42 @@ export function GuestFlow({
   );
 }
 
-/* ---------- Screen 1: QR entry (vertical-scroll story) ---------- */
+/* ---------- Screen 1: Main (cover + tip + story) ---------- */
 
-// A single vertical-scroll page: hero, then the story read top-to-bottom as
-// numbered chapters, then a Next button that moves on to the tip screen.
-function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
+/** Resolve the store's story slides to the guest's language, falling back to the
+ *  stock story text (and stock photos) when the store hasn't set its own. */
+function useResolvedSlides(store: GuestStore) {
+  const t = useTranslations("story");
+  const { locale } = useLocaleSwitcher();
+  const stockSlides = t.raw("slides") as { title: string; body: string }[];
+  return store.storySlides.length > 0
+    ? store.storySlides.map((slide) => ({
+        title: pickLocaleText(slide.title, locale),
+        body: pickLocaleText(slide.body, locale),
+        imageUrl: slide.imageUrl,
+      }))
+    : stockSlides.map((slide) => ({ title: slide.title, body: slide.body, imageUrl: null }));
+}
+
+// The main page: cover, the tip counter that leads the flow, then the story.
+// "Next" moves on to the tip/review page.
+function Landing({
+  store,
+  amount,
+  setAmount,
+  onStart,
+}: {
+  store: GuestStore;
+  amount: number;
+  setAmount: (updater: (prev: number) => number) => void;
+  onStart: () => void;
+}) {
   const t = useTranslations("story");
   const tc = useTranslations("common");
-  const { locale } = useLocaleSwitcher();
-  // A store's own slides win, resolved to the guest's language (with fallback);
-  // otherwise fall back to the stock story text (no image → stock photos below).
-  const stockSlides = t.raw("slides") as { title: string; body: string }[];
-  const slides: { title: string; body: string; imageUrl: string | null }[] =
-    store.storySlides.length > 0
-      ? store.storySlides.map((slide) => ({
-          title: pickLocaleText(slide.title, locale),
-          body: pickLocaleText(slide.body, locale),
-          imageUrl: slide.imageUrl,
-        }))
-      : stockSlides.map((slide) => ({ title: slide.title, body: slide.body, imageUrl: null }));
+  const ts = useTranslations("support");
+  const slides = useResolvedSlides(store);
   // Cover: the store's intro image if set, else the first slide's photo, else stock.
   const coverImage = store.coverImageUrl ?? slides[0]?.imageUrl ?? STORY_IMAGES[0];
-  const nextRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex flex-1 flex-col pb-10">
       <Header />
@@ -285,9 +402,6 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
         <Wordmark className="text-[52px] leading-none tracking-tight" />
         <p className="mx-auto mt-6 max-w-[16rem] text-[13px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-700">
           {t("tagline")}
-        </p>
-        <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-          {t("takeALook")}
         </p>
       </div>
 
@@ -304,34 +418,31 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
 
-      {/* Scroll hint — taps down to the Next button */}
-      <button
-        type="button"
-        aria-label="Scroll to bottom"
-        onClick={() => {
-          const el = nextRef.current;
-          if (!el) return;
-          const target = window.scrollY + el.getBoundingClientRect().bottom - window.innerHeight + 24;
-          smoothScrollToY(Math.max(0, target));
-        }}
-        className="flex justify-center pt-6 text-[var(--color-accent)]"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-6 w-6 animate-bounce"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+      {/* Tip — leads the flow. Starts at $1 (adjustable, $0 allowed); the amount
+          carries through to the Support screen where payment is chosen. */}
+      <div className="mt-10 px-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{ts("heading")}</h2>
+          <p className="mx-auto mt-2 max-w-[18rem] text-[14px] leading-relaxed text-neutral-500">{ts("intro")}</p>
+        </div>
+        <div className="mt-5">
+          <TipCounter amount={amount} setAmount={setAmount} />
+        </div>
+        <div className="mt-3 text-center text-sm leading-relaxed text-neutral-400">
+          <p>{ts("addNote")}</p>
+          <p>{ts("addNoteSub")}</p>
+        </div>
+        {/* A gentle, reassuring line — tipping is never expected. */}
+        <div className="mt-4 flex justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)]/[0.07] px-4 py-2 text-xs font-medium tracking-wide text-[var(--color-accent)]">
+            <Heart filled className="h-3 w-3 shrink-0" />
+            {ts("zeroOk")}
+          </span>
+        </div>
+      </div>
 
-      {/* Our Story — read by scrolling down */}
-      <div className="px-8 pt-6 text-center">
+      {/* Our Story — below the tip, read by scrolling down. */}
+      <div className="px-8 pt-16 text-center">
         <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">{t("heading")}</h2>
         <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
       </div>
@@ -359,8 +470,8 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
         ))}
       </div>
 
-      {/* Closing + Next → tip screen */}
-      <div ref={nextRef} className="mt-16 px-6">
+      {/* Closing + Next → tip / review page */}
+      <div className="mt-16 px-6">
         <div className="mx-auto mb-9 h-px w-16 bg-neutral-200" />
         <AccentButton onClick={onStart}>
           <span className="flex items-center justify-center gap-2">
@@ -375,13 +486,22 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
   );
 }
 
-/* ---------- Screen 3: Support (tip counter + payment) ---------- */
+/* ---------- Screen 3: Support (tip + review) ---------- */
 
+// The tip page, now with the review (rating / comment / photos) on the same
+// screen. On Next the tip is created and — after payment for card — the review
+// is submitted (or a tip-only notification is sent when no rating was given).
 function Support({
   amount,
   setAmount,
   payByCard,
   setPayByCard,
+  rating,
+  setRating,
+  comment,
+  setComment,
+  photos,
+  setPhotos,
   onNext,
   onBack,
   isSubmitting,
@@ -391,15 +511,31 @@ function Support({
   setAmount: (updater: (prev: number) => number) => void;
   payByCard: boolean;
   setPayByCard: (value: boolean) => void;
+  rating: number;
+  setRating: (value: number) => void;
+  comment: string;
+  setComment: (value: string) => void;
+  photos: ReviewPhoto[];
+  setPhotos: (updater: (prev: ReviewPhoto[]) => ReviewPhoto[]) => void;
   onNext: () => void;
   onBack: () => void;
   isSubmitting: boolean;
   hasError: boolean;
 }) {
   const t = useTranslations("support");
-  // ¥0 is allowed (review-only) — guests can continue without tipping. Only the
-  // card path needs a real amount, since Stripe can't charge ¥0.
-  const canSubmit = !isSubmitting && (!payByCard || amount >= CARD_MIN_AMOUNT);
+  const tr = useTranslations("review");
+  const [hover, setHover] = useState(0);
+  // Submit stays disabled until the guest selects a star rating. The card path
+  // additionally needs a chargeable amount ($1 min), since Stripe can't charge $0.
+  const canSubmit = !isSubmitting && rating > 0 && (!payByCard || amount >= CARD_MIN_AMOUNT);
+
+  function addPhoto(file: File) {
+    setPhotos((prev) => (prev.length >= 6 ? prev : [...prev, { file, preview: URL.createObjectURL(file) }]));
+  }
+  function removePhoto(preview: string) {
+    URL.revokeObjectURL(preview);
+    setPhotos((prev) => prev.filter((p) => p.preview !== preview));
+  }
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -409,39 +545,23 @@ function Support({
         <p className="mt-3 max-w-[17rem] text-[15px] leading-relaxed text-neutral-600">{t("intro")}</p>
       </div>
 
-      <div className="mx-6 mt-6 rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
-        <div className="text-center">
-          <p className="text-5xl font-bold text-neutral-900">¥{amount.toLocaleString()}</p>
-          <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
-        </div>
-        <hr className="my-5 border-neutral-200" />
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            aria-label="decrease"
-            disabled={amount <= 0}
-            onClick={() => setAmount((prev) => Math.max(0, prev - TIP_STEP))}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
-          >
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-          </button>
-          <span className="text-3xl font-bold text-neutral-900">{amount.toLocaleString()}</span>
-          <button
-            type="button"
-            onClick={() => setAmount((prev) => prev + TIP_STEP)}
-            className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
-          >
-            +¥{TIP_STEP}
-          </button>
-        </div>
+      <div className="mx-6 mt-6">
+        <TipCounter amount={amount} setAmount={setAmount} />
       </div>
       <div className="mt-4 text-center text-sm leading-relaxed text-neutral-400">
         <p>{t("addNote")}</p>
         <p>{t("addNoteSub")}</p>
       </div>
+      {/* A gentle, reassuring line — tipping is never expected. */}
+      <div className="mt-4 flex justify-center px-6">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)]/[0.07] px-4 py-2 text-xs font-medium tracking-wide text-[var(--color-accent)]">
+          <Heart filled className="h-3 w-3 shrink-0" />
+          {t("zeroOk")}
+        </span>
+      </div>
 
       {/* Cash is the default; ticking this pays online (card / Apple Pay /
-          Google Pay are all offered on the next screen). */}
+          Google Pay are offered on the next screen). */}
       <label className="mx-6 mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-4">
         <input
           type="checkbox"
@@ -457,108 +577,12 @@ function Support({
         </span>
       </label>
 
-      {hasError ? <p className="mt-4 px-6 text-center text-sm text-red-600">{t("errorGeneric")}</p> : null}
+      {/* Review — rating (required) plus optional comment and photos. */}
+      <div className="mx-6 mt-8 border-t border-neutral-100 pt-6">
+        <h2 className="text-lg font-bold">{tr("heading")}</h2>
+        <p className="mt-1 text-sm text-neutral-600">{tr("question")}</p>
 
-      <div className="mt-auto px-6 pt-8">
-        <AccentButton onClick={onNext} disabled={!canSubmit}>
-          {t("next")}
-        </AccentButton>
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
-          <svg
-            viewBox="0 0 24 24"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="5" y="11" width="14" height="9" rx="2" />
-            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-          </svg>
-          {t("secure")}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Screen 4: Review ---------- */
-
-function Review({
-  tipId,
-  onDone,
-  onBack,
-}: {
-  tipId: string;
-  // googleReviewUrl is the store's Google review page (when it has a Place ID) —
-  // offered later on the Stay Connected screen, not jumped to here. `promote` is
-  // always true now: every rating is shown the Google review + SNS follow buttons.
-  onDone: (googleReviewUrl: string | null, promote: boolean) => void;
-  onBack: () => void;
-}) {
-  const t = useTranslations("review");
-  const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
-  const [comment, setComment] = useState("");
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function uploadPhoto(file: File) {
-    setUploading(true);
-    setError(null);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("tipId", tipId);
-      const res = await fetch("/api/reviews/photo", { method: "POST", body: form });
-      if (!res.ok) throw new Error("upload_failed");
-      const { url } = (await res.json()) as { url: string };
-      setPhotoUrls((prev) => [...prev, url].slice(0, 6));
-    } catch {
-      setError(t("errorGeneric"));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function submit() {
-    if (rating === 0) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipId,
-          rating,
-          comment: comment.trim() || undefined,
-          photoUrls: photoUrls.length ? photoUrls : undefined,
-        }),
-      });
-      if (!res.ok) throw new Error("review_failed");
-      const { redirectUrl } = (await res.json()) as { redirectUrl: string | null };
-      // Always continue to Thank You / Stay Connected in-app, and always offer the
-      // Google review + SNS follow buttons regardless of rating (no review gating).
-      onDone(redirectUrl, true);
-    } catch {
-      setError(t("errorGeneric"));
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-1 flex-col pb-8">
-      <Header onBack={onBack} />
-      <div className="px-6 pt-4">
-        <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
-        <p className="mt-3 text-[15px] text-neutral-600">{t("question")}</p>
-
-        <div className="mx-auto mt-6 flex max-w-[19rem] justify-between" onMouseLeave={() => setHover(0)}>
+        <div className="mx-auto mt-5 flex max-w-[19rem] justify-between" onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((star) => {
             const active = star <= (hover || rating);
             return (
@@ -572,7 +596,7 @@ function Review({
               >
                 <svg
                   viewBox="0 0 24 24"
-                  className="h-12 w-12"
+                  className="h-11 w-11"
                   fill={active ? "currentColor" : "none"}
                   stroke="currentColor"
                   strokeWidth="1.25"
@@ -589,22 +613,32 @@ function Review({
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder={`${t("commentLabel")} ${t("commentOptional")}`}
-          rows={5}
-          className="mt-7 w-full rounded-2xl border border-neutral-200 p-4 text-[15px] leading-relaxed placeholder:text-neutral-400 focus:border-[var(--color-accent)] focus:outline-none"
+          placeholder={`${tr("commentLabel")} ${tr("commentOptional")}`}
+          rows={4}
+          className="mt-6 w-full rounded-2xl border border-neutral-200 p-4 text-[15px] leading-relaxed placeholder:text-neutral-400 focus:border-[var(--color-accent)] focus:outline-none"
         />
 
-        <p className="mt-6 text-sm font-medium text-neutral-700">{t("photoLabel")}</p>
+        <p className="mt-5 text-sm font-medium text-neutral-700">{tr("photoLabel")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {photoUrls.map((url) => (
-            <div key={url} className="relative h-16 w-16 overflow-hidden rounded-xl bg-neutral-100">
-              <Image src={url} alt="review" fill sizes="64px" className="object-cover" />
+          {photos.map((p) => (
+            <div key={p.preview} className="relative h-16 w-16 overflow-hidden rounded-xl bg-neutral-100">
+              {/* Local object-URL preview; the file uploads on submit. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.preview} alt="review" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                aria-label="remove photo"
+                onClick={() => removePhoto(p.preview)}
+                className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
             </div>
           ))}
-          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-xl bg-neutral-100 text-[var(--color-accent)]">
-            {uploading ? (
-              "…"
-            ) : (
+          {photos.length < 6 ? (
+            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-xl bg-neutral-100 text-[var(--color-accent)]">
               <svg
                 viewBox="0 0 24 24"
                 className="h-7 w-7"
@@ -618,32 +652,42 @@ function Review({
                 <path d="M4 7.5h3l1.4-2h7.2L17 7.5h3a1 1 0 0 1 1 1V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z" />
                 <circle cx="12" cy="13" r="3.4" />
               </svg>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              disabled={uploading || photoUrls.length >= 6}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void uploadPhoto(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) addPhoto(file);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          ) : null}
         </div>
-
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
       </div>
 
-      <div className="mt-auto px-6 pt-8">
-        <AccentButton onClick={submit} disabled={rating === 0 || isSubmitting}>
-          {t("submit")}
+      {hasError ? <p className="mt-6 px-6 text-center text-sm text-red-600">{t("errorGeneric")}</p> : null}
+
+      <div className="mt-8 px-6">
+        <AccentButton onClick={onNext} disabled={!canSubmit}>
+          {isSubmitting ? "…" : t("next")}
         </AccentButton>
-        <p className="mt-4 text-center text-sm leading-relaxed text-neutral-500">
-          {t("helperLine1")}
-          <br />
-          {t("helperLine2")}
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="5" y="11" width="14" height="9" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          </svg>
+          {t("secure")}
         </p>
       </div>
     </div>

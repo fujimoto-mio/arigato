@@ -10,10 +10,9 @@ import { GoogleIcon } from "@/components/flow/brand";
 export type NotificationItem = {
   id: string;
   storeName: string;
-  // Whether an actual tip amount was given (¥0 = review-only) — drives the row icon.
+  // Whether an actual tip amount was given ($0 = review-only) — drives the row icon.
   hasAmount: boolean;
-  amountYen: string;
-  amountUsd: string;
+  amount: string;
   createdAtLabel: string;
   paymentLabel: string;
   isUnread: boolean;
@@ -35,7 +34,7 @@ const iconProps = {
   "aria-hidden": true,
 };
 
-// A tip amount shows the yen icon; a ¥0 (review-only) interaction shows the
+// A tip amount shows the coin icon; a $0 (review-only) interaction shows the
 // message icon.
 function KindIcon({ hasAmount }: { hasAmount: boolean }) {
   return hasAmount ? (
@@ -97,10 +96,7 @@ export function NotificationsList({ items }: { items: NotificationItem[] }) {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="font-bold text-[var(--color-accent)]">{item.amountYen}</span>
-                    {item.hasAmount ? (
-                      <span className="block text-[11px] text-neutral-400">（{item.amountUsd}）</span>
-                    ) : null}
+                    <span className="font-bold text-[var(--color-accent)]">{item.amount}</span>
                   </div>
                 </div>
 
@@ -163,8 +159,7 @@ function NotificationModal({ item, onClose }: { item: NotificationItem; onClose:
         </p>
 
         <div className="mt-4 rounded-xl border border-neutral-100 p-5 text-center">
-          <p className="text-4xl font-bold text-[var(--color-accent)]">{item.amountYen}</p>
-          {item.hasAmount ? <p className="mt-1 text-xs text-neutral-400">（{item.amountUsd}）</p> : null}
+          <p className="text-4xl font-bold text-[var(--color-accent)]">{item.amount}</p>
         </div>
 
         <dl className="mt-4 divide-y divide-neutral-100 text-sm">
