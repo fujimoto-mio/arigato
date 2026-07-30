@@ -124,6 +124,7 @@ export function TableToolbar({
             onChange={(value) => navigate({ [filter.param]: value })}
             options={filter.options}
             ariaLabel={filter.label}
+            className="min-w-[7.5rem]"
             triggerClassName="font-medium"
           />
         ))}

@@ -80,8 +80,16 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
             ) : (
               // Store operator — locked to one store, no switcher.
               <span className="flex items-center gap-2 truncate text-sm font-semibold text-neutral-900">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)]/10 text-[11px] font-bold text-[var(--color-accent)]">
-                  {activeStore?.name?.slice(0, 2) ?? "—"}
+                <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-md bg-neutral-100">
+                  {activeStore?.coverImageUrl ? (
+                    // Store intro image; plain img avoids remote-loader config.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={activeStore.coverImageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-[var(--color-accent)]/10 text-[10px] font-bold text-[var(--color-accent)]">
+                      {activeStore?.name?.slice(0, 2) ?? "—"}
+                    </span>
+                  )}
                 </span>
                 <span className="truncate">{activeStore?.name ?? "店舗"}</span>
               </span>

@@ -81,7 +81,7 @@ export default async function AdminStoreEditPage({
                   store.status === "suspended" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
                 }`}
               >
-                {store.status === "suspended" ? "Suspended" : "Active"}
+                {store.status === "suspended" ? "停止中" : "受付中"}
               </span>
             </div>
             <StorePreviewButton url={`/s/${store.slug}`} />

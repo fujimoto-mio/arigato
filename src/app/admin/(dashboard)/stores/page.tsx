@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
@@ -19,9 +19,9 @@ function parsePage(value: string | undefined): number {
 }
 
 function statusBadge(status: string) {
-  if (status === "deleted") return { cls: "bg-neutral-200 text-neutral-600", dot: "bg-neutral-400", label: "Deleted" };
-  if (status === "suspended") return { cls: "bg-red-100 text-red-700", dot: "bg-red-500", label: "Suspended" };
-  return { cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500", label: "Active" };
+  if (status === "deleted") return { cls: "bg-neutral-200 text-neutral-600", dot: "bg-neutral-400", label: "削除済み" };
+  if (status === "suspended") return { cls: "bg-red-100 text-red-700", dot: "bg-red-500", label: "停止中" };
+  return { cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500", label: "受付中" };
 }
 
 export default async function AdminStoresPage({
@@ -209,8 +209,9 @@ export default async function AdminStoresPage({
         ) : (
           <Link
             href={`/admin/stores/${store.id}`}
-            className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent)] hover:underline"
           >
+            <Pencil className="h-3.5 w-3.5" />
             編集
           </Link>
         ),
@@ -236,9 +237,9 @@ export default async function AdminStoresPage({
               label: "状態",
               options: [
                 { value: "", label: "すべて" },
-                { value: "active", label: "Active" },
-                { value: "suspended", label: "Suspended" },
-                { value: "deleted", label: "Deleted" },
+                { value: "active", label: "受付中" },
+                { value: "suspended", label: "停止中" },
+                { value: "deleted", label: "削除済み" },
               ],
             },
           ]}

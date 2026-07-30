@@ -58,7 +58,7 @@ export function StoreStatusToggle({
           }`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${suspended ? "bg-red-500" : "bg-emerald-500"}`} />
-          {suspended ? "Suspended" : "Active"}
+          {suspended ? "停止中" : "受付中"}
         </span>
       </div>
       <div className="flex items-center gap-3">

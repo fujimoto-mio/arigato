@@ -61,36 +61,51 @@ export function AdminToaster({ storeIds }: { storeIds: string[] }) {
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
-    const ids = storeIdsKey ? storeIdsKey.split(",") : [];
-    const channels = ids.map((storeId) =>
-      supabase
-        .channel(storeChannelName(storeId))
-        // Combined tip+review notification (guest left a rating).
-        .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
-          const review = payload as ReviewEvent;
-          chimeRef.current();
-          addToast(
-            "新しいチップ・口コミが届きました",
-            `$${(Number(review.amount) / 100).toLocaleString("en-US")} ・ ★${Number(review.rating).toFixed(1)}${
-              review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
-            }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
-          );
-          router.refresh();
-        })
-        // Tip on its own (guest tipped without leaving a review).
-        .on("broadcast", { event: TIP_EVENT }, ({ payload }) => {
-          const tip = payload as TipEvent;
-          chimeRef.current();
-          addToast(
-            "新しいチップが届きました",
-            `$${(Number(tip.amount) / 100).toLocaleString("en-US")}${tip.tableLabel ? ` ・ ${tip.tableLabel}番` : ""}`,
-          );
-          router.refresh();
-        })
-        .subscribe(),
-    );
+    let cancelled = false;
+    const channels: ReturnType<typeof supabase.channel>[] = [];
+
+    void (async () => {
+      // Authenticate the realtime socket with the signed-in user's token so
+      // delivery works even when the project enforces Realtime Authorization —
+      // otherwise a newly-provisioned store operator's socket may be rejected
+      // while an older admin session still delivers.
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (data.session?.access_token) supabase.realtime.setAuth(data.session.access_token);
+
+      const ids = storeIdsKey ? storeIdsKey.split(",") : [];
+      for (const storeId of ids) {
+        const channel = supabase
+          .channel(storeChannelName(storeId))
+          // Combined tip+review notification (guest left a rating).
+          .on("broadcast", { event: REVIEW_EVENT }, ({ payload }) => {
+            const review = payload as ReviewEvent;
+            chimeRef.current();
+            addToast(
+              "新しいチップ・口コミが届きました",
+              `$${(Number(review.amount) / 100).toLocaleString("en-US")} ・ ★${Number(review.rating).toFixed(1)}${
+                review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
+              }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
+            );
+            router.refresh();
+          })
+          // Tip on its own (guest tipped without leaving a review).
+          .on("broadcast", { event: TIP_EVENT }, ({ payload }) => {
+            const tip = payload as TipEvent;
+            chimeRef.current();
+            addToast(
+              "新しいチップが届きました",
+              `$${(Number(tip.amount) / 100).toLocaleString("en-US")}${tip.tableLabel ? ` ・ ${tip.tableLabel}番` : ""}`,
+            );
+            router.refresh();
+          })
+          .subscribe();
+        channels.push(channel);
+      }
+    })();
 
     return () => {
+      cancelled = true;
       for (const channel of channels) void supabase.removeChannel(channel);
     };
   }, [storeIdsKey, router]);
