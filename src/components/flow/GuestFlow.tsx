@@ -126,6 +126,49 @@ function AccentButton({
   );
 }
 
+/** Tip amount card: big amount, minus/plus in $1 steps ($0 floor). Shared by the
+ *  TOP page (leads above the story) and the Support screen (confirm + pay). The
+ *  amount is a shared state so both stay in sync. */
+function TipCounter({
+  amount,
+  setAmount,
+}: {
+  amount: number;
+  setAmount: (updater: (prev: number) => number) => void;
+}) {
+  const t = useTranslations("support");
+  // Amounts are USD cents; the counter moves in whole dollars.
+  const dollars = (amount / 100).toLocaleString("en-US");
+  return (
+    <div className="rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+      <div className="text-center">
+        <p className="text-5xl font-bold text-neutral-900">${dollars}</p>
+        <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
+      </div>
+      <hr className="my-5 border-neutral-200" />
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          aria-label="decrease"
+          disabled={amount <= 0}
+          onClick={() => setAmount((prev) => Math.max(0, prev - TIP_STEP))}
+          className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
+        >
+          <span className="h-0.5 w-4 rounded-full bg-current" />
+        </button>
+        <span className="text-3xl font-bold text-neutral-900">${dollars}</span>
+        <button
+          type="button"
+          onClick={() => setAmount((prev) => prev + TIP_STEP)}
+          className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
+        >
+          +${TIP_STEP / 100}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Orchestrator ---------- */
 
 export function GuestFlow({
@@ -149,7 +192,9 @@ export function GuestFlow({
     setDirection(STEP_ORDER.indexOf(next) >= STEP_ORDER.indexOf(step) ? 1 : -1);
     setStep(next);
   }
-  const [amount, setAmount] = useState(0);
+  // Tip starts at $1 (the counter leads the TOP page); the guest can lower it to
+  // $0 (review-only) or raise it in $1 steps.
+  const [amount, setAmount] = useState(TIP_STEP);
   // Default is cash (settled at the register); the guest opts into online pay.
   const [payByCard, setPayByCard] = useState(false);
   const [tipId, setTipId] = useState<string | null>(resumeTipId);
@@ -164,7 +209,7 @@ export function GuestFlow({
   const [promote, setPromote] = useState(true);
 
   function reset() {
-    setAmount(0);
+    setAmount(TIP_STEP);
     setPayByCard(false);
     setTipId(null);
     setClientSecret(null);
@@ -210,7 +255,9 @@ export function GuestFlow({
       {/* Keyed on `step` so each section remounts and plays the slide-in; the
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
-        {step === "landing" && <Landing store={store} onStart={() => goToStep("support")} />}
+        {step === "landing" && (
+          <Landing store={store} amount={amount} setAmount={setAmount} onStart={() => goToStep("support")} />
+        )}
       {step === "support" && (
         <Support
           amount={amount}
@@ -258,9 +305,20 @@ export function GuestFlow({
 
 // A single vertical-scroll page: hero, then the story read top-to-bottom as
 // numbered chapters, then a Next button that moves on to the tip screen.
-function Landing({ store, onStart }: { store: GuestStore; onStart: () => void }) {
+function Landing({
+  store,
+  amount,
+  setAmount,
+  onStart,
+}: {
+  store: GuestStore;
+  amount: number;
+  setAmount: (updater: (prev: number) => number) => void;
+  onStart: () => void;
+}) {
   const t = useTranslations("story");
   const tc = useTranslations("common");
+  const ts = useTranslations("support");
   const { locale } = useLocaleSwitcher();
   // A store's own slides win, resolved to the guest's language (with fallback);
   // otherwise fall back to the stock story text (no image → stock photos below).
@@ -330,8 +388,24 @@ function Landing({ store, onStart }: { store: GuestStore; onStart: () => void })
         </svg>
       </button>
 
+      {/* Tip — leads the page, above the story. Starts at $1 (adjustable, $0
+          allowed); the amount carries into the Support screen for payment. */}
+      <div className="mt-10 px-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{ts("heading")}</h2>
+          <p className="mx-auto mt-2 max-w-[18rem] text-[14px] leading-relaxed text-neutral-500">{ts("intro")}</p>
+        </div>
+        <div className="mt-5">
+          <TipCounter amount={amount} setAmount={setAmount} />
+        </div>
+        <div className="mt-3 text-center text-sm leading-relaxed text-neutral-400">
+          <p>{ts("addNote")}</p>
+          <p>{ts("addNoteSub")}</p>
+        </div>
+      </div>
+
       {/* Our Story — read by scrolling down */}
-      <div className="px-8 pt-6 text-center">
+      <div className="px-8 pt-16 text-center">
         <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">{t("heading")}</h2>
         <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
       </div>
@@ -400,8 +474,6 @@ function Support({
   // $0 is allowed (review-only) — guests can continue without tipping. Only the
   // card path needs a real amount, since Stripe can't charge $0.
   const canSubmit = !isSubmitting && (!payByCard || amount >= CARD_MIN_AMOUNT);
-  // Amounts are USD cents; the counter moves in whole dollars.
-  const dollars = (amount / 100).toLocaleString("en-US");
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -411,31 +483,8 @@ function Support({
         <p className="mt-3 max-w-[17rem] text-[15px] leading-relaxed text-neutral-600">{t("intro")}</p>
       </div>
 
-      <div className="mx-6 mt-6 rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
-        <div className="text-center">
-          <p className="text-5xl font-bold text-neutral-900">${dollars}</p>
-          <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
-        </div>
-        <hr className="my-5 border-neutral-200" />
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            aria-label="decrease"
-            disabled={amount <= 0}
-            onClick={() => setAmount((prev) => Math.max(0, prev - TIP_STEP))}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
-          >
-            <span className="h-0.5 w-4 rounded-full bg-current" />
-          </button>
-          <span className="text-3xl font-bold text-neutral-900">${dollars}</span>
-          <button
-            type="button"
-            onClick={() => setAmount((prev) => prev + TIP_STEP)}
-            className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
-          >
-            +${TIP_STEP / 100}
-          </button>
-        </div>
+      <div className="mx-6 mt-6">
+        <TipCounter amount={amount} setAmount={setAmount} />
       </div>
       <div className="mt-4 text-center text-sm leading-relaxed text-neutral-400">
         <p>{t("addNote")}</p>
