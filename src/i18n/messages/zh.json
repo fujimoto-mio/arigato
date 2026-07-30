@@ -46,6 +46,7 @@
     "amountLabel": "您的小费金额",
     "addNote": "点击 +$1 增加小费",
     "addNoteSub": "（金额随您心意，从 $0 起）",
+    "zeroOk": "$0 也完全没问题。",
     "cardCheckbox": "在线支付",
     "cardHint": "支持 Apple Pay、Google Pay 和银行卡。",
     "cashHint": "不使用银行卡时，将计入账单并在收银台结算。",

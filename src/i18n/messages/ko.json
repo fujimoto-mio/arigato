@@ -46,6 +46,7 @@
     "amountLabel": "팁 금액",
     "addNote": "+$1을 눌러 팁 추가",
     "addNoteSub": "($0부터 원하는 금액까지)",
+    "zeroOk": "$0도 괜찮아요.",
     "cardCheckbox": "온라인으로 결제",
     "cardHint": "Apple Pay·Google Pay·카드 지원.",
     "cashHint": "카드를 사용하지 않으면 계산 시 카운터에서 정산합니다.",

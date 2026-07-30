@@ -46,6 +46,7 @@
     "amountLabel": "Your tip amount",
     "addNote": "Tap +$1 to add tip",
     "addNoteSub": "(Up to the amount you like.)",
+    "zeroOk": "$0 is perfectly fine, too.",
     "cardCheckbox": "Pay online now",
     "cardHint": "Apple Pay, Google Pay, or card.",
     "cashHint": "No card — it's added to your bill and settled at the register.",

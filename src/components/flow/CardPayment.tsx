@@ -38,6 +38,9 @@ function PaymentInner({
   // fall back to the card form.
   const [walletShown, setWalletShown] = useState<boolean | null>(preferredWallet ? null : false);
   const [forceCard, setForceCard] = useState(false);
+  // Temporary on-screen diagnostic: what the Express Checkout element reports for
+  // wallet availability (and any load error). Helps debug "no Apple/Google Pay".
+  const [walletDebug, setWalletDebug] = useState<string | null>(null);
 
   const showCard = !preferredWallet || walletShown === false || forceCard;
   const walletOnly = Boolean(preferredWallet) && walletShown === true && !forceCard;
@@ -112,14 +115,24 @@ function PaymentInner({
       <ExpressCheckoutElement
         onConfirm={() => void confirm()}
         onReady={({ availablePaymentMethods }) => {
-          // TEMP debug (visible in production too): which wallets Stripe reports.
-          // undefined/empty => wallet unavailable (usually domain not registered
-          // in Stripe, wallet disabled, or unsupported browser). Remove later.
+          // TEMP debug: which wallets Stripe reports. undefined/empty => wallet
+          // unavailable (usually the Apple Pay domain isn't registered in Stripe,
+          // testing over http/localhost, an unsupported browser, or no card in
+          // the device wallet). Remove once wallets are confirmed on the live URL.
           console.log("[express-checkout] availablePaymentMethods:", availablePaymentMethods);
           setWalletShown(Boolean(availablePaymentMethods));
+          setWalletDebug(
+            availablePaymentMethods
+              ? `wallets: ${JSON.stringify(availablePaymentMethods)}`
+              : "wallets: none available on this device/URL",
+          );
         }}
+        onLoadError={(e) => setWalletDebug(`wallet load error: ${e.error?.message ?? "unknown"}`)}
         options={expressOptions}
       />
+      {walletDebug ? (
+        <p className="text-center text-[10px] leading-snug text-neutral-300">{walletDebug}</p>
+      ) : null}
       {showCard && walletShown === true ? (
         <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-neutral-400">
           <span className="h-px flex-1 bg-neutral-200" />

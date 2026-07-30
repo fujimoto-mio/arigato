@@ -46,6 +46,7 @@
     "amountLabel": "チップの金額",
     "addNote": "「+$1」を押してチップを追加",
     "addNoteSub": "（$0からお好きな金額まで）",
+    "zeroOk": "$0でも大丈夫です。",
     "cardCheckbox": "オンラインで支払う",
     "cardHint": "Apple Pay・Google Pay・カードに対応。",
     "cashHint": "カードを使わない場合は、お会計時にレジで精算します。",
