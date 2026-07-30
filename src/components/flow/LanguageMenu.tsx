@@ -24,7 +24,7 @@ export function LanguageMenu() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Language"
-        className="flex items-center gap-1.5 rounded-full border border-neutral-200 py-1.5 pl-3 pr-2 text-neutral-600 transition hover:bg-neutral-50"
+        className="flex items-center gap-1.5 rounded-full border border-neutral-200 py-2.5 pl-4 pr-3 text-neutral-600 transition hover:bg-neutral-50"
       >
         <span className="text-xs font-semibold">{t(LANG_LABEL[locale])}</span>
         <svg
@@ -59,7 +59,7 @@ export function LanguageMenu() {
                     setLocale(code);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center px-3 py-2 text-sm ${code === locale ? "bg-neutral-50 font-semibold" : ""}`}
+                  className={`flex w-full items-center px-4 py-3 text-sm ${code === locale ? "bg-neutral-50 font-semibold" : ""}`}
                 >
                   {t(LANG_LABEL[code])}
                 </button>
