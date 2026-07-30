@@ -4,7 +4,7 @@ import { DetailRow } from "@/components/admin/RowModal";
 import { Stars } from "@/components/admin/Stars";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { GoogleIcon } from "@/components/flow/brand";
-import { formatTokyoTime, formatYen } from "@/lib/admin/period";
+import { formatTokyoTime, formatUsd } from "@/lib/admin/period";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_REVIEW_MIN_RATING } from "@/lib/review";
@@ -37,7 +37,7 @@ function reviewDetail(row: ReviewRow): { title: string; body: ReactNode } {
     body: (
       <>
         <div className="rounded-xl border border-neutral-100 p-5 text-center">
-          <p className="text-4xl font-bold text-[var(--color-accent)]">{formatYen(row.amount)}</p>
+          <p className="text-4xl font-bold text-[var(--color-accent)]">{formatUsd(row.amount)}</p>
         </div>
         <dl className="mt-4 divide-y divide-neutral-100 text-sm">
           <DetailRow label="店舗" value={row.storeName} />
@@ -117,7 +117,7 @@ const baseColumns: Column<ReviewRow>[] = [
     key: "amount",
     header: "チップ金額",
     className: "whitespace-nowrap",
-    render: (row) => formatYen(row.amount),
+    render: (row) => formatUsd(row.amount),
   },
   {
     key: "comment",

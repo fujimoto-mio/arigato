@@ -71,7 +71,7 @@ export function AdminToaster({ storeIds }: { storeIds: string[] }) {
           chimeRef.current();
           addToast(
             "新しいチップ・口コミが届きました",
-            `¥${Number(review.amount).toLocaleString("ja-JP")} ・ ★${Number(review.rating).toFixed(1)}${
+            `$${(Number(review.amount) / 100).toLocaleString("en-US")} ・ ★${Number(review.rating).toFixed(1)}${
               review.tableLabel ? ` ・ ${review.tableLabel}番` : ""
             }${review.comment ? `「${review.comment.slice(0, 30)}」` : ""}`,
           );

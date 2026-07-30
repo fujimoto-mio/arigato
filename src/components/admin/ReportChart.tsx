@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ReportRangeSelect, type RangeParams } from "@/components/admin/ReportRangeSelect";
-import { formatYen } from "@/lib/admin/period";
+import { formatUsd } from "@/lib/admin/period";
 import type { ReportChartData } from "@/lib/admin/report-chart";
 
 /**
@@ -63,16 +63,16 @@ export function ReportChart({ initial }: { initial: ReportChartData }) {
       ) : (
         <div className="rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="mb-4 flex flex-wrap gap-x-8 gap-y-2 border-b border-neutral-100 pb-4">
-            <RangeStat label="期間合計" value={formatYen(rangeTotal)} accent />
+            <RangeStat label="期間合計" value={formatUsd(rangeTotal)} accent />
             <RangeStat label="チップ件数" value={`${rangeCount.toLocaleString("ja-JP")} 件`} />
-            <RangeStat label="1日平均" value={formatYen(Math.round(rangeTotal / dayCount))} />
-            <RangeStat label="最高日" value={formatYen(maxTotal)} />
+            <RangeStat label="1日平均" value={formatUsd(Math.round(rangeTotal / dayCount))} />
+            <RangeStat label="最高日" value={formatUsd(maxTotal)} />
           </div>
 
           <div className="relative h-56">
             {yTicks.map((t, i) => (
               <div key={i} className="absolute inset-x-0 flex -translate-y-1/2 items-center" style={{ top: `${py(t)}%` }}>
-                <span className="w-14 shrink-0 pr-2 text-right text-[10px] tabular-nums text-neutral-400">{formatYen(t)}</span>
+                <span className="w-14 shrink-0 pr-2 text-right text-[10px] tabular-nums text-neutral-400">{formatUsd(t)}</span>
                 <span className="h-px flex-1 bg-neutral-100" />
               </div>
             ))}
@@ -97,7 +97,7 @@ export function ReportChart({ initial }: { initial: ReportChartData }) {
                   key={d.key}
                   className="absolute z-10 -translate-x-1/2 -translate-y-1/2"
                   style={{ left: `${px(i)}%`, top: `${py(d.total)}%` }}
-                  title={`${d.key}（${d.weekday}）: ${formatYen(d.total)} ・ ${d.count}件`}
+                  title={`${d.key}（${d.weekday}）: ${formatUsd(d.total)} ・ ${d.count}件`}
                 >
                   <span
                     className={`block rounded-full border-2 border-white bg-[var(--color-accent)] ${
@@ -121,7 +121,7 @@ export function ReportChart({ initial }: { initial: ReportChartData }) {
                     <p className="text-[10px] leading-tight">{d.key}</p>
                     {showValues ? (
                       <p className="text-[10px] font-medium leading-tight tabular-nums text-neutral-600">
-                        {d.count > 0 ? formatYen(d.total) : "—"}
+                        {d.count > 0 ? formatUsd(d.total) : "—"}
                       </p>
                     ) : null}
                   </>

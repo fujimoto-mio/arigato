@@ -5,7 +5,7 @@ import { DetailRow } from "@/components/admin/RowModal";
 import { Stars } from "@/components/admin/Stars";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { TableToolbar } from "@/components/admin/TableToolbar";
-import { formatTokyoTime, formatUsdApprox, formatYen } from "@/lib/admin/period";
+import { formatTokyoTime, formatUsd } from "@/lib/admin/period";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
@@ -105,14 +105,7 @@ export default async function AdminTipsPage({
       key: "amount",
       header: "チップ金額",
       className: "whitespace-nowrap",
-      render: (row) => (
-        <>
-          <span className="font-bold">{formatYen(row.amount)}</span>
-          {row.amount > 0 ? (
-            <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(row.amount)}）</span>
-          ) : null}
-        </>
-      ),
+      render: (row) => <span className="font-bold">{formatUsd(row.amount)}</span>,
     },
     {
       key: "rating",
@@ -140,7 +133,7 @@ export default async function AdminTipsPage({
       <div>
         <h1 className="text-xl font-bold">チップ履歴</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          該当 {total} 件 ・ 合計 {formatYen(agg._sum.amount ?? 0)}
+          該当 {total} 件 ・ 合計 {formatUsd(agg._sum.amount ?? 0)}
         </p>
       </div>
 
@@ -175,10 +168,7 @@ export default async function AdminTipsPage({
             body: (
               <>
                 <div className="rounded-xl border border-neutral-100 p-5 text-center">
-                  <p className="text-4xl font-bold text-[var(--color-accent)]">{formatYen(row.amount)}</p>
-                  {row.amount > 0 ? (
-                    <p className="mt-1 text-xs text-neutral-400">（{formatUsdApprox(row.amount)}）</p>
-                  ) : null}
+                  <p className="text-4xl font-bold text-[var(--color-accent)]">{formatUsd(row.amount)}</p>
                 </div>
                 <dl className="mt-4 divide-y divide-neutral-100 text-sm">
                   <DetailRow label="店舗" value={row.storeName} />

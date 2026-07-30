@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ComponentType, useState } from "react";
 import { LogoMark } from "@/components/flow/brand";
+import { formatUsd } from "@/lib/admin/period";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type AdminSummary = {
@@ -194,7 +195,7 @@ export function AdminSidebar({ summary, notifCount }: { summary: AdminSummary; n
             </div>
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <dt className="text-neutral-400">チップ合計金額</dt>
-              <dd className="font-semibold text-white">¥{summary.tipTotal.toLocaleString("ja-JP")}</dd>
+              <dd className="font-semibold text-white">{formatUsd(summary.tipTotal)}</dd>
             </div>
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <dt className="text-neutral-400">口コミ件数</dt>

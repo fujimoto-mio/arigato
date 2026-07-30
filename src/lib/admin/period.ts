@@ -22,17 +22,10 @@ export function startOfTokyoDaysAgo(days: number, instant: Date = new Date()): D
   return new Date(start.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-export function formatYen(amount: number): string {
-  return `¥${amount.toLocaleString("ja-JP")}`;
-}
-
-// Fixed reference rate for the dashboard's ≈USD hint (the mockup shows ¥2,000 ≈
-// $13.50). Display-only — not used for any charge — so a static rate is fine.
-const JPY_PER_USD = 150;
-
-export function formatUsdApprox(yen: number): string {
-  return `≈ $${(yen / JPY_PER_USD).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
+/** Format a USD-cents amount as dollars (e.g. 500 → "$5", 150 → "$1.5"). */
+export function formatUsd(cents: number): string {
+  return `$${(cents / 100).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
 }

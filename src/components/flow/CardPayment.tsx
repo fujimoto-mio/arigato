@@ -218,7 +218,7 @@ export function CardPayment({
       <div className="px-6 pt-4">
         <h1 className="text-2xl font-bold uppercase tracking-wide">{t("heading")}</h1>
         <div className="mt-4 rounded-2xl border border-neutral-200 p-6 text-center">
-          <p className="text-4xl font-bold">¥{amount.toLocaleString()}</p>
+          <p className="text-4xl font-bold">${(amount / 100).toLocaleString("en-US")}</p>
           <p className="mt-1 text-xs text-neutral-400">{t("amountLabel")}</p>
         </div>
 

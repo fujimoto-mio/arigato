@@ -397,9 +397,11 @@ function Support({
   hasError: boolean;
 }) {
   const t = useTranslations("support");
-  // ¥0 is allowed (review-only) — guests can continue without tipping. Only the
-  // card path needs a real amount, since Stripe can't charge ¥0.
+  // $0 is allowed (review-only) — guests can continue without tipping. Only the
+  // card path needs a real amount, since Stripe can't charge $0.
   const canSubmit = !isSubmitting && (!payByCard || amount >= CARD_MIN_AMOUNT);
+  // Amounts are USD cents; the counter moves in whole dollars.
+  const dollars = (amount / 100).toLocaleString("en-US");
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -411,7 +413,7 @@ function Support({
 
       <div className="mx-6 mt-6 rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
         <div className="text-center">
-          <p className="text-5xl font-bold text-neutral-900">¥{amount.toLocaleString()}</p>
+          <p className="text-5xl font-bold text-neutral-900">${dollars}</p>
           <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
         </div>
         <hr className="my-5 border-neutral-200" />
@@ -425,13 +427,13 @@ function Support({
           >
             <span className="h-0.5 w-4 rounded-full bg-current" />
           </button>
-          <span className="text-3xl font-bold text-neutral-900">{amount.toLocaleString()}</span>
+          <span className="text-3xl font-bold text-neutral-900">${dollars}</span>
           <button
             type="button"
             onClick={() => setAmount((prev) => prev + TIP_STEP)}
             className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
           >
-            +¥{TIP_STEP}
+            +${TIP_STEP / 100}
           </button>
         </div>
       </div>

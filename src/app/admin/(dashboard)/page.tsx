@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { type Column, DataTable } from "@/components/admin/DataTable";
 import { Stars } from "@/components/admin/Stars";
 import { GoogleIcon } from "@/components/flow/brand";
-import { formatTokyoTime, formatUsdApprox, formatYen, startOfTokyoDay } from "@/lib/admin/period";
+import { formatTokyoTime, formatUsd, startOfTokyoDay } from "@/lib/admin/period";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
 
@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
           <KpiCard label="本日のチップ件数" value={`${tipsAgg._count} 件`} icon={<HandCoins className="h-4 w-4" strokeWidth={1.75} />} />
           <KpiCard
             label="本日の合計金額"
-            value={formatYen(tipsAgg._sum.amount ?? 0)}
+            value={formatUsd(tipsAgg._sum.amount ?? 0)}
             accent
             icon={<Wallet className="h-4 w-4" strokeWidth={1.75} />}
           />
@@ -152,10 +152,7 @@ function DetailCard({ tip, isNew }: { tip: TipWithReview; isNew: boolean }) {
           <span className="text-base">{tip.store.name}</span>
         </StatCol>
         <StatCol label="チップ金額" icon={<Coins className="h-6 w-6" strokeWidth={1.6} />}>
-          <span className="text-[var(--color-accent)]">{formatYen(tip.amount)}</span>
-          {tip.amount > 0 ? (
-            <span className="mt-0.5 block text-[11px] font-normal text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
-          ) : null}
+          <span className="text-[var(--color-accent)]">{formatUsd(tip.amount)}</span>
         </StatCol>
         <StatCol label="評価" icon={<Star className="h-6 w-6" strokeWidth={1.6} />}>
           {review ? (
@@ -223,14 +220,7 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       key: "amount",
       header: "チップ金額",
       className: "whitespace-nowrap",
-      render: (tip) => (
-        <>
-          <span className="font-bold">{formatYen(tip.amount)}</span>
-          {tip.amount > 0 ? (
-            <span className="block text-[11px] text-neutral-400">（{formatUsdApprox(tip.amount)}）</span>
-          ) : null}
-        </>
-      ),
+      render: (tip) => <span className="font-bold">{formatUsd(tip.amount)}</span>,
     },
     {
       key: "rating",
