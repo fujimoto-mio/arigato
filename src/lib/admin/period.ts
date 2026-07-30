@@ -22,8 +22,13 @@ export function startOfTokyoDaysAgo(days: number, instant: Date = new Date()): D
   return new Date(start.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-/** Format a USD-cents amount as dollars (e.g. 500 → "$5", 150 → "$1.5"). */
+/**
+ * Format a USD-cents amount as dollars (e.g. 500 → "$5", 150 → "$1.5").
+ * A zero amount renders as an em dash — admin surfaces show "—" for $0 tips
+ * (review-only) and empty totals rather than "$0".
+ */
 export function formatUsd(cents: number): string {
+  if (cents === 0) return "—";
   return `$${(cents / 100).toLocaleString("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,

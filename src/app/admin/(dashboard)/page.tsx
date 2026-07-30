@@ -220,7 +220,7 @@ function RecentList({ tips }: { tips: TipWithReview[] }) {
       key: "amount",
       header: "チップ金額",
       className: "whitespace-nowrap",
-      render: (tip) => <span className="font-bold">{formatUsd(tip.amount)}</span>,
+      render: (tip) => formatUsd(tip.amount),
     },
     {
       key: "rating",

@@ -105,7 +105,7 @@ export default async function AdminTipsPage({
       key: "amount",
       header: "チップ金額",
       className: "whitespace-nowrap",
-      render: (row) => <span className="font-bold">{formatUsd(row.amount)}</span>,
+      render: (row) => formatUsd(row.amount),
     },
     {
       key: "rating",

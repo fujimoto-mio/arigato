@@ -72,7 +72,7 @@ export function ReportChart({ initial }: { initial: ReportChartData }) {
           <div className="relative h-56">
             {yTicks.map((t, i) => (
               <div key={i} className="absolute inset-x-0 flex -translate-y-1/2 items-center" style={{ top: `${py(t)}%` }}>
-                <span className="w-14 shrink-0 pr-2 text-right text-[10px] tabular-nums text-neutral-400">{formatUsd(t)}</span>
+                <span className="w-14 shrink-0 pr-2 text-right text-[10px] tabular-nums text-neutral-400">{t === 0 ? "$0" : formatUsd(t)}</span>
                 <span className="h-px flex-1 bg-neutral-100" />
               </div>
             ))}
