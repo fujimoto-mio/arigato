@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Dancing_Script } from "next/font/google";
 import Image from "next/image";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useState } from "react";
 
 // Script face for the "Thank you" hero on the final screen (latin only; CJK
 // falls back gracefully).
@@ -35,33 +35,16 @@ export type GuestStore = {
   storySlides: StorySlideContent[];
 };
 
-type Step = "landing" | "support" | "payment" | "review" | "thankyou";
+type Step = "landing" | "story" | "support" | "payment" | "review" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
-const STEP_ORDER: Step[] = ["landing", "support", "payment", "review", "thankyou"];
+const STEP_ORDER: Step[] = ["landing", "story", "support", "payment", "review", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
 
 function googleMapsUrl(placeId: string) {
   return `https://www.google.com/maps/place/?q=place_id:${placeId}`;
-}
-
-/** Eased window scroll — gentler than the browser's default smooth behaviour. */
-function smoothScrollToY(targetY: number, duration = 900) {
-  const startY = window.scrollY;
-  const diff = targetY - startY;
-  if (Math.abs(diff) < 4) return;
-  let startTs: number | null = null;
-  function frame(ts: number) {
-    if (startTs === null) startTs = ts;
-    const p = Math.min(1, (ts - startTs) / duration);
-    // easeInOutCubic
-    const eased = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-    window.scrollTo(0, startY + diff * eased);
-    if (p < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
 }
 
 /* ---------- Header + shared controls ---------- */
@@ -256,8 +239,11 @@ export function GuestFlow({
           direction class makes it feel like swiping forward/back on a phone. */}
       <div key={step} className={`flex flex-1 flex-col ${direction >= 0 ? "flow-screen-fwd" : "flow-screen-back"}`}>
         {step === "landing" && (
-          <Landing store={store} amount={amount} setAmount={setAmount} onStart={() => goToStep("support")} />
+          <Landing store={store} amount={amount} setAmount={setAmount} onStart={() => goToStep("story")} />
         )}
+      {step === "story" && (
+        <Story store={store} onNext={() => goToStep("support")} onBack={() => goToStep("landing")} />
+      )}
       {step === "support" && (
         <Support
           amount={amount}
@@ -265,7 +251,7 @@ export function GuestFlow({
           payByCard={payByCard}
           setPayByCard={setPayByCard}
           onNext={startCheckout}
-          onBack={() => goToStep("landing")}
+          onBack={() => goToStep("story")}
           isSubmitting={isSubmitting}
           hasError={error === "support"}
         />
@@ -301,10 +287,25 @@ export function GuestFlow({
   );
 }
 
-/* ---------- Screen 1: QR entry (vertical-scroll story) ---------- */
+/* ---------- Screen 1: TOP (cover + tip) ---------- */
 
-// A single vertical-scroll page: hero, then the story read top-to-bottom as
-// numbered chapters, then a Next button that moves on to the tip screen.
+/** Resolve the store's story slides to the guest's language, falling back to the
+ *  stock story text (and stock photos) when the store hasn't set its own. */
+function useResolvedSlides(store: GuestStore) {
+  const t = useTranslations("story");
+  const { locale } = useLocaleSwitcher();
+  const stockSlides = t.raw("slides") as { title: string; body: string }[];
+  return store.storySlides.length > 0
+    ? store.storySlides.map((slide) => ({
+        title: pickLocaleText(slide.title, locale),
+        body: pickLocaleText(slide.body, locale),
+        imageUrl: slide.imageUrl,
+      }))
+    : stockSlides.map((slide) => ({ title: slide.title, body: slide.body, imageUrl: null }));
+}
+
+// The TOP page: cover + a tip counter that leads the flow. "Next" moves on to
+// the Our Story page.
 function Landing({
   store,
   amount,
@@ -319,21 +320,9 @@ function Landing({
   const t = useTranslations("story");
   const tc = useTranslations("common");
   const ts = useTranslations("support");
-  const { locale } = useLocaleSwitcher();
-  // A store's own slides win, resolved to the guest's language (with fallback);
-  // otherwise fall back to the stock story text (no image → stock photos below).
-  const stockSlides = t.raw("slides") as { title: string; body: string }[];
-  const slides: { title: string; body: string; imageUrl: string | null }[] =
-    store.storySlides.length > 0
-      ? store.storySlides.map((slide) => ({
-          title: pickLocaleText(slide.title, locale),
-          body: pickLocaleText(slide.body, locale),
-          imageUrl: slide.imageUrl,
-        }))
-      : stockSlides.map((slide) => ({ title: slide.title, body: slide.body, imageUrl: null }));
+  const slides = useResolvedSlides(store);
   // Cover: the store's intro image if set, else the first slide's photo, else stock.
   const coverImage = store.coverImageUrl ?? slides[0]?.imageUrl ?? STORY_IMAGES[0];
-  const nextRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex flex-1 flex-col pb-10">
       <Header />
@@ -343,9 +332,6 @@ function Landing({
         <Wordmark className="text-[52px] leading-none tracking-tight" />
         <p className="mx-auto mt-6 max-w-[16rem] text-[13px] font-semibold uppercase leading-relaxed tracking-[0.18em] text-neutral-700">
           {t("tagline")}
-        </p>
-        <p className="mt-3 text-[13px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-          {t("takeALook")}
         </p>
       </div>
 
@@ -362,34 +348,8 @@ function Landing({
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
 
-      {/* Scroll hint — taps down to the Next button */}
-      <button
-        type="button"
-        aria-label="Scroll to bottom"
-        onClick={() => {
-          const el = nextRef.current;
-          if (!el) return;
-          const target = window.scrollY + el.getBoundingClientRect().bottom - window.innerHeight + 24;
-          smoothScrollToY(Math.max(0, target));
-        }}
-        className="flex justify-center pt-6 text-[var(--color-accent)]"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-6 w-6 animate-bounce"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-
-      {/* Tip — leads the page, above the story. Starts at $1 (adjustable, $0
-          allowed); the amount carries into the Support screen for payment. */}
+      {/* Tip — leads the flow. Starts at $1 (adjustable, $0 allowed); the amount
+          carries through to the Support screen where payment is chosen. */}
       <div className="mt-10 px-6">
         <div className="text-center">
           <h2 className="text-2xl font-bold uppercase tracking-wide text-neutral-900">{ts("heading")}</h2>
@@ -404,8 +364,35 @@ function Landing({
         </div>
       </div>
 
-      {/* Our Story — read by scrolling down */}
-      <div className="px-8 pt-16 text-center">
+      {/* Next → Our Story */}
+      <div className="mt-12 px-6">
+        <AccentButton onClick={onStart}>
+          <span className="flex items-center justify-center gap-2">
+            {tc("next")} <span className="text-lg">›</span>
+          </span>
+        </AccentButton>
+        <p className="mt-4 text-center text-xs tracking-wide text-neutral-400">
+          {t("poweredByPrefix")} <span className="font-bold text-neutral-600">ARIGATO TiP</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 2: Our Story ---------- */
+
+// The story on its own page: numbered chapters read top-to-bottom, then a Next
+// button that moves on to the Support screen.
+function Story({ store, onNext, onBack }: { store: GuestStore; onNext: () => void; onBack: () => void }) {
+  const t = useTranslations("story");
+  const tc = useTranslations("common");
+  const slides = useResolvedSlides(store);
+  return (
+    <div className="flex flex-1 flex-col pb-10">
+      <Header onBack={onBack} />
+
+      {/* Our Story heading */}
+      <div className="px-8 pt-6 text-center">
         <h2 className="text-2xl font-bold uppercase tracking-[0.12em] text-neutral-900">{t("heading")}</h2>
         <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-[var(--color-accent)]" />
       </div>
@@ -433,10 +420,10 @@ function Landing({
         ))}
       </div>
 
-      {/* Closing + Next → tip screen */}
-      <div ref={nextRef} className="mt-16 px-6">
+      {/* Closing + Next → Support */}
+      <div className="mt-16 px-6">
         <div className="mx-auto mb-9 h-px w-16 bg-neutral-200" />
-        <AccentButton onClick={onStart}>
+        <AccentButton onClick={onNext}>
           <span className="flex items-center justify-center gap-2">
             {tc("next")} <span className="text-lg">›</span>
           </span>
