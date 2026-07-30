@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/admin/auth";
+import { requirePlatformAdminApi, requireStoreAccessApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
 // Empty string clears an optional field back to null.
@@ -41,14 +41,17 @@ const patchSchema = z.object({
     .nullable()
     .optional()
     .refine((value) => value == null || /^(https?:\/\/|\/)/.test(value), "invalid_url"),
+  // Suspend / reactivate — platform admin only (enforced below).
+  status: z.enum(["active", "suspended"]).optional(),
 });
 
-/** Update one store's info (name, slug, Place ID, socials, cover image). */
+/** Update one store's info (name, slug, Place ID, socials, cover image, status). */
 export async function PATCH(request: Request, { params }: { params: Promise<{ storeId: string }> }) {
-  const { error } = await requireAdminApi();
+  const { storeId } = await params;
+  // Operators may edit their own store; the platform admin may edit any.
+  const { context, error } = await requireStoreAccessApi(storeId);
   if (error) return error;
 
-  const { storeId } = await params;
   const store = await prisma.store.findUnique({ where: { id: storeId } });
   if (!store) {
     return NextResponse.json({ error: "store_not_found" }, { status: 404 });
@@ -58,6 +61,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ st
   if (!parsed.success) {
     const isSlug = parsed.error.issues.some((issue) => issue.path[0] === "slug");
     return NextResponse.json({ error: isSlug ? "invalid_slug" : "invalid_request" }, { status: 400 });
+  }
+
+  // Suspending / reactivating a store is platform-admin only.
+  if (parsed.data.status && !context.isPlatformAdmin) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   // A slug is globally unique, so reject one already taken by another store.
@@ -79,24 +87,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ st
       googlePlaceId: updated.googlePlaceId,
       instagramUrl: updated.instagramUrl,
       facebookUrl: updated.facebookUrl,
+      status: updated.status,
     },
   });
 }
 
 /**
- * Delete a store and everything under it (tips, reviews, story slides cascade;
- * push subscriptions detach). Irreversible — the UI confirms first.
+ * Soft-delete a store: mark it deleted and hide it everywhere, but keep its tips /
+ * reviews / history. The slug is freed (renamed) so a new store can reuse it.
+ * Irreversible from the UI — the UI confirms first.
  */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ storeId: string }> }) {
-  const { error } = await requireAdminApi();
+  const { error } = await requirePlatformAdminApi();
   if (error) return error;
 
   const { storeId } = await params;
-  const store = await prisma.store.findUnique({ where: { id: storeId } });
+  const store = await prisma.store.findFirst({ where: { id: storeId, deletedAt: null } });
   if (!store) {
     return NextResponse.json({ error: "store_not_found" }, { status: 404 });
   }
 
-  await prisma.store.delete({ where: { id: storeId } });
+  // Free the original slug for reuse (kept URL-safe and within the 50-char limit).
+  const freedSlug = `${store.slug}-del-${store.id.slice(0, 6)}`.slice(0, 50);
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { status: "deleted", deletedAt: new Date(), slug: freedSlug },
+  });
   return NextResponse.json({ ok: true });
 }

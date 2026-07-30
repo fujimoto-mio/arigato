@@ -17,8 +17,26 @@ export default async function StorePage({
     where: { slug },
     include: { storySlides: { orderBy: { sortOrder: "asc" } } },
   });
-  if (!store) {
+  if (!store || store.deletedAt) {
     notFound();
+  }
+
+  // Suspended by the platform admin — the tip page is temporarily closed.
+  if (store.status === "suspended") {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 bg-white px-8 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
+          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M8 12h8" />
+          </svg>
+        </div>
+        <h1 className="text-lg font-bold text-neutral-900">受付を停止しています</h1>
+        <p className="text-sm leading-relaxed text-neutral-500">
+          ただいまこちらの店舗ではチップの受付を一時停止しています。
+        </p>
+      </div>
+    );
   }
 
   return (

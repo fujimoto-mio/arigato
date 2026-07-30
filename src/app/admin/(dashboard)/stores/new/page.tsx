@@ -1,11 +1,13 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { StoreCreateForm } from "@/components/admin/StoreCreateForm";
+import { requirePlatformAdmin } from "@/lib/admin/auth";
 import { resolveAppOrigin } from "@/lib/origin";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminStoreNewPage() {
+  await requirePlatformAdmin(); // creating stores is platform-admin only
   const origin = await resolveAppOrigin();
 
   return (

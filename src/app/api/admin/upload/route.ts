@@ -20,7 +20,7 @@ async function ensureBucket(supabase: ReturnType<typeof supabaseServiceClient>) 
 
 /** Upload a store image (cover / story photo). Returns the public URL to persist. */
 export async function POST(request: Request) {
-  const { error } = await requireAdminApi();
+  const { context, error } = await requireAdminApi();
   if (error) return error;
 
   const form = await request.formData();
@@ -40,6 +40,10 @@ export async function POST(request: Request) {
   }
   if (!storeId) {
     return NextResponse.json({ error: "no_store_selected" }, { status: 400 });
+  }
+  // Operators may only upload into their own store.
+  if (!context.isPlatformAdmin && storeId !== context.storeId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   if (!(file instanceof File)) {

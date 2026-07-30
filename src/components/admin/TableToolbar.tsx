@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Select } from "@/components/admin/Select";
 import { useTableNav } from "@/components/admin/TableNav";
 
@@ -22,10 +22,13 @@ export function TableToolbar({
   searchParam,
   searchPlaceholder,
   filters = [],
+  actions,
 }: {
   searchParam?: string;
   searchPlaceholder?: string;
   filters?: FilterDef[];
+  /** Right-aligned slot (e.g. a "新規追加" button). When set, search + filters group on the left. */
+  actions?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -58,16 +61,14 @@ export function TableToolbar({
     else router.push(url);
   }
 
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      {searchParam ? (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            navigate({ [searchParam]: term.trim() });
-          }}
-          className="flex flex-1 items-center gap-2 sm:max-w-md"
-        >
+  const searchForm = searchParam ? (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        navigate({ [searchParam]: term.trim() });
+      }}
+      className="flex flex-1 items-center gap-2 sm:max-w-md"
+    >
           <div className="relative flex-1">
             <svg
               viewBox="0 0 24 24"
@@ -104,29 +105,49 @@ export function TableToolbar({
               </button>
             ) : null}
           </div>
-          <button
-            type="submit"
-            className="shrink-0 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            検索
-          </button>
-        </form>
-      ) : null}
+      <button
+        type="submit"
+        className="shrink-0 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
+      >
+        検索
+      </button>
+    </form>
+  ) : null;
 
-      {filters.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          {filters.map((filter) => (
-            <Select
-              key={filter.param}
-              value={sp.get(filter.param) ?? ""}
-              onChange={(value) => navigate({ [filter.param]: value })}
-              options={filter.options}
-              ariaLabel={filter.label}
-              triggerClassName="font-medium"
-            />
-          ))}
+  const filtersBlock =
+    filters.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-2">
+        {filters.map((filter) => (
+          <Select
+            key={filter.param}
+            value={sp.get(filter.param) ?? ""}
+            onChange={(value) => navigate({ [filter.param]: value })}
+            options={filter.options}
+            ariaLabel={filter.label}
+            triggerClassName="font-medium"
+          />
+        ))}
+      </div>
+    ) : null;
+
+  // With an actions slot, search + filters group on the left and actions sit on
+  // the right; otherwise keep search left / filters right.
+  if (actions) {
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-1 sm:flex-row sm:items-center">
+          {searchForm}
+          {filtersBlock}
         </div>
-      ) : null}
+        <div className="shrink-0">{actions}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {searchForm}
+      {filtersBlock}
     </div>
   );
 }

@@ -23,8 +23,9 @@ export const viewport: Viewport = { themeColor: "#171717" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  const { adminUserId } = await requireAdmin();
-  const { activeStoreId, stores } = await getActiveStore();
+  const admin = await requireAdmin();
+  const { adminUserId } = admin;
+  const { activeStoreId, activeStore, stores, canSwitch } = await getActiveStore();
   const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
 
@@ -64,12 +65,27 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
       <PwaRegister />
       <PushPrompt />
       <AdminToaster storeIds={toasterStoreIds} />
-      <AdminSidebar summary={summary} notifCount={unreadCount} />
+      <AdminSidebar
+        summary={summary}
+        notifCount={unreadCount}
+        isPlatformAdmin={admin.isPlatformAdmin}
+        operatorStoreId={admin.storeId}
+      />
       <StoreSwitchProvider>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <StoreSwitcher stores={stores} activeStoreId={activeStoreId} />
+            {canSwitch ? (
+              <StoreSwitcher stores={stores} activeStoreId={activeStoreId} />
+            ) : (
+              // Store operator — locked to one store, no switcher.
+              <span className="flex items-center gap-2 truncate text-sm font-semibold text-neutral-900">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[var(--color-accent)]/10 text-[11px] font-bold text-[var(--color-accent)]">
+                  {activeStore?.name?.slice(0, 2) ?? "—"}
+                </span>
+                <span className="truncate">{activeStore?.name ?? "店舗"}</span>
+              </span>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <PwaInstallButton />

@@ -21,8 +21,12 @@ export async function POST(request: Request) {
   const { slug, amount, locale, tableLabel, paymentMethod } = parsed.data;
 
   const store = await prisma.store.findUnique({ where: { slug } });
-  if (!store) {
+  if (!store || store.deletedAt) {
     return NextResponse.json({ error: "store_not_found" }, { status: 404 });
+  }
+  // Suspended stores don't accept new tips.
+  if (store.status === "suspended") {
+    return NextResponse.json({ error: "store_suspended" }, { status: 403 });
   }
 
   // Cash: nothing is charged — record the tip and notify the register so it can
