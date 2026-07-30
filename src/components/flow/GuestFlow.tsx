@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Dancing_Script } from "next/font/google";
 import Image from "next/image";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 // Script face for the "Thank you" hero on the final screen (latin only; CJK
 // falls back gracefully).
@@ -175,6 +175,13 @@ export function GuestFlow({
     setDirection(STEP_ORDER.indexOf(next) >= STEP_ORDER.indexOf(step) ? 1 : -1);
     setStep(next);
   }
+
+  // Each screen remounts on step change but the window keeps the previous
+  // screen's scroll offset — so a tall new screen would open mid-page. Reset to
+  // the top whenever the step changes.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
   // Tip starts at $1 (the counter leads the TOP page); the guest can lower it to
   // $0 (review-only) or raise it in $1 steps.
   const [amount, setAmount] = useState(TIP_STEP);
