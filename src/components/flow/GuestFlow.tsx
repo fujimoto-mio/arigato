@@ -19,7 +19,7 @@ import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { type LocaleText, pickLocaleText } from "@/lib/story";
-import { CARD_MIN_AMOUNT, TIP_STEP } from "@/lib/tip";
+import { CARD_MIN_AMOUNT, TIP_MAX, TIP_STEP } from "@/lib/tip";
 
 export type StorySlideContent = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
@@ -130,6 +130,14 @@ function TipCounter({
   const t = useTranslations("support");
   // Amounts are USD cents; the counter moves in whole dollars.
   const dollars = (amount / 100).toLocaleString("en-US");
+
+  // Manual entry — whole dollars only, capped at TIP_MAX.
+  function onInput(event: React.ChangeEvent<HTMLInputElement>) {
+    const digits = event.target.value.replace(/[^0-9]/g, "");
+    const value = digits === "" ? 0 : Math.min(Number(digits), TIP_MAX / 100);
+    setAmount(() => value * 100);
+  }
+
   return (
     <div className="rounded-2xl border border-neutral-100 p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
       <div className="text-center">
@@ -137,21 +145,32 @@ function TipCounter({
         <p className="mt-2 text-sm text-neutral-400">{t("amountLabel")}</p>
       </div>
       <hr className="my-5 border-neutral-200" />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <button
           type="button"
           aria-label="decrease"
           disabled={amount <= 0}
           onClick={() => setAmount((prev) => Math.max(0, prev - TIP_STEP))}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-neutral-200 text-[var(--color-accent)] disabled:opacity-30"
         >
           <span className="h-0.5 w-4 rounded-full bg-current" />
         </button>
-        <span className="text-3xl font-bold text-neutral-900">${dollars}</span>
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-0.5">
+          <span className="text-3xl font-bold text-neutral-900">$</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={amount === 0 ? "" : String(amount / 100)}
+            onChange={onInput}
+            placeholder="0"
+            aria-label={t("amountLabel")}
+            className="w-full max-w-[7rem] border-b-2 border-neutral-200 bg-transparent text-center text-3xl font-bold text-neutral-900 focus:border-[var(--color-accent)] focus:outline-none"
+          />
+        </div>
         <button
           type="button"
-          onClick={() => setAmount((prev) => prev + TIP_STEP)}
-          className="rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
+          onClick={() => setAmount((prev) => Math.min(TIP_MAX, prev + TIP_STEP))}
+          className="shrink-0 rounded-full bg-[var(--color-accent)] px-5 py-3 text-base font-bold text-white"
         >
           +${TIP_STEP / 100}
         </button>

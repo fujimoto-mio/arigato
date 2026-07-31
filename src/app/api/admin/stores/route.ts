@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/admin/auth";
+import { requirePlatformAdminApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
 // Empty string clears an optional field back to null.
@@ -36,9 +36,9 @@ const createSchema = z.object({
   facebookUrl: urlOrEmpty,
 });
 
-/** Create a new store. Any admin manages every store, so no auth wiring needed. */
+/** Create a new store — platform admin only. */
 export async function POST(request: Request) {
-  const { error } = await requireAdminApi();
+  const { error } = await requirePlatformAdminApi();
   if (error) return error;
 
   const parsed = createSchema.safeParse(await request.json());

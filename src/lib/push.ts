@@ -17,14 +17,26 @@ function ensureConfigured(): boolean {
   return true;
 }
 
-export type PushPayload = { title: string; body: string; url?: string; tag?: string };
+export type PushPayload = {
+  /** The store this notification is about — scopes who receives it. */
+  storeId: string;
+  /** Store name — admin devices lead with it; the store's own operators don't. */
+  storeName: string;
+  /** Base title (no store name). Admins get "<storeName>｜<title>"; the store's
+   *  operators get just "<title>" (they only manage one store). */
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+};
 
 /**
- * Send a Web Push notification to every subscribed admin device. A single admin
- * manages every store and wants every store's notifications, so this ignores the
- * store — all admin devices are notified. Dead subscriptions (404/410) are
- * pruned. Failures are logged, never thrown — a missed notification must not
- * fail the request that recorded a real tip.
+ * Send a Web Push notification about a store's tip/review to the right devices:
+ *  - every platform admin (manages all stores) — title leads with the store name, and
+ *  - that store's operators only — title without the store name.
+ *
+ * Dead subscriptions (404/410) are pruned. Failures are logged, never thrown — a
+ * missed notification must not fail the request that recorded a real tip.
  */
 export async function sendStorePush(payload: PushPayload): Promise<void> {
   if (!ensureConfigured()) {
@@ -32,12 +44,38 @@ export async function sendStorePush(payload: PushPayload): Promise<void> {
     return;
   }
 
-  const subs = await prisma.pushSubscription.findMany();
-  if (subs.length === 0) return;
+  const [operators, admins] = await Promise.all([
+    prisma.adminUser.findMany({
+      where: { storeId: payload.storeId, role: "store_operator" },
+      select: { id: true },
+    }),
+    prisma.adminUser.findMany({ where: { NOT: { role: "store_operator" } }, select: { id: true } }),
+  ]);
+  const operatorIds = new Set(operators.map((a) => a.id));
+  const adminIds = new Set(admins.map((a) => a.id));
 
-  const body = JSON.stringify(payload);
+  // Two payloads: admins (and legacy null-linked devices) lead with the store
+  // name; this store's operators drop it.
+  const adminBody = JSON.stringify({
+    title: `${payload.storeName}｜${payload.title}`,
+    body: payload.body,
+    url: payload.url,
+    tag: payload.tag,
+  });
+  const operatorBody = JSON.stringify({ title: payload.title, body: payload.body, url: payload.url, tag: payload.tag });
+
+  const subs = await prisma.pushSubscription.findMany();
+  const targets = subs
+    .map((sub) => {
+      if (sub.adminUserId == null || adminIds.has(sub.adminUserId)) return { sub, body: adminBody };
+      if (operatorIds.has(sub.adminUserId)) return { sub, body: operatorBody };
+      return null;
+    })
+    .filter((t): t is { sub: (typeof subs)[number]; body: string } => t !== null);
+  if (targets.length === 0) return;
+
   await Promise.all(
-    subs.map(async (sub) => {
+    targets.map(async ({ sub, body }) => {
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },

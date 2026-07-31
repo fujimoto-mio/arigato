@@ -6,6 +6,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum StoreStatus {
+  active
+  suspended
+  deleted
+}
+
 model Store {
   id            String      @id @default(cuid())
   slug          String      @unique
@@ -14,6 +20,12 @@ model Store {
   googlePlaceId String?
   instagramUrl  String?
   facebookUrl   String?
+  // active: normal. suspended: guest tip page closed (history kept).
+  // deleted: soft-deleted (hidden everywhere) — see deletedAt.
+  status        StoreStatus @default(active)
+  // Set when soft-deleted; null while live. Rows are never hard-deleted, so
+  // tips/reviews/history survive.
+  deletedAt     DateTime?   @db.Timestamptz(3)
   createdAt     DateTime    @default(now()) @db.Timestamptz(3)
   tips          Tip[]
   admins        AdminUser[]
@@ -63,9 +75,11 @@ model Review {
   @@index([storeId])
 }
 
-// A single admin manages every store, so storeId is optional (no longer the
-// scoping key — the active store comes from the top-bar switcher). Kept as an
-// optional "home" reference.
+// Two roles:
+//  - Platform admin (role "admin"/legacy "owner", storeId null): manages every
+//    store; the active store comes from the top-bar switcher.
+//  - Store operator (role "store_operator", storeId set): manages only that one
+//    store (1 account = 1 store); no switcher, scoped to their storeId.
 model AdminUser {
   id                String             @id @default(cuid())
   storeId           String?

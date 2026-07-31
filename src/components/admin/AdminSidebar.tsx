@@ -90,7 +90,8 @@ type NavItem = {
   exact?: boolean;
 };
 
-const NAV: NavItem[] = [
+// Platform admin: manages every store.
+const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "ダッシュボード", short: "ホーム", Icon: GridIcon, exact: true },
   { href: "/admin/notifications", label: "通知", short: "通知", Icon: BellIcon, badge: true },
   { href: "/admin/tips", label: "チップ履歴", short: "チップ", Icon: YenIcon },
@@ -99,6 +100,17 @@ const NAV: NavItem[] = [
   { href: "/admin/stores", label: "店舗管理", short: "店舗", Icon: StorefrontIcon },
   { href: "/admin/settings", label: "設定", short: "設定", Icon: GearIcon },
 ];
+
+// Store operator: scoped to one store — "店舗管理" becomes "店舗設定" for their
+// own store; no multi-store list.
+function buildNav(isPlatformAdmin: boolean, operatorStoreId: string | null): NavItem[] {
+  if (isPlatformAdmin) return ADMIN_NAV;
+  return ADMIN_NAV.map((item) =>
+    item.href === "/admin/stores"
+      ? { ...item, href: operatorStoreId ? `/admin/stores/${operatorStoreId}` : "/admin", label: "店舗設定" }
+      : item,
+  );
+}
 
 function useSignOut() {
   const router = useRouter();
@@ -139,9 +151,20 @@ function SummaryStars({ rating }: { rating: number }) {
   );
 }
 
-export function AdminSidebar({ summary, notifCount }: { summary: AdminSummary; notifCount: number }) {
+export function AdminSidebar({
+  summary,
+  notifCount,
+  isPlatformAdmin,
+  operatorStoreId,
+}: {
+  summary: AdminSummary;
+  notifCount: number;
+  isPlatformAdmin: boolean;
+  operatorStoreId: string | null;
+}) {
   const pathname = usePathname();
   const { signOut, signingOut } = useSignOut();
+  const nav = buildNav(isPlatformAdmin, operatorStoreId);
 
   return (
     <>
@@ -162,7 +185,7 @@ export function AdminSidebar({ summary, notifCount }: { summary: AdminSummary; n
         </div>
 
         <nav className="flex flex-col gap-1">
-          {NAV.map(({ href, label, Icon, badge, exact }) => {
+          {nav.map(({ href, label, Icon, badge, exact }) => {
             const isActive = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
@@ -232,7 +255,7 @@ export function AdminSidebar({ summary, notifCount }: { summary: AdminSummary; n
         style={{ backgroundColor: "#171717" }}
         className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-white/10 bg-neutral-900 px-1 pb-[env(safe-area-inset-bottom)] text-white md:hidden"
       >
-        {NAV.map(({ href, short, Icon, badge, exact }) => {
+        {nav.map(({ href, short, Icon, badge, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link

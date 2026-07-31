@@ -57,7 +57,9 @@ export async function POST(request: Request) {
       createdAt: tip.createdAt.toISOString(),
     }),
     sendStorePush({
-      title: `${tip.store.name}｜新しいチップが届きました`,
+      storeId: tip.storeId,
+      storeName: tip.store.name,
+      title: "新しいチップが届きました",
       body: amountLabel,
       tag: `tip-${tip.id}`,
     }),

@@ -81,9 +81,11 @@ export async function POST(request: Request) {
       createdAt: review.createdAt.toISOString(),
     }),
     sendStorePush({
-      // Lead with the store name so a single admin managing many stores can tell
-      // at a glance which store the tip/review is for.
-      title: `${tip.store.name}｜新しいチップ・口コミが届きました`,
+      storeId: tip.storeId,
+      // Admin devices lead with the store name (many stores); the store's own
+      // operators get the plain title (they manage only this store).
+      storeName: tip.store.name,
+      title: "新しいチップ・口コミが届きました",
       body: pushBody,
       tag: `tip-${tip.id}`,
     }),

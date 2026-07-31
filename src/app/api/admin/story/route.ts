@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { requireAdminApi } from "@/lib/admin/auth";
+import { requireStoreAccessApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
 
 // Title/body are locale maps { en, ja, ko, zh } — each language optional.
@@ -39,15 +39,16 @@ const bodySchema = z.object({
  * in the body (the Store Management editor knows which store it is on).
  */
 export async function PUT(request: Request) {
-  const { error } = await requireAdminApi();
-  if (error) return error;
-
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
   const storeId = parsed.data.storeId;
+  // Operators may edit only their own store's story; the platform admin any.
+  const { error } = await requireStoreAccessApi(storeId);
+  if (error) return error;
+
   const store = await prisma.store.findUnique({ where: { id: storeId }, select: { id: true } });
   if (!store) {
     return NextResponse.json({ error: "store_not_found" }, { status: 404 });
