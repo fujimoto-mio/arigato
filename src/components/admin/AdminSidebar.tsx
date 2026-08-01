@@ -80,24 +80,56 @@ function GearIcon({ className }: IconProps) {
   );
 }
 
+function ChatIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 3v-3H6.5A2.5 2.5 0 0 1 4 13.5z" />
+    </svg>
+  );
+}
+function MegaphoneIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11v2a1 1 0 0 0 1 1h2l3 4V6L6 10H4a1 1 0 0 0-1 1z" />
+      <path d="M9 6l10-3v18L9 18" />
+    </svg>
+  );
+}
+function HelpIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .8-1 1.7M12 17h.01" />
+    </svg>
+  );
+}
+
+// Badge counters, keyed so a nav item can show its own unread count.
+type BadgeKey = "notifications" | "support" | "announcements";
+
 type NavItem = {
   href: string;
   label: string;
   // Shorter label for the mobile bottom bar, where width per item is tight.
   short: string;
   Icon: ComponentType<IconProps>;
-  badge?: boolean;
+  badgeKey?: BadgeKey;
   exact?: boolean;
+  // Kept out of the cramped mobile bottom bar (still on the desktop rail).
+  mobileHidden?: boolean;
 };
 
 // Platform admin: manages every store.
 const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "ダッシュボード", short: "ホーム", Icon: GridIcon, exact: true },
-  { href: "/admin/notifications", label: "通知", short: "通知", Icon: BellIcon, badge: true },
+  { href: "/admin/notifications", label: "通知", short: "通知", Icon: BellIcon, badgeKey: "notifications" },
   { href: "/admin/tips", label: "チップ履歴", short: "チップ", Icon: YenIcon },
   { href: "/admin/reviews", label: "口コミ一覧", short: "口コミ", Icon: StarIcon },
   { href: "/admin/reports", label: "レポート", short: "レポート", Icon: ChartIcon },
   { href: "/admin/stores", label: "店舗管理", short: "店舗", Icon: StorefrontIcon },
+  { href: "/admin/announcements", label: "お知らせ", short: "お知らせ", Icon: MegaphoneIcon, badgeKey: "announcements", mobileHidden: true },
+  { href: "/admin/support", label: "お問い合わせ", short: "問合せ", Icon: ChatIcon, badgeKey: "support" },
+  { href: "/admin/help", label: "ヘルプ", short: "ヘルプ", Icon: HelpIcon, mobileHidden: true },
   { href: "/admin/settings", label: "設定", short: "設定", Icon: GearIcon },
 ];
 
@@ -153,18 +185,19 @@ function SummaryStars({ rating }: { rating: number }) {
 
 export function AdminSidebar({
   summary,
-  notifCount,
+  badges,
   isPlatformAdmin,
   operatorStoreId,
 }: {
   summary: AdminSummary;
-  notifCount: number;
+  badges: Record<BadgeKey, number>;
   isPlatformAdmin: boolean;
   operatorStoreId: string | null;
 }) {
   const pathname = usePathname();
   const { signOut, signingOut } = useSignOut();
   const nav = buildNav(isPlatformAdmin, operatorStoreId);
+  const badgeFor = (key?: BadgeKey) => (key ? badges[key] : 0);
 
   return (
     <>
@@ -185,8 +218,9 @@ export function AdminSidebar({
         </div>
 
         <nav className="flex flex-col gap-1">
-          {nav.map(({ href, label, Icon, badge, exact }) => {
+          {nav.map(({ href, label, Icon, badgeKey, exact }) => {
             const isActive = exact ? pathname === href : pathname.startsWith(href);
+            const count = badgeFor(badgeKey);
             return (
               <Link
                 key={href}
@@ -199,9 +233,9 @@ export function AdminSidebar({
               >
                 <Icon className="h-5 w-5 shrink-0" />
                 <span>{label}</span>
-                {badge && notifCount > 0 ? (
+                {count > 0 ? (
                   <span className="ml-auto min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
-                    {notifCount > 99 ? "99+" : notifCount}
+                    {count > 99 ? "99+" : count}
                   </span>
                 ) : null}
               </Link>
@@ -255,28 +289,31 @@ export function AdminSidebar({
         style={{ backgroundColor: "#171717" }}
         className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-white/10 bg-neutral-900 px-1 pb-[env(safe-area-inset-bottom)] text-white md:hidden"
       >
-        {nav.map(({ href, short, Icon, badge, exact }) => {
-          const isActive = exact ? pathname === href : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`relative flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium transition ${
-                isActive ? "text-[var(--color-accent)]" : "text-neutral-400"
-              }`}
-            >
-              <span className="relative">
-                <Icon className="h-5 w-5" />
-                {badge && notifCount > 0 ? (
-                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
-                    {notifCount > 99 ? "99+" : notifCount}
-                  </span>
-                ) : null}
-              </span>
-              {short}
-            </Link>
-          );
-        })}
+        {nav
+          .filter((item) => !item.mobileHidden)
+          .map(({ href, short, Icon, badgeKey, exact }) => {
+            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            const count = badgeFor(badgeKey);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`relative flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium transition ${
+                  isActive ? "text-[var(--color-accent)]" : "text-neutral-400"
+                }`}
+              >
+                <span className="relative">
+                  <Icon className="h-5 w-5" />
+                  {count > 0 ? (
+                    <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                      {count > 99 ? "99+" : count}
+                    </span>
+                  ) : null}
+                </span>
+                {short}
+              </Link>
+            );
+          })}
       </nav>
     </>
   );

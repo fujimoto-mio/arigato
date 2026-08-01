@@ -93,3 +93,41 @@ export async function sendStorePush(payload: PushPayload): Promise<void> {
     }),
   );
 }
+
+/**
+ * Send a push to specific admin devices (by adminUserId) — used for directional
+ * notifications like support replies. `includeLegacyNull` also targets legacy
+ * subscriptions with no admin link (treated as platform-admin devices).
+ */
+export async function sendPushToAdminIds(
+  adminUserIds: string[],
+  payload: { title: string; body: string; url?: string; tag?: string },
+  includeLegacyNull = false,
+): Promise<void> {
+  if (!ensureConfigured()) {
+    console.error("web push: VAPID keys are not set");
+    return;
+  }
+  const allowed = new Set(adminUserIds);
+  const subs = await prisma.pushSubscription.findMany();
+  const targets = subs.filter(
+    (sub) => (sub.adminUserId != null && allowed.has(sub.adminUserId)) || (includeLegacyNull && sub.adminUserId == null),
+  );
+  if (targets.length === 0) return;
+
+  const body = JSON.stringify(payload);
+  await Promise.all(
+    targets.map(async (sub) => {
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, body);
+      } catch (error) {
+        const status = (error as { statusCode?: number }).statusCode ?? 0;
+        if (status === 404 || status === 410) {
+          await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } }).catch(() => {});
+        } else {
+          console.error("web push send failed", status, (error as Error).message);
+        }
+      }
+    }),
+  );
+}

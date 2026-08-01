@@ -6,10 +6,12 @@ import { PushPrompt } from "@/components/admin/PushPrompt";
 import { PwaInstallButton } from "@/components/admin/PwaInstallButton";
 import { PwaRegister } from "@/components/admin/PwaRegister";
 import { StoreSwitchContent, StoreSwitchProvider } from "@/components/admin/StoreSwitch";
-import { StoreSwitcher } from "@/components/admin/StoreSwitcher";
+import { TopbarStoreSection } from "@/components/admin/TopbarStoreSection";
+import { unreadAnnouncementCount } from "@/lib/admin/announcements";
 import { requireAdmin } from "@/lib/admin/auth";
 import { startOfTokyoDay } from "@/lib/admin/period";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
+import { unreadThreadCount } from "@/lib/admin/support";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -29,7 +31,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
 
-  const [tipsAgg, reviewsAgg, unreadCount] = await Promise.all([
+  const [tipsAgg, reviewsAgg, unreadCount, supportUnread, announceUnread] = await Promise.all([
     prisma.tip.aggregate({
       where: { ...scope, status: "succeeded", createdAt: { gte: todayStart } },
       _sum: { amount: true },
@@ -47,6 +49,8 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
         notificationReads: { none: { adminUserId } },
       },
     }),
+    unreadThreadCount(admin),
+    unreadAnnouncementCount(admin),
   ]);
 
   // The in-app toast always covers every store — a single admin wants every
@@ -67,7 +71,7 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
       <AdminToaster storeIds={toasterStoreIds} />
       <AdminSidebar
         summary={summary}
-        notifCount={unreadCount}
+        badges={{ notifications: unreadCount, support: supportUnread, announcements: announceUnread }}
         isPlatformAdmin={admin.isPlatformAdmin}
         operatorStoreId={admin.storeId}
       />
@@ -75,25 +79,13 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            {canSwitch ? (
-              <StoreSwitcher stores={stores} activeStoreId={activeStoreId} />
-            ) : (
-              // Store operator — locked to one store, no switcher.
-              <span className="flex items-center gap-2 truncate text-sm font-semibold text-neutral-900">
-                <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-md bg-neutral-100">
-                  {activeStore?.coverImageUrl ? (
-                    // Store intro image; plain img avoids remote-loader config.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={activeStore.coverImageUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-[var(--color-accent)]/10 text-[10px] font-bold text-[var(--color-accent)]">
-                      {activeStore?.name?.slice(0, 2) ?? "—"}
-                    </span>
-                  )}
-                </span>
-                <span className="truncate">{activeStore?.name ?? "店舗"}</span>
-              </span>
-            )}
+            <TopbarStoreSection
+              canSwitch={canSwitch}
+              stores={stores}
+              activeStoreId={activeStoreId}
+              storeName={activeStore?.name ?? null}
+              storeCoverImageUrl={activeStore?.coverImageUrl ?? null}
+            />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <PwaInstallButton />

@@ -31,6 +31,8 @@ model Store {
   admins        AdminUser[]
   pushSubscriptions PushSubscription[]
   storySlides   StorySlide[]
+  supportThreads SupportThread[]
+  announcements  Announcement[]
 }
 
 enum TipStatus {
@@ -58,7 +60,11 @@ model Tip {
   review                Review?
   notificationReads     NotificationRead[]
 
-  @@index([storeId])
+  // History/aggregates filter storeId + status="succeeded" and sort by createdAt.
+  // Scoped (operator / selected store) uses the first; the all-stores admin view
+  // (no storeId) uses the second.
+  @@index([storeId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model Review {
@@ -72,7 +78,8 @@ model Review {
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
   tip                Tip      @relation(fields: [tipId], references: [id], onDelete: Cascade)
 
-  @@index([storeId])
+  // Review lists sort by createdAt within a store (public/private both paginate).
+  @@index([storeId, createdAt])
 }
 
 // Two roles:
@@ -89,6 +96,7 @@ model AdminUser {
   createdAt         DateTime           @default(now()) @db.Timestamptz(3)
   store             Store?             @relation(fields: [storeId], references: [id], onDelete: SetNull)
   notificationReads NotificationRead[]
+  announcementReads AnnouncementRead[]
 
   @@index([storeId])
 }
@@ -138,4 +146,94 @@ model NotificationRead {
 
   @@unique([adminUserId, tipId])
   @@index([adminUserId])
+}
+
+enum SupportStatus {
+  open
+  resolved
+}
+
+enum SupportSender {
+  operator
+  admin
+}
+
+/**
+ * A support conversation between a store operator and the platform admin
+ * ("運営へのお問い合わせ"). Unread flags drive each side's badge: a new message
+ * from the operator marks it unread for the admin and vice-versa; opening the
+ * thread clears that side's flag.
+ */
+model SupportThread {
+  id            String           @id @default(cuid())
+  storeId       String
+  subject       String
+  status        SupportStatus    @default(open)
+  operatorUnread Boolean         @default(false)
+  adminUnread   Boolean          @default(true)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime         @default(now()) @updatedAt @db.Timestamptz(3)
+  store         Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  messages      SupportMessage[]
+
+  // Operator thread list is scoped by store and ordered by most-recent activity.
+  @@index([storeId, updatedAt])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  threadId  String
+  sender    SupportSender
+  body      String
+  imageUrl  String?
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  thread    SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+}
+
+enum AnnouncementStatus {
+  draft
+  published
+  deleted
+}
+
+/**
+ * Platform-admin announcement to stores ("お知らせ"). storeId null = every store;
+ * a set storeId targets one store's operator. Read state is per admin user.
+ * Only `published` announcements are visible to operators.
+ */
+model Announcement {
+  id          String             @id @default(cuid())
+  title       String
+  body        String
+  storeId     String?
+  status      AnnouncementStatus @default(published)
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  store       Store?             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  reads       AnnouncementRead[]
+
+  @@index([storeId])
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  adminUserId    String
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  admin          AdminUser    @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, adminUserId])
+  @@index([adminUserId])
+}
+
+/** Help / FAQ entry — managed by the platform admin, read-only for operators. */
+model Faq {
+  id        String   @id @default(cuid())
+  category  String
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 }
