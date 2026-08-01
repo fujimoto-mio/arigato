@@ -30,7 +30,7 @@ export function storeChannelName(storeId: string) {
   return `store:${storeId}`;
 }
 
-async function broadcast(storeId: string, event: string, payload: unknown) {
+async function broadcast(topic: string, event: string, payload: unknown) {
   if (!supabaseUrl || !serviceRoleKey) {
     console.error("realtime broadcast: Supabase env vars are not set");
     return;
@@ -45,7 +45,7 @@ async function broadcast(storeId: string, event: string, payload: unknown) {
         Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
-        messages: [{ topic: storeChannelName(storeId), event, payload }],
+        messages: [{ topic, event, payload }],
       }),
     });
 
@@ -66,10 +66,22 @@ async function broadcast(storeId: string, event: string, payload: unknown) {
  * not fail the request that recorded a tip that already happened.
  */
 export function broadcastTip(storeId: string, payload: TipEvent) {
-  return broadcast(storeId, TIP_EVENT, payload);
+  return broadcast(storeChannelName(storeId), TIP_EVENT, payload);
 }
 
 /** Notify the dashboard that a review was attached to an existing tip. */
 export function broadcastReview(storeId: string, payload: ReviewEvent) {
-  return broadcast(storeId, REVIEW_EVENT, payload);
+  return broadcast(storeChannelName(storeId), REVIEW_EVENT, payload);
+}
+
+export const SUPPORT_EVENT = "support_message";
+
+/** Realtime topic for a single support thread — both parties subscribe while viewing it. */
+export function supportChannelName(threadId: string) {
+  return `support:${threadId}`;
+}
+
+/** Notify a support thread's subscribers that a new message arrived. */
+export function broadcastSupportMessage(threadId: string, payload: { sender: "operator" | "admin" }) {
+  return broadcast(supportChannelName(threadId), SUPPORT_EVENT, payload);
 }
