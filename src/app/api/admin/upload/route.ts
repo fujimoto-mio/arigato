@@ -2,21 +2,10 @@ import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin/auth";
 import { getActiveStore } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
-import { supabaseServiceClient } from "@/lib/supabase/server";
+import { uploadPublicObject } from "@/lib/storage";
 
-const BUCKET = "store-media";
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-async function ensureBucket(supabase: ReturnType<typeof supabaseServiceClient>) {
-  const { data } = await supabase.storage.getBucket(BUCKET);
-  if (data) return;
-  await supabase.storage.createBucket(BUCKET, {
-    public: true,
-    fileSizeLimit: MAX_BYTES,
-    allowedMimeTypes: ALLOWED_TYPES,
-  });
-}
 
 /** Upload a store image (cover / story photo). Returns the public URL to persist. */
 export async function POST(request: Request) {
@@ -56,25 +45,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "file_too_large" }, { status: 400 });
   }
 
-  const supabase = supabaseServiceClient();
-  await ensureBucket(supabase);
-
   const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
   // Store-scoped path keeps one store's uploads out of another's namespace.
   const path = `${storeId}/${crypto.randomUUID()}.${extension}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, await file.arrayBuffer(), { contentType: file.type, upsert: false });
-
-  if (uploadError) {
+  try {
+    const url = await uploadPublicObject(path, await file.arrayBuffer(), file.type);
+    return NextResponse.json({ url });
+  } catch (uploadError) {
     console.error("Storage upload failed", uploadError);
     return NextResponse.json({ error: "upload_failed" }, { status: 500 });
   }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(BUCKET).getPublicUrl(path);
-
-  return NextResponse.json({ url: publicUrl });
 }

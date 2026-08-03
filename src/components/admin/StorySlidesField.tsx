@@ -2,6 +2,7 @@
 
 import { ArrowDown, ArrowUp, GripVertical, ImagePlus, Plus, Trash2 } from "lucide-react";
 import { LOCALES, type Locale } from "@/i18n/messages";
+import { downscaleImage } from "@/lib/image-resize";
 import { cleanLocaleText, hasAnyText, type LocaleText, LOCALE_LABELS } from "@/lib/story";
 
 export type StorySlideDraft = { title: LocaleText; body: LocaleText; imageUrl: string | null };
@@ -23,10 +24,11 @@ export function toStorySlideState(draft: StorySlideDraft): StorySlideState {
   return { ...draft, file: null, previewUrl: null };
 }
 
-/** Upload one image for a store and return its public URL. */
+/** Upload one image for a store and return its public URL. Downscales first. */
 export async function uploadStoreImage(storeId: string, file: File): Promise<string> {
+  const optimized = await downscaleImage(file);
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", optimized);
   form.append("storeId", storeId);
   const res = await fetch("/api/admin/upload", { method: "POST", body: form });
   if (!res.ok) throw new Error("upload_failed");
@@ -36,17 +38,22 @@ export async function uploadStoreImage(storeId: string, file: File): Promise<str
 
 /**
  * Upload any newly-picked slide photos for the given store, then return the
- * cleaned slide list (locales trimmed, fully-empty slides dropped).
+ * cleaned slide list (locales trimmed, fully-empty slides dropped). Uploads run
+ * in parallel so multiple new photos don't wait on each other.
  */
 export async function uploadStorySlides(
   storeId: string,
   slides: StorySlideState[],
 ): Promise<StorySlideDraft[]> {
+  const uploaded = await Promise.all(
+    slides.map((slide) => (slide.file ? uploadStoreImage(storeId, slide.file) : Promise.resolve(null))),
+  );
+
   const resolved: StorySlideDraft[] = [];
-  for (const slide of slides) {
+  slides.forEach((slide, index) => {
     let imageUrl = slide.imageUrl;
     if (slide.file) {
-      imageUrl = await uploadStoreImage(storeId, slide.file);
+      imageUrl = uploaded[index];
       if (slide.previewUrl) URL.revokeObjectURL(slide.previewUrl);
     }
     const title = cleanLocaleText(slide.title);
@@ -54,7 +61,7 @@ export async function uploadStorySlides(
     if (hasAnyText(title) || hasAnyText(body) || imageUrl) {
       resolved.push({ title, body, imageUrl });
     }
-  }
+  });
   return resolved;
 }
 

@@ -18,6 +18,7 @@ import {
 import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
+import { downscaleImage } from "@/lib/image-resize";
 import { type LocaleText, pickLocaleText } from "@/lib/story";
 import { CARD_MIN_AMOUNT, TIP_MAX, TIP_STEP } from "@/lib/tip";
 
@@ -289,17 +290,19 @@ export function GuestFlow({
   async function finishWithReview(tid: string) {
     try {
       if (rating > 0) {
-        const photoUrls: string[] = [];
-        for (const { file } of photos) {
-          const form = new FormData();
-          form.append("file", file);
-          form.append("tipId", tid);
-          const res = await fetch("/api/reviews/photo", { method: "POST", body: form });
-          if (res.ok) {
+        // Downscale + upload all photos in parallel so submit doesn't stall.
+        const uploads = await Promise.all(
+          photos.map(async ({ file }) => {
+            const form = new FormData();
+            form.append("file", await downscaleImage(file));
+            form.append("tipId", tid);
+            const res = await fetch("/api/reviews/photo", { method: "POST", body: form });
+            if (!res.ok) return null;
             const { url } = (await res.json()) as { url: string };
-            photoUrls.push(url);
-          }
-        }
+            return url;
+          }),
+        );
+        const photoUrls = uploads.filter((u): u is string => u != null);
         const res = await fetch("/api/reviews", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

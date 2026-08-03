@@ -3,6 +3,7 @@
 import { ImagePlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
+import { downscaleImage } from "@/lib/image-resize";
 
 /** Message composer for a support thread — text + optional image attachment. */
 export function SupportReplyForm({ threadId, storeId }: { threadId: string; storeId: string }) {
@@ -18,7 +19,7 @@ export function SupportReplyForm({ threadId, storeId }: { threadId: string; stor
     setError(null);
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", await downscaleImage(file));
       form.append("storeId", storeId);
       const res = await fetch("/api/admin/upload", { method: "POST", body: form });
       if (!res.ok) throw new Error("upload_failed");
