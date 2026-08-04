@@ -1,41 +1,52 @@
+import { Poppins } from "next/font/google";
+
+// Geometric sans matching the ARIGATO TiPLY JAPAN wordmark artwork.
+const logoFont = Poppins({ subsets: ["latin"], weight: ["500", "600", "700", "800"] });
+
 const ARIGATO_LETTERS = "ARIGATO".split("");
 
 /**
- * ARIGATO TiP JAPAN logo — a red circle with "ARIGATO" spelled vertically
- * inside, and "TIP" / "JAPAN" stacked as two rows beneath it. Built with CSS
+ * ARIGATO TiPLY JAPAN logo — a red circle with "ARIGATO" spelled vertically
+ * inside, and "TiPLY" (gold) / "JAPAN" (red) stacked beneath it. Built with CSS
  * text rather than a raster image so it stays crisp at any size.
  */
 /** Just the red circle with "ARIGATO" set vertically — reusable on its own. */
 export function LogoMark({ size = 56 }: { size?: number }) {
   return (
     <div
-      className="flex flex-col items-center justify-center rounded-full bg-[var(--color-logo)]"
+      className="flex items-center justify-center rounded-full bg-[var(--color-logo)]"
       style={{ width: size, height: size }}
       role="img"
-      aria-label="ARIGATO TiP JAPAN"
+      aria-label="ARIGATO TiPLY JAPAN"
     >
-      {ARIGATO_LETTERS.map((letter, index) => (
-        <span key={index} className="font-bold text-white" style={{ fontSize: size * 0.125, lineHeight: 1.05 }}>
-          {letter}
-        </span>
-      ))}
+      <div className={`flex flex-col items-center ${logoFont.className}`}>
+        {ARIGATO_LETTERS.map((letter, index) => (
+          <span
+            key={index}
+            className="font-medium text-white"
+            style={{ fontSize: size * 0.12, lineHeight: 1.12, letterSpacing: "0.03em" }}
+          >
+            {letter}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
 
 export function LogoBadge({ size = 56 }: { size?: number }) {
   return (
-    <div className="flex flex-col items-center" style={{ width: size }} role="img" aria-label="ARIGATO TiP JAPAN">
+    <div className={`flex flex-col items-center ${logoFont.className}`} role="img" aria-label="ARIGATO TiPLY JAPAN">
       <LogoMark size={size} />
       <p
-        className="mt-1 text-center font-bold leading-[1.05] text-[var(--color-logo)]"
-        style={{ fontSize: size * 0.29 }}
+        className="mt-3 text-center font-bold leading-none text-[var(--color-accent)]"
+        style={{ fontSize: size * 0.46, letterSpacing: "-0.01em" }}
       >
-        TiP
+        TiPLY
       </p>
       <p
-        className="text-center font-bold leading-[1.1] text-[var(--color-logo)]"
-        style={{ fontSize: size * 0.29, letterSpacing: "0.02em" }}
+        className="mt-2 text-center font-bold leading-none text-[var(--color-logo)]"
+        style={{ fontSize: size * 0.26, letterSpacing: "0.14em", paddingLeft: "0.14em" }}
       >
         JAPAN
       </p>
@@ -43,12 +54,12 @@ export function LogoBadge({ size = 56 }: { size?: number }) {
   );
 }
 
-/** "ARIGATO TiP" wordmark — ARIGATO black, TiP gold. */
+/** "ARIGATO TiPLY" wordmark — ARIGATO black, TiPLY gold. */
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={className}>
-      <span className="font-extrabold text-neutral-900">ARIGATO </span>
-      <span className="font-extrabold text-[var(--color-accent)]">TiP</span>
+    <span className={`${logoFont.className} ${className}`}>
+      <span className="font-bold text-neutral-900">ARIGATO </span>
+      <span className="font-bold text-[var(--color-accent)]">TiPLY</span>
     </span>
   );
 }

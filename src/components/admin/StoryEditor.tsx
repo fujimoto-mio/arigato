@@ -1,11 +1,15 @@
 "use client";
 
+import { useFormik } from "formik";
 import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { StoryPreview } from "@/components/admin/StoryPreview";
+import * as Yup from "yup";
+import { PhonePreviewModal } from "@/components/admin/PhonePreviewModal";
+import { PreviewIframe } from "@/components/admin/PreviewIframe";
 import {
   EMPTY_STORY_SLIDE,
+  type SlideError,
   type StorySlideDraft,
   type StorySlideState,
   StorySlidesField,
@@ -13,81 +17,91 @@ import {
   uploadStorySlides,
 } from "@/components/admin/StorySlidesField";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/messages";
-import { hasAnyText } from "@/lib/story";
+import { hasAnyText, type LocaleText } from "@/lib/story";
 
 export type { StorySlideDraft };
 
+const schema = Yup.object({
+  slides: Yup.array().of(
+    Yup.object({
+      title: Yup.mixed().test("title", "タイトルを入力してください", (v) => hasAnyText(v as LocaleText)),
+      body: Yup.mixed().test("body", "本文を入力してください", (v) => hasAnyText(v as LocaleText)),
+    }),
+  ),
+});
+
 /**
- * Per-store, multi-language "Our Story" editor. Title/body are entered per
- * language; picking a photo previews it locally and uploads on save, when the
- * whole list is written (replace-all) to `/api/admin/story`.
+ * Per-store, multi-language "Our Story" editor (Formik + Yup). Each slide must
+ * have a title and body (in at least one language); a photo is optional. Titles/
+ * bodies are entered per language; photos preview locally and upload on save.
  */
 export function StoryEditor({
   storeId,
-  storeName,
-  coverImageUrl,
+  slug,
   initialSlides,
 }: {
   storeId: string;
-  storeName: string;
-  coverImageUrl: string | null;
+  slug: string;
   initialSlides: StorySlideDraft[];
 }) {
   const router = useRouter();
-  const [slides, setSlides] = useState<StorySlideState[]>(
-    initialSlides.length > 0 ? initialSlides.map(toStorySlideState) : [{ ...EMPTY_STORY_SLIDE }],
-  );
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  async function save() {
-    setStatus("saving");
-    setError(null);
-    try {
-      const cleaned = await uploadStorySlides(storeId, slides);
-      if (cleaned.some((slide) => !hasAnyText(slide.title))) {
-        setError("各スライドに、いずれかの言語でタイトルを入力してください。");
+  const formik = useFormik<{ slides: StorySlideState[] }>({
+    initialValues: {
+      slides: initialSlides.length > 0 ? initialSlides.map(toStorySlideState) : [{ ...EMPTY_STORY_SLIDE }],
+    },
+    validationSchema: schema,
+    onSubmit: async (values, { setFieldValue, setSubmitting }) => {
+      setStatus("saving");
+      setError(null);
+      try {
+        const cleaned = await uploadStorySlides(storeId, values.slides);
+        const res = await fetch("/api/admin/story", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ storeId, slides: cleaned }),
+        });
+        if (!res.ok) throw new Error("save_failed");
+        void setFieldValue(
+          "slides",
+          cleaned.length > 0 ? cleaned.map(toStorySlideState) : [{ ...EMPTY_STORY_SLIDE }],
+        );
+        setStatus("saved");
+        router.refresh();
+        setTimeout(() => setStatus("idle"), 2000);
+      } catch {
+        setError("保存できませんでした。もう一度お試しください。");
         setStatus("idle");
-        return;
+      } finally {
+        setSubmitting(false);
       }
+    },
+  });
 
-      const res = await fetch("/api/admin/story", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeId, slides: cleaned }),
-      });
-      if (!res.ok) throw new Error("save_failed");
-
-      setSlides(cleaned.length > 0 ? cleaned.map(toStorySlideState) : [{ ...EMPTY_STORY_SLIDE }]);
-      setStatus("saved");
-      router.refresh();
-      setTimeout(() => setStatus("idle"), 2000);
-    } catch {
-      setError("保存できませんでした。もう一度お試しください。");
-      setStatus("idle");
-    }
-  }
-
-  // Raw locale maps for the preview (which has its own language switcher), with
-  // the locally-picked photo when present.
-  const previewSlides = slides.map((slide) => ({
-    title: slide.title,
-    body: slide.body,
-    imageUrl: slide.previewUrl ?? slide.imageUrl,
-  }));
+  const slides = formik.values.slides;
+  // Show per-slide errors only after a save attempt.
+  const slideErrors =
+    formik.submitCount > 0 ? (formik.errors.slides as (SlideError | undefined)[] | undefined) : undefined;
 
   return (
-    <div className="flex flex-col gap-5">
-      <StorySlidesField slides={slides} onChange={setSlides} activeLocale={locale} onLocaleChange={setLocale} />
+    <form onSubmit={formik.handleSubmit} noValidate className="flex flex-col gap-5">
+      <StorySlidesField
+        slides={slides}
+        onChange={(next) => void formik.setFieldValue("slides", next)}
+        activeLocale={locale}
+        onLocaleChange={setLocale}
+        errors={slideErrors}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <button
-          type="button"
-          onClick={save}
+          type="submit"
           disabled={status === "saving"}
           className="w-full rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white disabled:opacity-40 sm:w-auto"
         >
@@ -103,15 +117,16 @@ export function StoryEditor({
         </button>
         {status === "saved" ? <span className="text-sm text-green-600">保存しました</span> : null}
       </div>
+      <p className="text-xs text-neutral-400">※ プレビューは保存後の内容が表示されます。</p>
 
-      <StoryPreview
+      {/* Live preview of the actual guest page (保存後の内容). */}
+      <PhonePreviewModal
         open={previewOpen}
-        slides={previewSlides}
-        storeName={storeName}
-        coverImageUrl={coverImageUrl}
-        initialLocale={locale}
         onClose={() => setPreviewOpen(false)}
-      />
-    </div>
+        ariaLabel="お客様用ページのプレビュー"
+      >
+        <PreviewIframe src={`/s/${slug}`} title="お客様用ページのプレビュー" />
+      </PhonePreviewModal>
+    </form>
   );
 }

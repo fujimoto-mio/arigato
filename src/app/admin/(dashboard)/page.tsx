@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 type TipWithReview = Prisma.TipGetPayload<{ include: { review: true; store: { select: { name: true } } } }>;
 
 export default async function AdminDashboardPage() {
-  const { activeStoreId } = await getActiveStore();
+  const { activeStoreId, activeStore } = await getActiveStore();
   const scope = storeScope(activeStoreId);
   const todayStart = startOfTokyoDay();
   const todayWhere = { ...scope, status: "succeeded" as const, createdAt: { gte: todayStart } };
@@ -38,6 +38,14 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {activeStore?.status === "pending" ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+          <h2 className="text-sm font-bold text-amber-800">承認待ちです</h2>
+          <p className="mt-1 text-sm leading-relaxed text-amber-700">
+            管理者の承認後に、お客様用のQRコード・ページが公開されます。承認までの間も店舗情報・ストーリーの編集は可能です。
+          </p>
+        </section>
+      ) : null}
       <section>
         <h2 className="text-sm font-bold text-neutral-700">本日のサマリー</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">

@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeleteStoreButton } from "@/components/admin/DeleteStoreButton";
-import { StoreOperators } from "@/components/admin/StoreOperators";
+import { StoreApproveButton } from "@/components/admin/StoreApproveButton";
 import { StorePreviewButton } from "@/components/admin/StorePreviewButton";
 import { StoreQrCard } from "@/components/admin/StoreQrCard";
 import { StoreSettings } from "@/components/admin/StoreSettings";
@@ -30,14 +30,8 @@ export default async function AdminStoreEditPage({
     notFound();
   }
 
-  // Operator accounts for this store (platform admin manages these).
-  const operators = ctx.isPlatformAdmin
-    ? await prisma.adminUser.findMany({
-        where: { storeId: store.id, role: "store_operator" },
-        select: { id: true, email: true },
-        orderBy: { createdAt: "asc" },
-      })
-    : [];
+  // The store's email = the operator's own login email (they edit it in 店舗設定).
+  const contactEmail = ctx.email ?? store.email;
 
   // Story slides are only edited by the operator, so skip the query for admins.
   const slides: StorySlideDraft[] = ctx.isPlatformAdmin
@@ -71,6 +65,16 @@ export default async function AdminStoreEditPage({
       {/* Platform admin: read-only summary — store info / QR / story are edited by
           the store operator, not here. */}
       {ctx.isPlatformAdmin ? (
+        <>
+        {store.status === "pending" ? (
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
+            <h2 className="text-base font-bold text-amber-800">承認待ちの店舗です</h2>
+            <p className="mb-4 mt-1 text-sm leading-relaxed text-amber-700">
+              自己登録された店舗です。承認すると、お客様用のQRコード・ページが公開されます。
+            </p>
+            <StoreApproveButton storeId={store.id} />
+          </section>
+        ) : null}
         <section className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5">
           {/* Header: title + status on the left, preview on the right. */}
           <div className="flex items-start justify-between gap-2">
@@ -78,16 +82,21 @@ export default async function AdminStoreEditPage({
               <p className="text-sm font-medium text-neutral-500">お客様用ページ</p>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  store.status === "suspended" ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
+                  store.status === "pending"
+                    ? "bg-amber-100 text-amber-700"
+                    : store.status === "suspended"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-emerald-100 text-emerald-700"
                 }`}
               >
-                {store.status === "suspended" ? "停止中" : "受付中"}
+                {store.status === "pending" ? "承認待ち" : store.status === "suspended" ? "停止中" : "受付中"}
               </span>
             </div>
-            <StorePreviewButton url={`/s/${store.slug}`} />
+            {store.status === "pending" ? null : <StorePreviewButton url={`/s/${store.slug}`} />}
           </div>
 
-          {/* QR + URL / note */}
+          {/* QR + URL / note — the QR is generated even while pending; the linked
+              guest page only goes live once approved. */}
           <div className="mt-3 flex items-center gap-4">
             <StoreQrCard
               storeName={store.name}
@@ -105,14 +114,71 @@ export default async function AdminStoreEditPage({
               >
                 /s/{store.slug}
               </a>
-              <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-                QRコードをクリックで拡大。店舗情報・ストーリーの編集は店舗運営者アカウントから行います。
-              </p>
+              {store.status === "pending" ? (
+                <p className="mt-1 text-xs leading-relaxed text-amber-700">
+                  承認待ちです。QRコードは発行済みですが、読み取り先のお客様ページは承認後に有効になります。
+                </p>
+              ) : (
+                <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+                  QRコードをクリックで拡大。店舗情報・ストーリーの編集は店舗運営者アカウントから行います。
+                </p>
+              )}
             </div>
           </div>
         </section>
+
+        {/* Registration / contact info — the fields the store entered at signup,
+            read-only for the platform admin (same fields the operator edits). */}
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+          <h2 className="text-lg font-bold">登録情報</h2>
+          <p className="mb-4 text-sm text-neutral-500">店舗登録時に入力された情報です。</p>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            {[
+              { label: "会社名", value: store.companyName },
+              { label: "担当者名", value: store.contactName },
+              { label: "電話番号", value: store.phone },
+              { label: "店舗住所", value: store.address },
+              { label: "Google Place ID", value: store.googlePlaceId },
+              { label: "Instagram", value: store.instagramUrl },
+              { label: "Facebook", value: store.facebookUrl },
+            ].map((field) => (
+              <div key={field.label} className="flex flex-col gap-0.5 border-b border-neutral-100 pb-2">
+                <dt className="text-xs font-medium text-neutral-500">{field.label}</dt>
+                <dd className="text-sm break-words text-neutral-800">
+                  {field.value ? (
+                    /^https?:\/\//.test(field.value) ? (
+                      <a
+                        href={field.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--color-accent)] hover:underline"
+                      >
+                        {field.value}
+                      </a>
+                    ) : (
+                      field.value
+                    )
+                  ) : (
+                    <span className="text-neutral-300">—</span>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+        </>
       ) : (
         <>
+          {store.status === "pending" ? (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
+              <h2 className="text-base font-bold text-amber-800">承認待ちです</h2>
+              <p className="mt-1 text-sm leading-relaxed text-amber-700">
+                ご登録ありがとうございます。管理者の承認後に、お客様用のQRコード・ページが公開されます。
+                承認までの間も店舗情報・ストーリーの編集は可能です。
+              </p>
+            </section>
+          ) : null}
+
           {/* Store info + QR — store operator edits their own store. */}
           <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
             <h2 className="text-lg font-bold">店舗情報</h2>
@@ -120,6 +186,8 @@ export default async function AdminStoreEditPage({
             <StoreSettings
               origin={origin}
               storeId={store.id}
+              published={store.status === "active"}
+              slugLocked={store.status !== "pending"}
               store={{
                 name: store.name,
                 slug: store.slug,
@@ -127,6 +195,11 @@ export default async function AdminStoreEditPage({
                 coverImageUrl: store.coverImageUrl,
                 instagramUrl: store.instagramUrl,
                 facebookUrl: store.facebookUrl,
+                companyName: store.companyName,
+                contactName: store.contactName,
+                phone: store.phone,
+                email: contactEmail,
+                address: store.address,
               }}
             />
           </section>
@@ -137,29 +210,13 @@ export default async function AdminStoreEditPage({
             <p className="mb-5 text-sm text-neutral-500">
               QRコードから開くお客様の画面に表示される「Our Story」です。未設定の場合は標準のストーリーが表示されます。
             </p>
-            <StoryEditor
-              storeId={store.id}
-              storeName={store.name}
-              coverImageUrl={store.coverImageUrl}
-              initialSlides={slides}
-            />
+            <StoryEditor storeId={store.id} slug={store.slug} initialSlides={slides} />
           </section>
         </>
       )}
 
-      {/* Store operator accounts — platform admin only (1 account = 1 store). */}
-      {ctx.isPlatformAdmin ? (
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-          <h2 className="text-lg font-bold">店舗運営者アカウント</h2>
-          <p className="mb-4 text-sm text-neutral-500">
-            この店舗のみを管理できるアカウントです。作成すると仮パスワードが1度だけ表示されるので、店舗にお渡しください。
-          </p>
-          <StoreOperators storeId={store.id} initialOperators={operators} />
-        </section>
-      ) : null}
-
-      {/* Suspend / reactivate — platform admin only. */}
-      {ctx.isPlatformAdmin ? (
+      {/* Suspend / reactivate — platform admin only, and only once approved. */}
+      {ctx.isPlatformAdmin && store.status !== "pending" ? (
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
           <h2 className="text-lg font-bold">受付の停止 / 再開</h2>
           <p className="mb-4 text-sm text-neutral-500">

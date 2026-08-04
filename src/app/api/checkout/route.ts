@@ -24,8 +24,9 @@ export async function POST(request: Request) {
   if (!store || store.deletedAt) {
     return NextResponse.json({ error: "store_not_found" }, { status: 404 });
   }
-  // Suspended stores don't accept new tips.
-  if (store.status === "suspended") {
+  // Only approved (active) stores accept tips — pending (awaiting approval) and
+  // suspended stores are closed.
+  if (store.status !== "active") {
     return NextResponse.json({ error: "store_suspended" }, { status: 403 });
   }
 

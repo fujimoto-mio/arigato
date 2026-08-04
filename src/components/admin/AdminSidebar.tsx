@@ -211,7 +211,7 @@ export function AdminSidebar({
           <div className="leading-tight">
             <p className="text-sm font-bold">
               <span className="text-white">ARIGATO </span>
-              <span className="text-[var(--color-accent)]">TiP</span>
+              <span className="text-[var(--color-accent)]">TiPLY</span>
             </p>
             <p className="text-[9px] tracking-[0.3em] text-neutral-400">JAPAN</p>
           </div>

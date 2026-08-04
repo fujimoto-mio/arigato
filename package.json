@@ -31,6 +31,7 @@
     "aws4fetch": "^1.0.20",
     "country-flag-icons": "^1.6.20",
     "dotenv": "^17.4.2",
+    "formik": "^2.4.9",
     "lucide-react": "^1.26.0",
     "next": "^16.2.10",
     "next-intl": "^4.13.2",
@@ -40,6 +41,7 @@
     "react-dom": "^19.2.7",
     "stripe": "^22.3.1",
     "web-push": "^3.6.7",
+    "yup": "^1.7.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

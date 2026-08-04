@@ -15,7 +15,7 @@ import { unreadThreadCount } from "@/lib/admin/support";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "ダッシュボード — ARIGATO TiP",
+  title: "ダッシュボード — ARIGATO TiPLY",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "ARIGATO 管理" },
   icons: { apple: "/icons/apple-icon-180.png" },
 };

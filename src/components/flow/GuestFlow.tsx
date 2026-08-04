@@ -501,7 +501,7 @@ function Landing({
           </span>
         </AccentButton>
         <p className="mt-4 text-center text-xs tracking-wide text-neutral-400">
-          {t("poweredByPrefix")} <span className="font-bold text-neutral-600">ARIGATO TiP</span>
+          {t("poweredByPrefix")} <span className="font-bold text-neutral-600">ARIGATO TiPLY</span>
         </p>
       </div>
     </div>

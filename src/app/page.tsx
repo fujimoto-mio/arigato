@@ -13,7 +13,7 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "ARIGATO TiP | 飲食店向け多言語チップ決済サービス",
+  title: "ARIGATO TiPLY | 飲食店向け多言語チップ決済サービス",
   description:
     "QRコードを読み込むだけで、インバウンドのお客様が多言語でお店へチップと応援を届けられるサービス。カード・電子ウォレット・現金に対応し、リアルタイム通知とクチコミ育成までワンストップで。",
 };
@@ -104,7 +104,7 @@ function DemoPhone() {
     <div className="mx-auto w-72 overflow-hidden rounded-[2.5rem] border-8 border-neutral-900 bg-white shadow-2xl">
       <Image
         src="/lp/demo-store.png"
-        alt="ARIGATO TiP デモストア画面のスクリーンショット"
+        alt="ARIGATO TiPLY デモストア画面のスクリーンショット"
         width={390}
         height={844}
         className="h-auto w-full"
@@ -154,7 +154,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-5 text-base leading-relaxed text-neutral-600">
               インバウンドのお客様はチップの習慣に不慣れでも、スマホでの操作ならすぐに理解できます。ARIGATO
-              TiPは、テーブルのQRコードを読み込むだけで、多言語対応のチップ決済ができる飲食店向けのおもてなしツールです。
+              TiPLYは、テーブルのQRコードを読み込むだけで、多言語対応のチップ決済ができる飲食店向けのおもてなしツールです。
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -306,7 +306,7 @@ export default function HomePage() {
 
       <footer className="border-t border-white/10 bg-neutral-900 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 text-xs text-neutral-400 sm:flex-row sm:justify-between">
-          <span>© 2026 ARIGATO TiP</span>
+          <span>© 2026 ARIGATO TiPLY</span>
           <div className="flex gap-4">
             <a href="#how" className="hover:text-white">
               使い方

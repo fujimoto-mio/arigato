@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ARIGATO TiP",
+  title: "ARIGATO TiPLY",
   description: "Say thank you to the restaurant, in your language.",
 };
 

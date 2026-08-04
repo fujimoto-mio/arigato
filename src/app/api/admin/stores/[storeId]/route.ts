@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePlatformAdminApi, requireStoreAccessApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
+import { supabaseServiceClient } from "@/lib/supabase/server";
 
 // Empty string clears an optional field back to null.
 const emptyToNull = (max: number) =>
@@ -22,6 +23,15 @@ const urlOrEmpty = z
   .optional()
   .refine((value) => value == null || /^https?:\/\//.test(value), "invalid_url");
 
+const emailOrEmpty = z
+  .string()
+  .trim()
+  .max(200)
+  .transform((value) => (value.length === 0 ? null : value))
+  .nullable()
+  .optional()
+  .refine((value) => value == null || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value), "invalid_email");
+
 const patchSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   slug: z
@@ -34,6 +44,12 @@ const patchSchema = z.object({
   googlePlaceId: emptyToNull(200),
   instagramUrl: urlOrEmpty,
   facebookUrl: urlOrEmpty,
+  // Registration contact details, editable after registration.
+  companyName: emptyToNull(120),
+  contactName: emptyToNull(80),
+  phone: emptyToNull(40),
+  email: emailOrEmpty,
+  address: emptyToNull(300),
   // https Supabase URL (uploads) or a local /path (stock placeholders).
   coverImageUrl: z
     .string()
@@ -76,7 +92,45 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ st
     }
   }
 
-  const updated = await prisma.store.update({ where: { id: storeId }, data: parsed.data });
+  // The store email IS the operator's login email (single source of truth). When
+  // it changes, update the operator's Supabase auth email + AdminUser row, then
+  // mirror it onto the store so both places always show the same value. The
+  // operator edits their own login; the platform admin edits the store's primary.
+  const { email: nextEmailRaw, ...rest } = parsed.data;
+  let emailForStore = store.email;
+  if (nextEmailRaw !== undefined) {
+    const nextEmail = nextEmailRaw ? nextEmailRaw.toLowerCase() : null;
+    const targetOperator = context.isPlatformAdmin
+      ? await prisma.adminUser.findFirst({
+          where: { storeId, role: "store_operator" },
+          orderBy: { createdAt: "asc" },
+        })
+      : await prisma.adminUser.findUnique({ where: { id: context.adminUserId } });
+
+    if (targetOperator) {
+      if (!nextEmail) return NextResponse.json({ error: "email_required" }, { status: 400 });
+      if (nextEmail !== targetOperator.email) {
+        const clash = await prisma.adminUser.findUnique({ where: { email: nextEmail } });
+        if (clash && clash.id !== targetOperator.id) {
+          return NextResponse.json({ error: "email_taken" }, { status: 409 });
+        }
+        const supabase = supabaseServiceClient();
+        const { error: authError } = await supabase.auth.admin.updateUserById(targetOperator.supabaseUserId, {
+          email: nextEmail,
+          email_confirm: true,
+        });
+        if (authError) return NextResponse.json({ error: "email_update_failed" }, { status: 400 });
+        await prisma.adminUser.update({ where: { id: targetOperator.id }, data: { email: nextEmail } });
+      }
+    }
+    // With or without an operator (legacy stores), mirror onto the store.
+    emailForStore = nextEmail;
+  }
+
+  const updated = await prisma.store.update({
+    where: { id: storeId },
+    data: { ...rest, email: emailForStore },
+  });
 
   return NextResponse.json({
     store: {

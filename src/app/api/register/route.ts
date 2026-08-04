@@ -1,11 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdminApi } from "@/lib/admin/auth";
 import { prisma } from "@/lib/prisma";
+import { nameToSlug } from "@/lib/slug";
 import { supabaseServiceClient } from "@/lib/supabase/server";
 
-// Empty string clears an optional field back to null.
 const emptyToNull = (max: number) =>
   z
     .string()
@@ -15,22 +14,13 @@ const emptyToNull = (max: number) =>
     .nullable()
     .optional();
 
-const createSchema = z.object({
+const schema = z.object({
   name: z.string().trim().min(1).max(80),
-  // The slug is the guest URL (`/s/<slug>`); it must stay URL-safe and unique.
-  slug: z
-    .string()
-    .trim()
-    .min(1)
-    .max(50)
-    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "invalid_slug"),
-  googlePlaceId: emptyToNull(200),
-  // Registration contact details. contactName / phone / email / address are
-  // required; companyName is optional.
   companyName: emptyToNull(120),
   contactName: z.string().trim().min(1).max(80),
   phone: z.string().trim().min(1).max(40),
   email: z.string().trim().email().max(200),
+  password: z.string().min(8).max(72),
   address: z.string().trim().min(1).max(300),
   // Registration consent items — all three required.
   termsAgreed: z.literal(true),
@@ -40,37 +30,44 @@ const createSchema = z.object({
 
 const CONSENT_FIELDS = ["termsAgreed", "billingAgreed", "cancellationAgreed"];
 
-/** Create a new store — platform admin only. Also creates the operator login. */
-export async function POST(request: Request) {
-  const { error } = await requirePlatformAdminApi();
-  if (error) return error;
+async function makeUniqueSlug(name: string): Promise<string> {
+  // Romaji for Japanese names (寿司はな → "sushihana"); "store" for all-kanji.
+  const root = (nameToSlug(name) || "store").slice(0, 40);
+  let candidate = root;
+  while (await prisma.store.findUnique({ where: { slug: candidate }, select: { id: true } })) {
+    candidate = `${root}-${randomBytes(3).toString("hex")}`.slice(0, 50);
+  }
+  return candidate;
+}
 
-  const parsed = createSchema.safeParse(await request.json());
+/**
+ * Public store self-registration. Creates a "pending" store and the operator's
+ * login (with their own password); the guest QR/page stays unpublished until the
+ * platform admin approves it.
+ */
+export async function POST(request: Request) {
+  const parsed = schema.safeParse(await request.json());
   if (!parsed.success) {
-    const isSlug = parsed.error.issues.some((issue) => issue.path[0] === "slug");
     const isConsent = parsed.error.issues.some((issue) => CONSENT_FIELDS.includes(String(issue.path[0])));
+    const isPassword = parsed.error.issues.some((issue) => issue.path[0] === "password");
     return NextResponse.json(
-      { error: isSlug ? "invalid_slug" : isConsent ? "consent_required" : "invalid_request" },
+      { error: isConsent ? "consent_required" : isPassword ? "weak_password" : "invalid_request" },
       { status: 400 },
     );
   }
   const data = parsed.data;
   const email = data.email.toLowerCase();
 
-  // Reject a taken slug or an email that already has an operator account before
-  // creating anything.
-  if (await prisma.store.findUnique({ where: { slug: data.slug } })) {
-    return NextResponse.json({ error: "slug_taken" }, { status: 409 });
-  }
   if (await prisma.adminUser.findUnique({ where: { email } })) {
     return NextResponse.json({ error: "email_taken" }, { status: 409 });
   }
 
+  const slug = await makeUniqueSlug(data.name);
   const store = await prisma.store.create({
     data: {
       name: data.name,
-      slug: data.slug,
-      googlePlaceId: data.googlePlaceId,
+      slug,
+      status: "pending",
       companyName: data.companyName,
       contactName: data.contactName,
       phone: data.phone,
@@ -80,15 +77,13 @@ export async function POST(request: Request) {
     },
   });
 
-  // Create the operator login from the registration email: a confirmed Supabase
-  // user with a generated temp password, shown once. Roll back the store if this
-  // fails so we never leave a store with no way in.
-  const tempPassword = randomBytes(12).toString("base64url");
+  // Create the operator login with their chosen password. Roll back the store if
+  // this fails so a registration never leaves a store with no way in.
   try {
     const supabase = supabaseServiceClient();
     const { data: created, error: createError } = await supabase.auth.admin.createUser({
       email,
-      password: tempPassword,
+      password: data.password,
       email_confirm: true,
     });
     if (createError || !created.user) throw createError ?? new Error("auth_create_failed");
@@ -101,8 +96,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "auth_create_failed" }, { status: 400 });
   }
 
-  return NextResponse.json({
-    store: { id: store.id, slug: store.slug, name: store.name },
-    operator: { email, tempPassword },
-  });
+  return NextResponse.json({ ok: true });
 }

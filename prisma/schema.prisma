@@ -7,6 +7,9 @@ datasource db {
 }
 
 enum StoreStatus {
+  // Self-registered, awaiting platform-admin approval — the guest QR/page is not
+  // published until approved. Admin-created stores skip this and start active.
+  pending
   active
   suspended
   deleted
@@ -20,6 +23,17 @@ model Store {
   googlePlaceId String?
   instagramUrl  String?
   facebookUrl   String?
+  // Registration contact details (店舗登録フォーム). Nullable so pre-existing
+  // stores stay valid; the registration form requires all but companyName.
+  companyName   String?
+  contactName   String?
+  phone         String?
+  // Store contact email. At registration this same address also creates the
+  // operator login (see POST /api/admin/stores); afterwards they're independent.
+  email         String?
+  address       String?
+  // When the operator agreed to the 利用規約 at registration.
+  termsAgreedAt DateTime?   @db.Timestamptz(3)
   // active: normal. suspended: guest tip page closed (history kept).
   // deleted: soft-deleted (hidden everywhere) — see deletedAt.
   status        StoreStatus @default(active)

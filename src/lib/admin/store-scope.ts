@@ -13,7 +13,12 @@ export type AdminStore = {
   googlePlaceId: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
-  status: "active" | "suspended" | "deleted";
+  companyName: string | null;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  status: "pending" | "active" | "suspended" | "deleted";
 };
 
 const STORE_SELECT = {
@@ -24,6 +29,11 @@ const STORE_SELECT = {
   googlePlaceId: true,
   instagramUrl: true,
   facebookUrl: true,
+  companyName: true,
+  contactName: true,
+  phone: true,
+  email: true,
+  address: true,
   status: true,
 } as const;
 
