@@ -40,17 +40,21 @@ export function SubscriptionPanel({
   const router = useRouter();
   const search = useSearchParams();
   const [consents, setConsents] = useState<Consents>(EMPTY_CONSENTS);
-  const [touched, setTouched] = useState(false);
+  // Per-field so touching one box never reveals another box's error.
+  const [touched, setTouched] = useState<Record<keyof Consents, boolean>>({
+    terms: false,
+    billing: false,
+    cancellation: false,
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const live = status === "trialing" || status === "active";
   const badge = subscriptionBadge(status);
   const periodLabel = formatJst(currentPeriodEnd);
-  const consentError = (ok: boolean, msg: string) => (touched && !ok ? msg : undefined);
 
   async function subscribe() {
-    setTouched(true);
+    setTouched({ terms: true, billing: true, cancellation: true });
     if (!consents.terms || !consents.billing || !consents.cancellation) return;
     setBusy(true);
     setError(null);
@@ -165,11 +169,12 @@ export function SubscriptionPanel({
             <ConsentCheckboxes
               value={consents}
               onChange={setConsents}
-              onBlur={() => setTouched(true)}
+              onBlur={(field) => setTouched((t) => ({ ...t, [field]: true }))}
               errors={{
-                terms: consentError(consents.terms, "利用規約への同意が必要です"),
-                billing: consentError(consents.billing, "自動課金への同意が必要です"),
-                cancellation: consentError(consents.cancellation, "解約方法への同意が必要です"),
+                terms: touched.terms && !consents.terms ? "利用規約への同意が必要です" : undefined,
+                billing: touched.billing && !consents.billing ? "自動課金への同意が必要です" : undefined,
+                cancellation:
+                  touched.cancellation && !consents.cancellation ? "解約方法への同意が必要です" : undefined,
               }}
             />
           </div>

@@ -282,15 +282,14 @@ export function StoreCreateForm({ origin }: { origin: string }) {
             void setFieldValue("billing", c.billing);
             void setFieldValue("cancellation", c.cancellation);
           }}
-          onBlur={() => {
-            void setFieldTouched("terms", true);
-            void setFieldTouched("billing", true);
-            void setFieldTouched("cancellation", true);
-          }}
+          onBlur={(field) => void setFieldTouched(field, true)}
           errors={{
-            terms: touched.terms ? (errors.terms as string) : undefined,
-            billing: touched.billing ? (errors.billing as string) : undefined,
-            cancellation: touched.cancellation ? (errors.cancellation as string) : undefined,
+            // Derive from the current value so ticking a box clears its error in
+            // the same render (Formik's `errors` object updates a tick late).
+            terms: touched.terms && !values.terms ? "利用規約への同意が必要です" : undefined,
+            billing: touched.billing && !values.billing ? "自動課金への同意が必要です" : undefined,
+            cancellation:
+              touched.cancellation && !values.cancellation ? "解約方法への同意が必要です" : undefined,
           }}
         />
       </section>

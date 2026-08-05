@@ -8,14 +8,18 @@ export const EMPTY_CONSENTS: Consents = { terms: false, billing: false, cancella
 export const allConsented = (c: Consents) => c.terms && c.billing && c.cancellation;
 
 function Row({
+  field,
   checked,
   onToggle,
   onBlur,
   children,
 }: {
+  field: keyof Consents;
   checked: boolean;
   onToggle: (v: boolean) => void;
-  onBlur?: () => void;
+  // Reports which row blurred so callers mark only that field touched — touching
+  // one box must not reveal another box's error.
+  onBlur?: (field: keyof Consents) => void;
   children: React.ReactNode;
 }) {
   return (
@@ -24,7 +28,7 @@ function Row({
         type="checkbox"
         checked={checked}
         onChange={(e) => onToggle(e.target.checked)}
-        onBlur={onBlur}
+        onBlur={() => onBlur?.(field)}
         className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 accent-[var(--color-accent)]"
       />
       <span>{children}</span>
@@ -45,14 +49,15 @@ export function ConsentCheckboxes({
 }: {
   value: Consents;
   onChange: (next: Consents) => void;
-  onBlur?: () => void;
+  // Called with the field that just blurred (so only its error can surface).
+  onBlur?: (field: keyof Consents) => void;
   // Per-row validation messages (shown only when present).
   errors?: Partial<Record<keyof Consents, string>>;
 }) {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <Row checked={value.terms} onToggle={(terms) => onChange({ ...value, terms })} onBlur={onBlur}>
+        <Row field="terms" checked={value.terms} onToggle={(terms) => onChange({ ...value, terms })} onBlur={onBlur}>
           <Link href="/terms" target="_blank" className="font-medium text-[var(--color-accent)] underline">
             利用規約
           </Link>
@@ -61,13 +66,14 @@ export function ConsentCheckboxes({
         {errors?.terms ? <p className="mt-1 text-xs text-red-600">{errors.terms}</p> : null}
       </div>
       <div>
-        <Row checked={value.billing} onToggle={(billing) => onChange({ ...value, billing })} onBlur={onBlur}>
+        <Row field="billing" checked={value.billing} onToggle={(billing) => onChange({ ...value, billing })} onBlur={onBlur}>
           初月無料・2か月目以降 月額5,000円（税抜）の自動課金に同意します。
         </Row>
         {errors?.billing ? <p className="mt-1 text-xs text-red-600">{errors.billing}</p> : null}
       </div>
       <div>
         <Row
+          field="cancellation"
           checked={value.cancellation}
           onToggle={(cancellation) => onChange({ ...value, cancellation })}
           onBlur={onBlur}
