@@ -1,3 +1,4 @@
+import type { StoreStatus, SubscriptionStatus } from "@prisma/client";
 import { cookies } from "next/headers";
 import { getAdminContext } from "@/lib/admin/auth";
 import { ACTIVE_STORE_COOKIE, ALL_STORES } from "@/lib/admin/store-constants";
@@ -18,7 +19,8 @@ export type AdminStore = {
   phone: string | null;
   email: string | null;
   address: string | null;
-  status: "pending" | "active" | "suspended" | "deleted";
+  status: StoreStatus;
+  subscriptionStatus: SubscriptionStatus;
 };
 
 const STORE_SELECT = {
@@ -35,6 +37,7 @@ const STORE_SELECT = {
   email: true,
   address: true,
   status: true,
+  subscriptionStatus: true,
 } as const;
 
 /** Every live store, ordered by name — the switcher list and all-stores aggregate. */

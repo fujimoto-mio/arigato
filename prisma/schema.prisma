@@ -7,12 +7,26 @@ datasource db {
 }
 
 enum StoreStatus {
-  // Self-registered, awaiting platform-admin approval — the guest QR/page is not
-  // published until approved. Admin-created stores skip this and start active.
+  // Legacy: was used by the retired self-registration/approval flow. New stores
+  // are created `active`; the guest page is now gated on `subscriptionStatus`.
   pending
   active
   suspended
   deleted
+}
+
+// Store subscription state, mirrored from Stripe by the webhook.
+//   none      — never subscribed (guest page not yet live)
+//   trialing  — in the 初月無料 trial (guest page live)
+//   active    — paying (guest page live)
+//   past_due  — payment failed / retrying (guest page live until Stripe cancels)
+//   canceled  — subscription ended (guest page closed)
+enum SubscriptionStatus {
+  none
+  trialing
+  active
+  past_due
+  canceled
 }
 
 model Store {
@@ -32,11 +46,18 @@ model Store {
   // operator login (see POST /api/admin/stores); afterwards they're independent.
   email         String?
   address       String?
-  // When the operator agreed to the 利用規約 at registration.
+  // When the operator agreed to the 利用規約 (at subscription registration).
   termsAgreedAt DateTime?   @db.Timestamptz(3)
   // active: normal. suspended: guest tip page closed (history kept).
   // deleted: soft-deleted (hidden everywhere) — see deletedAt.
   status        StoreStatus @default(active)
+  // Stripe subscription (¥5,000/月・税抜, 初月無料). Set by the webhook once the
+  // operator subscribes on /admin/subscription. The guest page goes live only
+  // while subscriptionStatus is trialing/active (see @/lib/subscription).
+  stripeCustomerId             String?
+  stripeSubscriptionId         String?            @unique
+  subscriptionStatus           SubscriptionStatus @default(none)
+  subscriptionCurrentPeriodEnd DateTime?          @db.Timestamptz(3)
   // Set when soft-deleted; null while live. Rows are never hard-deleted, so
   // tips/reviews/history survive.
   deletedAt     DateTime?   @db.Timestamptz(3)
@@ -47,6 +68,30 @@ model Store {
   storySlides   StorySlide[]
   supportThreads SupportThread[]
   announcements  Announcement[]
+  payouts       Payout[]
+}
+
+/**
+ * A manual payout to a store ("月末振込"). The store's outstanding balance is
+ * Σ(succeeded tips) − Σ(payouts), all in USD cents (same unit as Tip.amount).
+ * Recorded by the platform admin; a future Stripe-Connect payout would write
+ * rows here too.
+ */
+model Payout {
+  id               String    @id @default(cuid())
+  storeId          String
+  // USD cents, matching Tip.amount.
+  amount           Int
+  // Optional period this payout covers (for the month-end statement).
+  periodStart      DateTime? @db.Timestamptz(3)
+  periodEnd        DateTime? @db.Timestamptz(3)
+  note             String?
+  // The AdminUser who recorded it (platform admin).
+  createdByAdminId String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  store            Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
 }
 
 enum TipStatus {

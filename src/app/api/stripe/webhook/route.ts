@@ -2,8 +2,37 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { toSubscriptionStatus } from "@/lib/subscription";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+/**
+ * Mirror a Stripe subscription onto its store. The store id travels on the
+ * subscription's metadata (set at checkout); we fall back to matching by the
+ * stored subscription id. Idempotent — safe to run on every related event.
+ */
+async function syncSubscriptionToStore(subscription: Stripe.Subscription) {
+  const storeId = subscription.metadata?.storeId;
+  const store = storeId
+    ? await prisma.store.findUnique({ where: { id: storeId } })
+    : await prisma.store.findFirst({ where: { stripeSubscriptionId: subscription.id } });
+  if (!store) return;
+
+  const customerId =
+    typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+  // current_period_end is a unix-seconds timestamp; store the real instant.
+  const periodEndSeconds = (subscription as unknown as { current_period_end?: number }).current_period_end;
+
+  await prisma.store.update({
+    where: { id: store.id },
+    data: {
+      subscriptionStatus: toSubscriptionStatus(subscription.status),
+      stripeSubscriptionId: subscription.id,
+      stripeCustomerId: customerId,
+      subscriptionCurrentPeriodEnd: periodEndSeconds ? new Date(periodEndSeconds * 1000) : null,
+    },
+  });
+}
 
 export async function POST(request: Request) {
   if (!webhookSecret) {
@@ -42,6 +71,26 @@ export async function POST(request: Request) {
         where: { stripePaymentIntentId: paymentIntent.id },
         data: { status: "failed" },
       });
+      break;
+    }
+    // Store subscription lifecycle → mirror status onto the store. created/updated
+    // covers trial start, activation, past_due; deleted covers cancellation.
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      await syncSubscriptionToStore(event.data.object as Stripe.Subscription);
+      break;
+    }
+    // Fallback when the operator completes Checkout — fetch the subscription and
+    // sync, in case the subscription.* event lands out of order.
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode === "subscription" && session.subscription) {
+        const subId =
+          typeof session.subscription === "string" ? session.subscription : session.subscription.id;
+        const subscription = await stripe.subscriptions.retrieve(subId);
+        await syncSubscriptionToStore(subscription);
+      }
       break;
     }
     default:

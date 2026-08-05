@@ -3,12 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { type Column, DataTable } from "@/components/admin/DataTable";
-import { StoreApproveButton } from "@/components/admin/StoreApproveButton";
 import { TableNavProvider } from "@/components/admin/TableNav";
 import { TableToolbar } from "@/components/admin/TableToolbar";
 import { requirePlatformAdmin } from "@/lib/admin/auth";
 import { formatUsd } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
+import { subscriptionBadge } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -24,18 +24,37 @@ function statusBadge(status: string) {
     return { cls: "bg-neutral-50 text-neutral-500 ring-neutral-200", dot: "bg-neutral-400", label: "削除済み" };
   if (status === "suspended")
     return { cls: "bg-rose-50 text-rose-600 ring-rose-500/20", dot: "bg-rose-500", label: "停止中" };
+  // pending = subscribed via /subscribe but the login hasn't been issued yet.
   if (status === "pending")
-    return { cls: "bg-amber-50 text-amber-700 ring-amber-500/20", dot: "bg-amber-500", label: "承認待ち" };
+    return { cls: "bg-amber-50 text-amber-700 ring-amber-500/20", dot: "bg-amber-500", label: "ログイン未発行" };
   return { cls: "bg-emerald-50 text-emerald-700 ring-emerald-500/20", dot: "bg-emerald-500", label: "受付中" };
+}
+
+const SUB_TONE: Record<string, string> = {
+  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-500/20",
+  amber: "bg-amber-50 text-amber-700 ring-amber-500/20",
+  rose: "bg-rose-50 text-rose-600 ring-rose-500/20",
+  neutral: "bg-neutral-100 text-neutral-500 ring-neutral-300",
+};
+
+// A real Stripe instant → JST calendar date (次回更新日 / トライアル終了日).
+function formatSubDate(end: Date | null): string | null {
+  if (!end) return null;
+  return new Date(end).toLocaleDateString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 }
 
 export default async function AdminStoresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; q?: string; status?: string; sub?: string }>;
 }) {
   await requirePlatformAdmin(); // store management is platform-admin only
-  const { page: pageParam, q, status: statusParam } = await searchParams;
+  const { page: pageParam, q, status: statusParam, sub: subParam } = await searchParams;
   const term = q?.trim();
   const status =
     statusParam === "pending" ||
@@ -44,12 +63,21 @@ export default async function AdminStoresPage({
     statusParam === "deleted"
       ? statusParam
       : undefined;
+  const sub =
+    subParam === "none" ||
+    subParam === "trialing" ||
+    subParam === "active" ||
+    subParam === "past_due" ||
+    subParam === "canceled"
+      ? subParam
+      : undefined;
 
   // Deleted stores are hidden by default; the "Deleted" filter surfaces them.
   const base: Prisma.StoreWhereInput =
     status === "deleted" ? { status: "deleted" } : { deletedAt: null, ...(status ? { status } : {}) };
   const where: Prisma.StoreWhereInput = {
     ...base,
+    ...(sub ? { subscriptionStatus: sub } : {}),
     ...(term
       ? {
           OR: [
@@ -72,6 +100,8 @@ export default async function AdminStoresPage({
       name: true,
       coverImageUrl: true,
       status: true,
+      subscriptionStatus: true,
+      subscriptionCurrentPeriodEnd: true,
       companyName: true,
       contactName: true,
       phone: true,
@@ -114,9 +144,6 @@ export default async function AdminStoresPage({
   const reviewByStore = new Map(reviewStats.map((r) => [r.storeId, { count: r._count, avg: r._avg.rating ?? 0 }]));
 
   type StoreRow = (typeof stores)[number];
-
-  const textOrDash = (value: string | null) =>
-    value ? <span className="text-neutral-700">{value}</span> : <span className="text-neutral-400">—</span>;
 
   const columns: Column<StoreRow>[] = [
     {
@@ -165,18 +192,21 @@ export default async function AdminStoresPage({
     },
     {
       key: "contact",
-      header: "担当者名 / 運営者メール",
-      className: "min-w-[190px]",
+      header: "担当者",
+      className: "min-w-[200px]",
       render: (store) => {
         const emails = emailsByStore.get(store.id) ?? [];
         return (
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate text-neutral-700">{store.contactName ?? "—"}</span>
+            {store.phone ? (
+              <span className="truncate text-xs tabular-nums text-neutral-500">{store.phone}</span>
+            ) : null}
             {emails.length === 0 ? (
-              <span className="text-xs text-neutral-400">—</span>
+              <span className="text-xs text-neutral-500">—</span>
             ) : (
               emails.map((email) => (
-                <span key={email} className="truncate text-xs text-neutral-400">
+                <span key={email} className="truncate text-xs text-neutral-500">
                   {email}
                 </span>
               ))
@@ -184,12 +214,6 @@ export default async function AdminStoresPage({
           </div>
         );
       },
-    },
-    {
-      key: "phone",
-      header: "電話番号",
-      className: "min-w-[130px] whitespace-nowrap tabular-nums",
-      render: (store) => textOrDash(store.phone),
     },
     {
       key: "address",
@@ -234,6 +258,38 @@ export default async function AdminStoresPage({
       },
     },
     {
+      key: "subscription",
+      header: "購読",
+      className: "whitespace-nowrap",
+      render: (store) => {
+        const badge = subscriptionBadge(store.subscriptionStatus);
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${SUB_TONE[badge.tone]}`}
+          >
+            {badge.label}
+          </span>
+        );
+      },
+    },
+    {
+      key: "nextBilling",
+      header: "次回更新日",
+      className: "whitespace-nowrap tabular-nums",
+      render: (store) => {
+        const label = formatSubDate(store.subscriptionCurrentPeriodEnd);
+        if (!label) return <span className="text-neutral-400">—</span>;
+        return (
+          <div className="flex flex-col leading-tight">
+            <span className="text-neutral-700">{label}</span>
+            {store.subscriptionStatus === "trialing" ? (
+              <span className="text-[10px] text-amber-600">無料期間終了・初回課金</span>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
       key: "status",
       header: "状態",
       className: "whitespace-nowrap",
@@ -257,7 +313,6 @@ export default async function AdminStoresPage({
         if (store.status === "deleted") return <span className="text-xs text-neutral-300">—</span>;
         return (
           <div className="flex items-center justify-end gap-3">
-            {store.status === "pending" ? <StoreApproveButton storeId={store.id} variant="link" /> : null}
             <Link
               href={`/admin/stores/${store.id}`}
               className="inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent)] hover:underline"
@@ -286,11 +341,23 @@ export default async function AdminStoresPage({
           searchPlaceholder="店舗名・URLで検索"
           filters={[
             {
+              param: "sub",
+              label: "購読",
+              options: [
+                { value: "", label: "すべて" },
+                { value: "active", label: "購読中" },
+                { value: "trialing", label: "トライアル中" },
+                { value: "past_due", label: "支払い遅延" },
+                { value: "none", label: "未購読" },
+                { value: "canceled", label: "解約済み" },
+              ],
+            },
+            {
               param: "status",
               label: "状態",
               options: [
                 { value: "", label: "すべて" },
-                { value: "pending", label: "承認待ち" },
+                { value: "pending", label: "ログイン未発行" },
                 { value: "active", label: "受付中" },
                 { value: "suspended", label: "停止中" },
                 { value: "deleted", label: "削除済み" },
@@ -314,16 +381,16 @@ export default async function AdminStoresPage({
           rowKey={(store) => store.id}
           rowClassName={(store) => (store.status === "deleted" ? "opacity-60" : "")}
           emptyLabel={
-            term || status
+            term || status || sub
               ? "条件に一致する店舗はありません。"
               : "まだ店舗がありません。「新規店舗を追加」から作成してください。"
           }
-          minWidthClass="min-w-[1200px]"
+          minWidthClass="min-w-[1300px]"
           page={page}
           pageSize={PAGE_SIZE}
           total={total}
           basePath="/admin/stores"
-          query={{ q: term, status }}
+          query={{ q: term, status, sub }}
         />
       </TableNavProvider>
     </div>

@@ -80,6 +80,14 @@ function GearIcon({ className }: IconProps) {
   );
 }
 
+function CardIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  );
+}
 function ChatIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -137,11 +145,17 @@ const ADMIN_NAV: NavItem[] = [
 // own store; no multi-store list.
 function buildNav(isPlatformAdmin: boolean, operatorStoreId: string | null): NavItem[] {
   if (isPlatformAdmin) return ADMIN_NAV;
-  return ADMIN_NAV.map((item) =>
+  const mapped = ADMIN_NAV.map((item) =>
     item.href === "/admin/stores"
       ? { ...item, href: operatorStoreId ? `/admin/stores/${operatorStoreId}` : "/admin", label: "店舗設定" }
       : item,
   );
+  // Operators subscribe from their own "購読" page (not shown to the platform admin).
+  const subItem: NavItem = { href: "/admin/subscription", label: "購読", short: "購読", Icon: CardIcon };
+  const idx = mapped.findIndex((item) => item.label === "店舗設定");
+  if (idx >= 0) mapped.splice(idx + 1, 0, subItem);
+  else mapped.push(subItem);
+  return mapped;
 }
 
 function useSignOut() {

@@ -35,13 +35,13 @@ export default async function AdminLoginPage() {
         </div>
 
         <p className="mt-6 text-center text-sm font-medium text-neutral-700">
-          店舗をお持ちの方は{" "}
-          <Link href="/register" className="font-bold text-[var(--color-logo)] hover:underline">
-            店舗登録
+          購読のお申し込みは{" "}
+          <Link href="/subscribe" className="font-bold text-[var(--color-logo)] hover:underline">
+            こちら
           </Link>
         </p>
 
-        <p className="mt-4 text-center text-xs font-medium tracking-wide text-neutral-500">
+        <p className="mt-3 text-center text-xs font-medium tracking-wide text-neutral-500">
           Powered by <span className="font-bold text-neutral-700">ARIGATO TiPLY JAPAN</span>
         </p>
       </div>

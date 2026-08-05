@@ -6,6 +6,7 @@ import { GuestFlow } from "@/components/flow/GuestFlow";
 import { LogoBadge } from "@/components/flow/brand";
 import { prisma } from "@/lib/prisma";
 import { toLocaleText } from "@/lib/story";
+import { isSubscriptionLive } from "@/lib/subscription";
 
 export default async function StorePage({
   params,
@@ -25,10 +26,12 @@ export default async function StorePage({
     notFound();
   }
 
-  // Not yet published: a self-registered store awaiting admin approval, or one the
-  // admin has suspended. Either way the tip page is closed.
-  if (store.status === "pending" || store.status === "suspended") {
-    const pending = store.status === "pending";
+  // The tip page is closed unless the store is active AND has a live subscription.
+  // Suspended → "受付停止"; not-yet-subscribed (or pending legacy) → "準備中".
+  const suspended = store.status === "suspended";
+  const notLive = suspended || store.status === "pending" || !isSubscriptionLive(store.subscriptionStatus);
+  if (notLive) {
+    const pending = !suspended;
     return (
       <main className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#faf7f1] px-8 text-center">
         <Sakura className="pointer-events-none absolute left-6 top-12 text-[#f4c4cf] opacity-70" size={30} />

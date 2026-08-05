@@ -20,9 +20,9 @@ export function StoreSettings({
 }: {
   origin: string;
   storeId: string;
-  // The QR/guest page is published only after admin approval.
+  // The guest page (QR target) is live only while the subscription is active.
   published?: boolean;
-  // The slug is locked once approved (its QR may already be printed).
+  // The slug is locked because the QR is issued at account creation (already printed/sent).
   slugLocked?: boolean;
   store: {
     name: string;
@@ -92,7 +92,7 @@ export function StoreSettings({
         <StoreQrCard storeName={qrName} tipUrl={tipUrl} downloadName={downloadName} loading={saving} />
         {!published ? (
           <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700">
-            ※ 承認待ちです。QRコードは今すぐ発行・印刷できますが、読み取り先のお客様ページは管理者の承認後に有効になります。
+            ※ QRコードは今すぐ発行・印刷できますが、読み取り先のお客様ページは購読の開始後に有効になります。
           </p>
         ) : null}
 

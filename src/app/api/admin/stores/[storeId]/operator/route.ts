@@ -72,6 +72,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ sto
     data: { supabaseUserId: data.user.id, email, role: "store_operator", storeId },
   });
 
+  // Issuing the login is the "account creation + 有効化" step: a pending store
+  // (created via the public /subscribe flow) becomes active, and its email is
+  // mirrored to the login. The guest page still needs a live subscription.
+  await prisma.store.updateMany({
+    where: { id: storeId, status: "pending" },
+    data: { status: "active" },
+  });
+  await prisma.store.update({ where: { id: storeId }, data: { email } });
+
   return NextResponse.json({ operator: { email }, tempPassword });
 }
 
