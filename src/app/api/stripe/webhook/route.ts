@@ -4,7 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { toSubscriptionStatus } from "@/lib/subscription";
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+// One or more signing secrets (comma/space separated). Supporting several lets a
+// `stripe listen` session and a Dashboard endpoint deliver to the same app at
+// once — each event carries a signature for only one secret, so we try each.
+const webhookSecrets = (process.env.STRIPE_WEBHOOK_SECRET ?? "")
+  .split(/[\s,]+/)
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 /**
  * Mirror a Stripe subscription onto its store. The store id travels on the
@@ -35,19 +41,28 @@ async function syncSubscriptionToStore(subscription: Stripe.Subscription) {
 }
 
 export async function POST(request: Request) {
-  if (!webhookSecret) {
+  if (webhookSecrets.length === 0) {
     return NextResponse.json({ error: "webhook_not_configured" }, { status: 500 });
   }
 
   const signature = request.headers.get("stripe-signature");
   const payload = await request.text();
 
-  let event: Stripe.Event;
-  try {
-    if (!signature) throw new Error("missing_signature");
-    event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-  } catch (error) {
-    console.error("Stripe webhook signature verification failed", error);
+  // Verify against each configured secret; the event is valid if any matches.
+  let event: Stripe.Event | null = null;
+  let lastError: unknown = null;
+  if (signature) {
+    for (const secret of webhookSecrets) {
+      try {
+        event = stripe.webhooks.constructEvent(payload, signature, secret);
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+  }
+  if (!event) {
+    console.error("Stripe webhook signature verification failed", lastError);
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
