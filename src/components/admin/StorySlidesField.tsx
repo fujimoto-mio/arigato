@@ -7,6 +7,9 @@ import { cleanLocaleText, hasAnyText, type LocaleText, LOCALE_LABELS } from "@/l
 
 export type StorySlideDraft = { title: LocaleText; body: LocaleText; imageUrl: string | null };
 
+/** Per-slide validation messages (from the parent's Yup schema). */
+export type SlideError = { title?: string; body?: string };
+
 // A slide being edited: the persisted values plus a locally-picked `file` that
 // isn't uploaded until save, with `previewUrl` (object URL) to show it.
 export type StorySlideState = StorySlideDraft & { file: File | null; previewUrl: string | null };
@@ -76,11 +79,13 @@ export function StorySlidesField({
   onChange,
   activeLocale,
   onLocaleChange,
+  errors,
 }: {
   slides: StorySlideState[];
   onChange: (slides: StorySlideState[]) => void;
   activeLocale: Locale;
   onLocaleChange: (locale: Locale) => void;
+  errors?: (SlideError | undefined)[];
 }) {
   // Which languages have any content, to hint on the tabs.
   const filled = new Set<Locale>();
@@ -253,6 +258,9 @@ export function StorySlidesField({
                       placeholder="例：おもてなしの心"
                       className="mt-1 w-full rounded-lg border border-neutral-300 p-2.5 text-sm"
                     />
+                    {errors?.[index]?.title ? (
+                      <p className="mt-1 text-xs text-red-600">{errors[index]?.title}</p>
+                    ) : null}
                   </label>
                   <label className="block text-sm font-medium text-neutral-700">
                     本文（{LOCALE_LABELS[activeLocale]}）
@@ -264,6 +272,9 @@ export function StorySlidesField({
                       placeholder="お店の想いやこだわりをお書きください。"
                       className="mt-1 w-full resize-y rounded-lg border border-neutral-300 p-2.5 text-sm leading-relaxed"
                     />
+                    {errors?.[index]?.body ? (
+                      <p className="mt-1 text-xs text-red-600">{errors[index]?.body}</p>
+                    ) : null}
                   </label>
                 </div>
               </div>

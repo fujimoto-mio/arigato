@@ -1,7 +1,12 @@
+import { Clock, PauseCircle } from "lucide-react";
+import Image from "next/image";
 import { notFound } from "next/navigation";
+import { Sakura } from "@/components/brand/Cityscape";
 import { GuestFlow } from "@/components/flow/GuestFlow";
+import { LogoBadge } from "@/components/flow/brand";
 import { prisma } from "@/lib/prisma";
 import { toLocaleText } from "@/lib/story";
+import { isSubscriptionLive } from "@/lib/subscription";
 
 export default async function StorePage({
   params,
@@ -21,21 +26,46 @@ export default async function StorePage({
     notFound();
   }
 
-  // Suspended by the platform admin — the tip page is temporarily closed.
-  if (store.status === "suspended") {
+  // The tip page is closed unless the store is active AND has a live subscription.
+  // Suspended → "受付停止"; not-yet-subscribed (or pending legacy) → "準備中".
+  const suspended = store.status === "suspended";
+  const notLive = suspended || store.status === "pending" || !isSubscriptionLive(store.subscriptionStatus);
+  if (notLive) {
+    const pending = !suspended;
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 bg-white px-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
-          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M8 12h8" />
-          </svg>
+      <main className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-[#faf7f1] px-8 text-center">
+        <Sakura className="pointer-events-none absolute left-6 top-12 text-[#f4c4cf] opacity-70" size={30} />
+        <Sakura className="pointer-events-none absolute right-8 top-20 text-[#f6d0b0] opacity-60" size={22} />
+        <Sakura className="pointer-events-none absolute right-16 top-10 text-[#f4c4cf] opacity-50" size={16} />
+
+        <div className="relative z-10 flex flex-col items-center">
+          <LogoBadge size={64} />
+          <div className="mt-8 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent)]/12 text-[var(--color-accent)]">
+            {pending ? (
+              <Clock className="h-8 w-8" strokeWidth={1.6} />
+            ) : (
+              <PauseCircle className="h-8 w-8" strokeWidth={1.6} />
+            )}
+          </div>
+          <h1 className="mt-5 text-xl font-bold text-neutral-900">
+            {pending ? "準備中です" : "受付を停止しています"}
+          </h1>
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-neutral-500">
+            {pending
+              ? "ただいまこちらの店舗ページは準備中です。公開までしばらくお待ちください。"
+              : "ただいまこちらの店舗ではチップの受付を一時停止しています。"}
+          </p>
         </div>
-        <h1 className="text-lg font-bold text-neutral-900">受付を停止しています</h1>
-        <p className="text-sm leading-relaxed text-neutral-500">
-          ただいまこちらの店舗ではチップの受付を一時停止しています。
-        </p>
-      </div>
+
+        <Image
+          src="/lp/skyline.png"
+          alt=""
+          aria-hidden="true"
+          width={889}
+          height={345}
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-auto w-full opacity-80"
+        />
+      </main>
     );
   }
 

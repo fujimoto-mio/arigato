@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 /** Web app manifest — makes the admin panel installable to the home screen. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ARIGATO TiP 管理画面",
+    name: "ARIGATO TiPLY 管理画面",
     short_name: "ARIGATO 管理",
     description: "チップ・口コミの管理ダッシュボード",
     // Installed app opens straight into the admin dashboard.

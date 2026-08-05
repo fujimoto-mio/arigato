@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LOCALES } from "@/i18n/messages";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { isSubscriptionLive } from "@/lib/subscription";
 import { CARD_MIN_AMOUNT, isValidTipAmount } from "@/lib/tip";
 
 const bodySchema = z.object({
@@ -24,8 +25,9 @@ export async function POST(request: Request) {
   if (!store || store.deletedAt) {
     return NextResponse.json({ error: "store_not_found" }, { status: 404 });
   }
-  // Suspended stores don't accept new tips.
-  if (store.status === "suspended") {
+  // Only a live store accepts tips: active status AND a live subscription
+  // (trialing/active). Suspended, deleted, or not-yet-subscribed stores are closed.
+  if (store.status !== "active" || !isSubscriptionLive(store.subscriptionStatus)) {
     return NextResponse.json({ error: "store_suspended" }, { status: 403 });
   }
 

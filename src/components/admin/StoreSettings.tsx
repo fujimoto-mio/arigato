@@ -14,10 +14,16 @@ import { storeTipUrl } from "@/lib/qr";
 export function StoreSettings({
   origin,
   storeId,
+  published = true,
+  slugLocked = false,
   store,
 }: {
   origin: string;
   storeId: string;
+  // The guest page (QR target) is live only while the subscription is active.
+  published?: boolean;
+  // The slug is locked because the QR is issued at account creation (already printed/sent).
+  slugLocked?: boolean;
   store: {
     name: string;
     slug: string;
@@ -25,6 +31,11 @@ export function StoreSettings({
     coverImageUrl: string | null;
     instagramUrl: string | null;
     facebookUrl: string | null;
+    companyName: string | null;
+    contactName: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
   };
 }) {
   const [qrName, setQrName] = useState(store.name);
@@ -56,6 +67,12 @@ export function StoreSettings({
           initialCoverImageUrl={store.coverImageUrl}
           initialInstagramUrl={store.instagramUrl}
           initialFacebookUrl={store.facebookUrl}
+          initialCompanyName={store.companyName}
+          initialContactName={store.contactName}
+          initialPhone={store.phone}
+          initialEmail={store.email}
+          initialAddress={store.address}
+          slugLocked={slugLocked}
           onSavingChange={setSaving}
           onSaved={({ name, slug, googlePlaceId }) => {
             setQrName(name);
@@ -73,6 +90,11 @@ export function StoreSettings({
           印刷して店内に置いてください。読み取るとお客様のチップ画面が開きます。
         </p>
         <StoreQrCard storeName={qrName} tipUrl={tipUrl} downloadName={downloadName} loading={saving} />
+        {!published ? (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700">
+            ※ QRコードは今すぐ発行・印刷できますが、読み取り先のお客様ページは購読の開始後に有効になります。
+          </p>
+        ) : null}
 
         {/* Google Maps — the store's location by Place ID (口コミ誘導先). */}
         <div className="mt-6 border-t border-neutral-100 pt-6">

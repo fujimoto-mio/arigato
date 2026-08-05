@@ -65,7 +65,7 @@ export default async function SupportThreadPage({ params }: { params: Promise<{ 
         {thread.messages.map((message) => {
           const isAdmin = message.sender === "admin";
           const mine = (ctx.isPlatformAdmin && isAdmin) || (!ctx.isPlatformAdmin && !isAdmin);
-          const label = isAdmin ? "ARIGATO TiP 運営" : ctx.isPlatformAdmin ? thread.store.name : "自分";
+          const label = isAdmin ? "ARIGATO TiPLY 運営" : ctx.isPlatformAdmin ? thread.store.name : "自分";
 
           if (mine) {
             return (
