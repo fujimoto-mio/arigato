@@ -34,6 +34,39 @@ export function toSubscriptionStatus(stripeStatus: string): SubscriptionStatus {
   }
 }
 
+/**
+ * Resolve the period-end / first-charge instant from a Stripe Subscription.
+ * Newer Stripe API versions put `current_period_end` on each item (not the
+ * subscription root); during trial, `trial_end` is the paid-start date.
+ */
+export function stripeSubscriptionPeriodEnd(subscription: {
+  trial_end?: number | null;
+  items?: { data?: Array<{ current_period_end?: number }> };
+  /** Legacy top-level field on older Stripe API responses. */
+  current_period_end?: number;
+}): Date | null {
+  const fromItem = subscription.items?.data?.[0]?.current_period_end;
+  const seconds = fromItem ?? subscription.trial_end ?? subscription.current_period_end ?? null;
+  return typeof seconds === "number" ? new Date(seconds * 1000) : null;
+}
+
+/**
+ * Display date for the stores 「次回更新日」column.
+ * Trialing with a missing Stripe sync → estimate from consent + trial days
+ * (有料購読の開始日).
+ */
+export function nextBillingDisplayDate(input: {
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionCurrentPeriodEnd: Date | null;
+  termsAgreedAt?: Date | null;
+}): Date | null {
+  if (input.subscriptionCurrentPeriodEnd) return input.subscriptionCurrentPeriodEnd;
+  if (input.subscriptionStatus === "trialing" && input.termsAgreedAt) {
+    return new Date(input.termsAgreedAt.getTime() + PLAN.trialDays * 24 * 60 * 60 * 1000);
+  }
+  return null;
+}
+
 /** Japanese label + badge tone for a subscription status (admin surfaces). */
 export function subscriptionBadge(status: SubscriptionStatus): {
   label: string;
