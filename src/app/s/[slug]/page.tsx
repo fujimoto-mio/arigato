@@ -6,7 +6,7 @@ import { GuestFlow } from "@/components/flow/GuestFlow";
 import { LogoBadge } from "@/components/flow/brand";
 import { prisma } from "@/lib/prisma";
 import { toLocaleText } from "@/lib/story";
-import { isSubscriptionLive } from "@/lib/subscription";
+import { isStoreAcceptingTips } from "@/lib/subscription";
 
 export default async function StorePage({
   params,
@@ -26,10 +26,11 @@ export default async function StorePage({
     notFound();
   }
 
-  // The tip page is closed unless the store is active AND has a live subscription.
-  // Suspended → "受付停止"; not-yet-subscribed (or pending legacy) → "準備中".
+  // Tip URL opens when the platform admin issues login (pending→active).
+  // Trial / subscription is billing only (初月無料 → 2か月目から課金).
+  // Suspended → "受付停止"; pending (login not issued) → "準備中".
   const suspended = store.status === "suspended";
-  const notLive = suspended || store.status === "pending" || !isSubscriptionLive(store.subscriptionStatus);
+  const notLive = suspended || !isStoreAcceptingTips(store.status);
   if (notLive) {
     const pending = !suspended;
     return (

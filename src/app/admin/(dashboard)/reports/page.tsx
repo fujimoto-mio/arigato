@@ -7,7 +7,7 @@ import { formatUsd, startOfTokyoDay, startOfTokyoDaysAgo } from "@/lib/admin/per
 import { getReportChart } from "@/lib/admin/report-chart";
 import { getActiveStore, storeScope } from "@/lib/admin/store-scope";
 import { prisma } from "@/lib/prisma";
-import { isSubscriptionLive, subscriptionBadge } from "@/lib/subscription";
+import { isStoreAcceptingTips, subscriptionBadge } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -230,7 +230,7 @@ function SubscriptionSection({
               {stores.map((s) => {
                 const badge = subscriptionBadge(s.subscriptionStatus);
                 const period = subPeriodLabel(s.subscriptionStatus, s.subscriptionCurrentPeriodEnd);
-                const live = s.status === "active" && isSubscriptionLive(s.subscriptionStatus);
+                const live = isStoreAcceptingTips(s.status);
                 return (
                   <tr key={s.id}>
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-neutral-800">{s.name}</td>

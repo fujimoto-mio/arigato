@@ -73,8 +73,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ sto
   });
 
   // Issuing the login is the "account creation + 有効化" step: a pending store
-  // (created via the public /subscribe flow) becomes active, and its email is
-  // mirrored to the login. The guest page still needs a live subscription.
+  // (created via the public /subscribe flow) becomes active and the guest tip
+  // page opens. Stripe trial (初月無料) is billing only and does not gate tips.
   await prisma.store.updateMany({
     where: { id: storeId, status: "pending" },
     data: { status: "active" },
