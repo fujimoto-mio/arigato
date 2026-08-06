@@ -15,7 +15,7 @@ import { resolveAppOrigin } from "@/lib/origin";
 import { storeTipUrl } from "@/lib/qr";
 import { prisma } from "@/lib/prisma";
 import { toLocaleText } from "@/lib/story";
-import { isSubscriptionLive, subscriptionBadge } from "@/lib/subscription";
+import { isStoreAcceptingTips, isSubscriptionLive, subscriptionBadge } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +35,9 @@ export default async function AdminStoreEditPage({
   // The store's email = the operator's own login email (they edit it in 店舗設定).
   const contactEmail = ctx.email ?? store.email;
 
-  // The guest page is live only when the store is active AND its subscription is
-  // live (trialing/active). Otherwise the QR target shows 準備中 / 受付停止.
+  // Tip URL opens when status is active (admin ログイン発行). Trial is billing only.
   const subscribed = isSubscriptionLive(store.subscriptionStatus);
-  const live = store.status === "active" && subscribed;
+  const live = isStoreAcceptingTips(store.status);
   const subBadge = subscriptionBadge(store.subscriptionStatus);
 
   // Platform-admin data: payout ledger + whether a login has been issued.
@@ -105,7 +104,7 @@ export default async function AdminStoreEditPage({
               >
                 {store.status === "suspended" ? "停止中" : live ? "受付中" : "未公開"}
               </span>
-              {/* Subscription state — drives whether the page is public. */}
+              {/* Subscription state — billing only (trial = 初月無料). */}
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   subBadge.tone === "emerald"
@@ -125,7 +124,7 @@ export default async function AdminStoreEditPage({
 
           {/* QR + URL / note — the QR is generated at account creation and can be
               sent to the operator immediately; the guest page goes live once the
-              operator subscribes. */}
+              platform admin issues the login (pending→active). */}
           <div className="mt-3 flex items-center gap-4">
             <StoreQrCard
               storeName={store.name}
@@ -149,7 +148,7 @@ export default async function AdminStoreEditPage({
                 </p>
               ) : (
                 <p className="mt-1 text-xs leading-relaxed text-amber-700">
-                  QRコードは発行済みで、店舗運営者へ送付できます。読み取り先のお客様ページは、店舗運営者が購読を開始すると有効になります。
+                  QRコードは発行済みで、店舗運営者へ送付できます。読み取り先のお客様ページは、ログインアカウントを発行すると有効になります（試用期間中も運営可能です）。
                 </p>
               )}
             </div>
@@ -157,7 +156,7 @@ export default async function AdminStoreEditPage({
         </section>
 
         {/* Login account — issued by the admin after cross-referencing the Google
-            Form. Issuing it activates a subscribed pending store (②→③). */}
+            Form. Issuing it activates the store (pending→active) and opens tips. */}
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
           <h2 className="text-lg font-bold">ログインアカウント</h2>
           {operator ? (
@@ -171,7 +170,7 @@ export default async function AdminStoreEditPage({
             <>
               <p className="mb-4 mt-1 text-sm leading-relaxed text-neutral-500">
                 Googleフォームの申込内容と{subscribed ? "購読" : "お申し込み"}を照合のうえ、ログインアカウントを発行してください。
-                発行すると店舗が有効化され、ログイン情報を店舗運営者へお渡しできます。
+                発行すると店舗が有効化され、チップの受付が始まります。ログイン情報を店舗運営者へお渡しできます。
               </p>
               <IssueLoginButton storeId={store.id} defaultEmail={store.email ?? ""} />
             </>
@@ -245,15 +244,9 @@ export default async function AdminStoreEditPage({
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:p-6">
               <h2 className="text-base font-bold text-amber-800">お客様ページはまだ公開されていません</h2>
               <p className="mt-1 text-sm leading-relaxed text-amber-700">
-                購読を開始すると、QRコードの読み取り先ページが公開され、チップの受付が始まります。
+                プラットフォーム管理者によるログインアカウント発行後に、QRコードの読み取り先ページが公開され、チップの受付が始まります。
                 公開前も店舗情報・ストーリーの編集は可能です。
               </p>
-              <Link
-                href="/admin/subscription"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                購読ページへ
-              </Link>
             </section>
           ) : null}
 

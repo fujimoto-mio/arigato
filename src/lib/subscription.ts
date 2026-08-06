@@ -10,9 +10,18 @@ export const PLAN = {
   trialDays: 30,
 } as const;
 
-/** Statuses where the guest page (QR target) is live. */
+/** Billing statuses with a current Stripe subscription (trial or paid). */
 export function isSubscriptionLive(status: SubscriptionStatus): boolean {
   return status === "trialing" || status === "active";
+}
+
+/**
+ * Whether the guest tip page (QR target) accepts tips.
+ * Driven by Store.status only — admin ログイン発行 (pending→active) opens the
+ * page. Trial (初月無料) is billing-only and does not gate the tip URL.
+ */
+export function isStoreAcceptingTips(status: string): boolean {
+  return status === "active";
 }
 
 /** Map a Stripe subscription status string onto our enum. */

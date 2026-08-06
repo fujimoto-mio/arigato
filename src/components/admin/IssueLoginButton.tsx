@@ -9,7 +9,8 @@ type Result = { email: string; tempPassword: string };
 /**
  * Issue the store-operator login for a store that doesn't have one yet (created
  * via the public /subscribe flow). Shows the temporary password once so the admin
- * can send it with the QR (③). Issuing also activates the store (pending→active).
+ * can send it with the QR (③). Issuing also activates the store (pending→active)
+ * and opens the guest tip page; Stripe trial is billing only.
  */
 export function IssueLoginButton({ storeId, defaultEmail }: { storeId: string; defaultEmail: string }) {
   const router = useRouter();

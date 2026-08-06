@@ -121,13 +121,13 @@ export function SubscriptionPanel({
         </div>
         <ul className="mt-3 flex flex-col gap-1.5 text-sm text-neutral-600">
           <li className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-emerald-600" /> 初月無料（{PLAN.trialDays}日間トライアル）
+            <Check className="h-4 w-4 text-emerald-600" /> 初月無料（{PLAN.trialDays}日間）・2か月目から課金
           </li>
           <li className="flex items-center gap-2">
             <Check className="h-4 w-4 text-emerald-600" /> 2か月目以降 月額 {PLAN.monthlyLabel}（{PLAN.taxNote}）自動課金
           </li>
           <li className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-emerald-600" /> 購読開始でお客様ページが公開されます
+            <Check className="h-4 w-4 text-emerald-600" /> チップ受付は管理者のログイン発行後から可能
           </li>
         </ul>
       </section>

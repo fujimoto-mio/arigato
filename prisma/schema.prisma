@@ -16,11 +16,13 @@ enum StoreStatus {
 }
 
 // Store subscription state, mirrored from Stripe by the webhook.
-//   none      — never subscribed (guest page not yet live)
-//   trialing  — in the 初月無料 trial (guest page live)
-//   active    — paying (guest page live)
-//   past_due  — payment failed / retrying (guest page live until Stripe cancels)
-//   canceled  — subscription ended (guest page closed)
+// Billing only (初月無料 trial → paid from month 2). Does not gate the tip URL;
+// tip acceptance is driven by Store.status (admin login issuance → active).
+//   none      — never subscribed
+//   trialing  — in the 初月無料 trial
+//   active    — paying
+//   past_due  — payment failed / retrying
+//   canceled  — subscription ended
 enum SubscriptionStatus {
   none
   trialing
@@ -51,9 +53,9 @@ model Store {
   // active: normal. suspended: guest tip page closed (history kept).
   // deleted: soft-deleted (hidden everywhere) — see deletedAt.
   status        StoreStatus @default(active)
-  // Stripe subscription (¥5,000/月・税抜, 初月無料). Set by the webhook once the
-  // operator subscribes on /admin/subscription. The guest page goes live only
-  // while subscriptionStatus is trialing/active (see @/lib/subscription).
+  // Stripe subscription (¥5,000/月・税抜, 初月無料 → 2か月目から課金). Mirrored
+  // by the webhook. Billing only — the guest tip page opens when Store.status
+  // becomes active (admin ログイン発行), not when the trial starts.
   stripeCustomerId             String?
   stripeSubscriptionId         String?            @unique
   subscriptionStatus           SubscriptionStatus @default(none)

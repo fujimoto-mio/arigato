@@ -25,7 +25,7 @@ export default async function SubscriptionPage() {
       <div>
         <h1 className="text-xl font-bold">購読</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          お客様ページを公開・運用するための月額購読です。購読を開始すると、QRコードの読み取り先ページが有効になります。
+          店舗の月額購読です。初月は無料トライアル、2か月目から自動課金されます。お客様ページの公開は管理者によるログイン発行で行います。
         </p>
       </div>
 
