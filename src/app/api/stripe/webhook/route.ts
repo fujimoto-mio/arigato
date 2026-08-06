@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import { toSubscriptionStatus } from "@/lib/subscription";
+import { stripeSubscriptionPeriodEnd, toSubscriptionStatus } from "@/lib/subscription";
 
 // One or more signing secrets (comma/space separated). Supporting several lets a
 // `stripe listen` session and a Dashboard endpoint deliver to the same app at
@@ -26,8 +26,6 @@ async function syncSubscriptionToStore(subscription: Stripe.Subscription) {
 
   const customerId =
     typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-  // current_period_end is a unix-seconds timestamp; store the real instant.
-  const periodEndSeconds = (subscription as unknown as { current_period_end?: number }).current_period_end;
 
   await prisma.store.update({
     where: { id: store.id },
@@ -35,7 +33,8 @@ async function syncSubscriptionToStore(subscription: Stripe.Subscription) {
       subscriptionStatus: toSubscriptionStatus(subscription.status),
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: customerId,
-      subscriptionCurrentPeriodEnd: periodEndSeconds ? new Date(periodEndSeconds * 1000) : null,
+      // Item current_period_end, or trial_end while trialing (有料購読の開始日).
+      subscriptionCurrentPeriodEnd: stripeSubscriptionPeriodEnd(subscription),
     },
   });
 }

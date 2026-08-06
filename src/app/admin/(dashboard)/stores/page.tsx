@@ -8,7 +8,7 @@ import { TableToolbar } from "@/components/admin/TableToolbar";
 import { requirePlatformAdmin } from "@/lib/admin/auth";
 import { formatUsd } from "@/lib/admin/period";
 import { prisma } from "@/lib/prisma";
-import { subscriptionBadge } from "@/lib/subscription";
+import { nextBillingDisplayDate, subscriptionBadge } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +102,7 @@ export default async function AdminStoresPage({
       status: true,
       subscriptionStatus: true,
       subscriptionCurrentPeriodEnd: true,
+      termsAgreedAt: true,
       companyName: true,
       contactName: true,
       phone: true,
@@ -277,13 +278,20 @@ export default async function AdminStoresPage({
       header: "次回更新日",
       className: "whitespace-nowrap tabular-nums",
       render: (store) => {
-        const label = formatSubDate(store.subscriptionCurrentPeriodEnd);
+        // Trial: 有料購読の開始日 (trial_end / period end). Active: 次回更新日.
+        const label = formatSubDate(
+          nextBillingDisplayDate({
+            subscriptionStatus: store.subscriptionStatus,
+            subscriptionCurrentPeriodEnd: store.subscriptionCurrentPeriodEnd,
+            termsAgreedAt: store.termsAgreedAt,
+          }),
+        );
         if (!label) return <span className="text-neutral-400">—</span>;
         return (
           <div className="flex flex-col leading-tight">
             <span className="text-neutral-700">{label}</span>
             {store.subscriptionStatus === "trialing" ? (
-              <span className="text-[10px] text-amber-600">無料期間終了・初回課金</span>
+              <span className="text-[10px] text-amber-600">有料購読開始</span>
             ) : null}
           </div>
         );
