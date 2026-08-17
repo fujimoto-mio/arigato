@@ -104,5 +104,29 @@
     "story": "故事",
     "reviews": "评价",
     "support": "支持"
+  },
+  "omikuji": {
+    "title": "抽御神签",
+    "subtitle": "感谢您的打赏，送您一次御神签！点击揭晓您的运势。",
+    "drawButton": "抽签",
+    "drawing": "抽签中…",
+    "continue": "继续",
+    "error": "无法抽签",
+    "prizeNote": "您中奖了！请向店员出示此画面领取奖品。",
+    "result": {
+      "daikichi": {
+        "name": "大吉",
+        "message": "恭喜！您赢得了奖品。"
+      },
+      "chukichi": {
+        "name": "中吉",
+        "message": "运气不错！也许会有小惊喜。"
+      },
+      "kichi": {
+        "name": "吉",
+        "message": "好运相伴，感谢您的心意！"
+      }
+    },
+    "tapToDraw": "点击签筒抽签"
   }
 }

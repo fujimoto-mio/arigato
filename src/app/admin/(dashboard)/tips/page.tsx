@@ -21,6 +21,14 @@ type TipRow = {
   amount: number;
   rating: number | null;
   comment: string | null;
+  omikuji: string | null;
+};
+
+// Fortune result → display label. 大吉 wins a prize, so it's highlighted.
+const OMIKUJI_LABEL: Record<string, string> = {
+  daikichi: "大吉",
+  chukichi: "中吉",
+  kichi: "吉",
 };
 
 function parsePage(value: string | undefined): number {
@@ -71,6 +79,7 @@ export default async function AdminTipsPage({
     amount: tip.amount,
     rating: tip.review?.rating ?? null,
     comment: tip.review?.comment ?? null,
+    omikuji: tip.omikujiResult,
   }));
 
   const columns: Column<TipRow>[] = [
@@ -121,6 +130,26 @@ export default async function AdminTipsPage({
         ),
     },
     {
+      key: "omikuji",
+      header: "おみくじ",
+      className: "whitespace-nowrap",
+      render: (row) =>
+        row.omikuji ? (
+          <span
+            className={
+              row.omikuji === "daikichi"
+                ? "font-bold text-[var(--color-accent)]"
+                : "text-neutral-600"
+            }
+          >
+            {OMIKUJI_LABEL[row.omikuji] ?? row.omikuji}
+            {row.omikuji === "daikichi" ? " 🎁" : ""}
+          </span>
+        ) : (
+          <span className="text-neutral-400">—</span>
+        ),
+    },
+    {
       key: "comment",
       header: "口コミ",
       className: "min-w-[200px] max-w-[340px] whitespace-pre-line leading-relaxed text-neutral-700",
@@ -161,7 +190,7 @@ export default async function AdminTipsPage({
           rows={rows}
           rowKey={(row) => row.id}
           emptyLabel={term || method ? "条件に一致するチップはありません。" : "まだチップはありません。"}
-          minWidthClass="min-w-[760px]"
+          minWidthClass="min-w-[860px]"
           bodyCellClassName="align-top"
           renderDetail={(row) => ({
             title: "チップ・口コミ詳細",
@@ -178,6 +207,16 @@ export default async function AdminTipsPage({
                     {row.rating !== null ? (
                       <span className="flex items-center justify-end gap-1">
                         <Stars rating={row.rating} /> {row.rating.toFixed(1)}
+                      </span>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </DetailRow>
+                  <DetailRow label="おみくじ">
+                    {row.omikuji ? (
+                      <span className={row.omikuji === "daikichi" ? "font-bold text-[var(--color-accent)]" : ""}>
+                        {OMIKUJI_LABEL[row.omikuji] ?? row.omikuji}
+                        {row.omikuji === "daikichi" ? " 🎁 景品当選" : ""}
                       </span>
                     ) : (
                       <span className="text-neutral-400">—</span>

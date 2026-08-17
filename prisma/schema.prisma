@@ -116,6 +116,9 @@ model Tip {
   paymentMethod         PaymentMethod @default(cash)
   status                TipStatus     @default(pending)
   stripePaymentIntentId String?       @unique
+  // Omikuji draw result: null = not drawn; "daikichi" | "chukichi" | "kichi".
+  // Recorded once (server-side) so it can't be re-rolled; see /api/omikuji/draw.
+  omikujiResult         String?
   createdAt             DateTime      @default(now()) @db.Timestamptz(3)
   store                 Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   review                Review?

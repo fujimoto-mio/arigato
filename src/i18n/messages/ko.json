@@ -104,5 +104,29 @@
     "story": "이야기",
     "reviews": "리뷰",
     "support": "응원"
+  },
+  "omikuji": {
+    "title": "오미쿠지 뽑기",
+    "subtitle": "팁 감사의 마음으로 오미쿠지 한 번! 탭하여 운세를 확인하세요.",
+    "drawButton": "뽑기",
+    "drawing": "뽑는 중…",
+    "continue": "다음",
+    "error": "오미쿠지를 뽑을 수 없습니다",
+    "prizeNote": "경품에 당첨되었습니다! 이 화면을 직원에게 보여주세요.",
+    "result": {
+      "daikichi": {
+        "name": "대길 (大吉)",
+        "message": "축하합니다! 경품에 당첨되었습니다."
+      },
+      "chukichi": {
+        "name": "중길 (中吉)",
+        "message": "좋은 운세! 작은 선물이 있을지도 몰라요."
+      },
+      "kichi": {
+        "name": "길 (吉)",
+        "message": "좋은 일이 있을 거예요. 따뜻한 마음 감사합니다!"
+      }
+    },
+    "tapToDraw": "상자를 탭하여 뽑기"
   }
 }
