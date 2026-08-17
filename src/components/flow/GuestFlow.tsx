@@ -20,6 +20,12 @@ import { LanguageMenu } from "@/components/flow/LanguageMenu";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { downscaleImage } from "@/lib/image-resize";
 import { type LocaleText, pickLocaleText } from "@/lib/story";
+import {
+  type OmikujiTier,
+  isOmikujiEligible,
+  isOmikujiTier,
+  omikujiWinsPrize,
+} from "@/lib/omikuji";
 import { CARD_MIN_AMOUNT, TIP_MAX, TIP_STEP } from "@/lib/tip";
 
 export type StorySlideContent = { title: LocaleText; body: LocaleText; imageUrl: string | null };
@@ -40,14 +46,14 @@ export type GuestStore = {
   storySlides: StorySlideContent[];
 };
 
-type Step = "landing" | "support" | "payment" | "thankyou";
+type Step = "landing" | "support" | "payment" | "omikuji" | "thankyou";
 
 // Forward order of the flow — used to pick the slide direction between screens.
 // Three guest-facing pages: the main page (cover + tip + story), the tip/review
 // page (Support: rating + comment + photos), and Thank You. The review is
 // captured on Support and submitted after the tip succeeds; the card payment is
 // a sub-step of Support, not a separate page.
-const STEP_ORDER: Step[] = ["landing", "support", "payment", "thankyou"];
+const STEP_ORDER: Step[] = ["landing", "support", "payment", "omikuji", "thankyou"];
 
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
@@ -329,7 +335,8 @@ export function GuestFlow({
       // Best effort — the tip is recorded regardless; fall through to Thank You.
     } finally {
       setPromote(true);
-      goToStep("thankyou");
+      // A qualifying tip earns an omikuji draw before Thank You.
+      goToStep(isOmikujiEligible(amount) ? "omikuji" : "thankyou");
     }
   }
 
@@ -370,6 +377,9 @@ export function GuestFlow({
           onPaid={() => finishWithReview(tipId)}
           onBack={() => goToStep("support")}
         />
+      )}
+      {step === "omikuji" && tipId && (
+        <Omikuji tipId={tipId} onContinue={() => goToStep("thankyou")} />
       )}
       {step === "thankyou" && (
         <ThankYou store={store} reviewUrl={googleReviewUrl} promote={promote} onHome={reset} />
@@ -711,6 +721,403 @@ function Support({
           </svg>
           {t("secure")}
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Screen 4: Omikuji (fortune draw) ---------- */
+
+const TIER_KANJI: Record<OmikujiTier, string> = {
+  daikichi: "大吉",
+  chukichi: "中吉",
+  kichi: "吉",
+};
+const PETAL_COLORS = [
+  "text-pink-300",
+  "text-pink-200",
+  "text-[#e6c884]",
+  "text-[#c8102e]",
+  "text-[var(--color-accent)]",
+];
+// Deterministic petal field (trig, not Math.random) so it's pure across renders.
+// Spread evenly across the full width; wide, staggered delays make the shower
+// keep falling for several seconds rather than dropping all at once.
+const PETAL_N = 56;
+const PETALS = Array.from({ length: PETAL_N }, (_, i) => ({
+  left: Math.max(0, Math.min(97, (i * 100) / PETAL_N + Math.sin(i * 2.7) * 4)),
+  dx: `${Math.round(Math.sin(i * 1.3) * 80)}px`,
+  rot: `${(i % 2 ? 1 : -1) * (360 + ((i * 47) % 260))}deg`,
+  dur: `${2.4 + ((i * 7) % 16) / 10}s`,
+  delay: `${((i * 17) % 28) / 10}s`,
+  size: 11 + (i % 4) * 5,
+  color: PETAL_COLORS[i % PETAL_COLORS.length],
+}));
+
+// Ambient background petals — deterministic (pure across renders), looping.
+const BACKDROP_PETALS = Array.from({ length: 12 }, (_, i) => ({
+  left: (i * 97) / 12 + (i % 3),
+  size: 10 + (i % 4) * 4,
+  dur: `${9 + (i % 6) * 1.6}s`,
+  delay: `-${((i * 1.7) % 12).toFixed(1)}s`, // negative → already mid-fall on load
+  sway: `${(i % 2 ? 1 : -1) * (18 + ((i * 7) % 30))}px`,
+  spin: `${(i % 2 ? 1 : -1) * (300 + ((i * 40) % 180))}deg`,
+  color: ["text-pink-200/50", "text-pink-300/40", "text-[#e6c884]/40", "text-[#c8102e]/20"][i % 4],
+}));
+
+/** Shrine setting behind the draw — a checkered ichimatsu floor and a vermilion
+ *  torii gate framing the scene, echoing the reference omikuji page. */
+function ShrineScene() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+      {/* Ichimatsu (checkerboard) shrine floor */}
+      <div
+        className="absolute inset-0"
+        style={{ background: "repeating-conic-gradient(#efe9c6 0% 25%, #faf7ea 0% 50%) 0 0 / 58px 58px" }}
+      />
+      {/* Soft wash so text stays legible over the pattern */}
+      <div className="absolute inset-0 bg-[#faf7ea]/55" />
+      {/* Torii gate (鳥居) — pale background scenery framing the scene */}
+      <svg
+        viewBox="0 0 200 320"
+        preserveAspectRatio="xMidYMin meet"
+        className="absolute left-1/2 top-14 w-[128%] -translate-x-1/2 text-[#e08a7e]"
+        fill="currentColor"
+        opacity="0.38"
+      >
+        {/* kasagi — top beam, upturned ends */}
+        <path d="M0 18 Q100 0 200 18 L200 31 Q100 13 0 31 Z" />
+        {/* gakuzuka — centre post */}
+        <rect x="95" y="31" width="10" height="18" />
+        {/* nuki — second beam */}
+        <rect x="24" y="49" width="152" height="10" rx="1" />
+        {/* hashira — pillars, tapering down the sides */}
+        <rect x="33" y="18" width="14" height="302" />
+        <rect x="153" y="18" width="14" height="302" />
+      </svg>
+    </div>
+  );
+}
+
+/** Full-screen ambient layer: sakura petals drifting behind the content. */
+function OmikujiBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+      {BACKDROP_PETALS.map((p, i) => (
+        <span
+          key={i}
+          className="omikuji-drift absolute top-0"
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size,
+            animationDuration: p.dur,
+            animationDelay: p.delay,
+            // @ts-expect-error CSS custom properties drive the drift keyframe.
+            "--sway": p.sway,
+            "--spin": p.spin,
+          }}
+        >
+          <Petal className={`h-full w-full ${p.color}`} />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** 紅白幕 — the red-and-white celebration curtain hung for festive occasions. */
+function KohakuBanner() {
+  return (
+    <div className="omikuji-banner pointer-events-none absolute inset-x-0 top-0 z-20" aria-hidden="true">
+      <div className="h-2 bg-[#c8a256]" />
+      <div
+        className="h-11"
+        style={{ background: "repeating-linear-gradient(90deg,#c8102e 0 26px,#fbf7f0 26px 52px)" }}
+      />
+      <div className="h-1.5 bg-[#c8a256]" />
+    </div>
+  );
+}
+
+// Party-cracker confetti (クラッカー, as on the reference site) — two corner bursts.
+// Deterministic so it's pure across renders. `side` -1 = left corner, 1 = right.
+const CRACKER_COLORS = ["#c8102e", "#e6c884", "#f6b8c4", "#b0895a", "#ffffff", "#7fb3d5"];
+const CRACKERS = Array.from({ length: 24 }, (_, i) => {
+  const side = i % 2 === 0 ? -1 : 1;
+  const spread = 30 + ((i * 13) % 130); // px outward-inward reach
+  return {
+    side,
+    bx: `${-side * spread}px`, // shoot toward the centre
+    by: `${-(70 + ((i * 17) % 150))}px`, // and upward
+    br: `${(side > 0 ? 1 : -1) * (180 + ((i * 47) % 360))}deg`,
+    delay: `${((i * 5) % 20) / 100}s`,
+    size: 6 + (i % 3) * 3,
+    color: CRACKER_COLORS[i % CRACKER_COLORS.length],
+  };
+});
+
+/** Two party-popper bursts from the bottom corners, fired on a win. */
+function Crackers() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden" aria-hidden="true">
+      {CRACKERS.map((c, i) => (
+        <span
+          key={i}
+          className="omikuji-burst absolute bottom-24 h-2 w-2 rounded-[1px]"
+          style={{
+            [c.side < 0 ? "left" : "right"]: "10%",
+            width: c.size,
+            height: c.size,
+            backgroundColor: c.color,
+            animationDelay: c.delay,
+            // @ts-expect-error CSS custom properties drive the burst keyframe.
+            "--bx": c.bx,
+            "--by": c.by,
+            "--br": c.br,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Sakura petals drifting down over the reveal — dense for a win, light otherwise. */
+function PetalShower({ count }: { count: number }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-12 z-30 h-0 w-full">
+      {PETALS.slice(0, count).map((p, i) => (
+        <span
+          key={i}
+          className="omikuji-petal absolute top-0"
+          style={{
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size,
+            animationDelay: p.delay,
+            // @ts-expect-error CSS custom properties drive the fall keyframe.
+            "--dx": p.dx,
+            "--rot": p.rot,
+            "--dur": p.dur,
+          }}
+        >
+          <Petal className={`h-full w-full ${p.color}`} />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Sparkles that twinkle around the box the instant the lot ejects.
+const SPARKLES = [
+  { top: "4%", left: "18%", delay: "0s", cls: "text-xl" },
+  { top: "-2%", left: "56%", delay: "0.12s", cls: "text-3xl" },
+  { top: "16%", left: "82%", delay: "0.05s", cls: "text-lg" },
+  { top: "44%", left: "8%", delay: "0.16s", cls: "text-2xl" },
+  { top: "52%", left: "88%", delay: "0.09s", cls: "text-xl" },
+];
+
+/** Omikuji box (みくじ筒) recreated after the reference: a bright flat-red
+ *  hexagonal canister with a thin gold outline, a slot, and white brush おみくじ.
+ *  The 30° tilt and the bob/shake motion are applied by the wrappers around it. */
+function MikujiBox() {
+  return (
+    <div className="relative h-52 w-36" aria-hidden="true">
+      <svg
+        viewBox="0 0 150 208"
+        className="absolute inset-0 h-full w-full drop-shadow-[0_16px_22px_rgba(124,10,28,0.34)]"
+      >
+        {/* Body — flat bright red with a slightly darker right facet */}
+        <rect x="30" y="44" width="90" height="150" rx="6" fill="#ec1c24" />
+        <rect x="104" y="50" width="16" height="138" fill="#cf1620" />
+        {/* Thin gold rims top & bottom */}
+        <rect x="30" y="44" width="90" height="5" fill="#e6b877" />
+        <rect x="30" y="186" width="90" height="8" rx="2" fill="#e6b877" />
+        {/* Hexagonal lid with a gold outline */}
+        <polygon
+          points="30,44 48,26 102,26 120,44 102,54 48,54"
+          fill="#c8151c"
+          stroke="#e6b877"
+          strokeWidth="3"
+          strokeLinejoin="round"
+        />
+        {/* Ticket slot */}
+        <rect x="60" y="32" width="30" height="6" rx="3" fill="#7a0d14" />
+      </svg>
+
+      {/* White brush おみくじ down the front (single column) */}
+      <div className="absolute inset-x-0 bottom-[12%] top-[32%] z-10 flex items-center justify-center">
+        <span
+          className="font-black leading-none tracking-[0.08em] text-white drop-shadow-[0_2px_3px_rgba(90,7,19,0.5)]"
+          style={{ writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: "1.7rem" }}
+        >
+          おみくじ
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Shown after a qualifying tip. The result comes from the server (recorded once,
+// no re-roll); a short suspense makes the reveal feel like a draw, not a fetch.
+function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void }) {
+  const t = useTranslations("omikuji");
+  const [phase, setPhase] = useState<"idle" | "drawing" | "revealing" | "done">("idle");
+  const [result, setResult] = useState<OmikujiTier | null>(null);
+
+  async function draw() {
+    setPhase("drawing");
+    try {
+      const [res] = await Promise.all([
+        fetch("/api/omikuji/draw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tipId }),
+        }),
+        // Suspense so the box shakes before the lot ejects.
+        new Promise((r) => setTimeout(r, 1400)),
+      ]);
+      const data = (await res.json()) as { result?: string };
+      if (isOmikujiTier(data.result)) setResult(data.result);
+    } catch {
+      // Best effort — the tip is recorded regardless; let them continue.
+    }
+    // The lot ejects with a flash, held a beat before the fortune slip appears.
+    setPhase("revealing");
+    await new Promise((r) => setTimeout(r, 750));
+    setPhase("done");
+  }
+
+  const drawing = phase === "drawing";
+  const revealing = phase === "revealing";
+
+  const won = result ? omikujiWinsPrize(result) : false;
+
+  return (
+    <div className="relative flex flex-1 flex-col overflow-hidden bg-[#faf7ea]">
+      {/* Shrine scene (checker floor + torii), with petals drifting over it. */}
+      <ShrineScene />
+      <OmikujiBackdrop />
+
+      {/* Above the celebration banner so the logo + language pill stay visible. */}
+      <div className="relative z-40">
+        <Header />
+      </div>
+
+      {/* A big sakura shower rains down once the fortune is drawn (fullest for a win). */}
+      {phase === "done" ? <PetalShower count={won ? PETAL_N : 44} /> : null}
+
+      {/* Full festival for a win: 紅白幕 banner + party crackers (花見 petals fall above). */}
+      {phase === "done" && won ? (
+        <>
+          <KohakuBanner />
+          <Crackers />
+        </>
+      ) : null}
+
+      <div className="relative z-10 flex flex-1 flex-col items-center px-6 pb-16 pt-8 text-center">
+        <h1 className="text-2xl font-bold text-neutral-900">{t("title")}</h1>
+        <p className="mt-2 max-w-[16rem] text-sm text-neutral-600">{t("subtitle")}</p>
+
+        {phase !== "done" ? (
+          <>
+            <div className="relative mt-12 flex h-64 items-center justify-center">
+              {/* Soft halo behind the box */}
+              <div
+                className="omikuji-glow pointer-events-none absolute h-56 w-56 rounded-full"
+                style={{ background: "radial-gradient(circle, rgba(236,28,36,0.16), transparent 70%)" }}
+              />
+              {/* Flash + sparkles at the moment of the draw. */}
+              {revealing ? (
+                <>
+                  <div
+                    className="omikuji-flash pointer-events-none absolute h-48 w-48 rounded-full"
+                    style={{
+                      background:
+                        "radial-gradient(circle, rgba(255,240,190,0.95), rgba(236,28,36,0.25) 45%, transparent 70%)",
+                    }}
+                  />
+                  {SPARKLES.map((s, i) => (
+                    <span
+                      key={i}
+                      className={`omikuji-sparkle pointer-events-none absolute ${s.cls} text-[#e6c884]`}
+                      style={{ top: s.top, left: s.left, animationDelay: s.delay }}
+                      aria-hidden="true"
+                    >
+                      ✦
+                    </span>
+                  ))}
+                </>
+              ) : null}
+              {/* Bob (idle) / horizontal shake (drawing) wrap the 30°-tilted box. */}
+              <button
+                type="button"
+                onClick={draw}
+                disabled={drawing || revealing}
+                aria-label={t("drawButton")}
+                className={`relative disabled:cursor-default ${
+                  phase === "idle" ? "omikuji-updown" : drawing ? "omikuji-shakex" : ""
+                }`}
+              >
+                <div style={{ transform: "rotate(30deg)" }}>
+                  <MikujiBox />
+                </div>
+              </button>
+            </div>
+            <p
+              className={`mt-4 h-5 text-sm font-semibold tracking-wide text-[var(--color-logo)] ${
+                phase === "idle" ? "omikuji-touchflash" : ""
+              }`}
+            >
+              {phase === "idle" ? t("tapToDraw") : drawing ? t("drawing") : ""}
+            </p>
+            <button
+              type="button"
+              onClick={draw}
+              disabled={drawing || revealing}
+              className="mt-5 w-full max-w-xs rounded-full bg-[var(--color-logo)] py-4 text-base font-bold tracking-wide text-white shadow-md transition active:scale-[0.98] disabled:opacity-60"
+            >
+              {phase === "idle" ? t("drawButton") : t("drawing")}
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Paper fortune slip (御神籤) */}
+            <div
+              className={`omikuji-slip relative mt-9 flex h-60 w-40 flex-col items-center rounded-lg border-2 bg-white px-3 py-5 shadow-[0_18px_44px_rgba(0,0,0,0.16)] ${
+                won ? "border-[#c8102e]" : "border-[#d8ccb4]"
+              }`}
+            >
+              <span className="text-[11px] font-bold tracking-[0.35em] text-[#c8102e]">おみくじ</span>
+              <span
+                className={`my-auto font-bold leading-none ${won ? "text-[#c8102e]" : "text-neutral-900"}`}
+                style={{ writingMode: "vertical-rl", fontSize: "3.9rem" }}
+              >
+                {result ? TIER_KANJI[result] : "—"}
+              </span>
+              <Sakura className={`h-5 w-5 ${won ? "text-[#c8102e]" : "text-[#d8ccb4]"}`} />
+            </div>
+            <p className={`omikuji-rise mt-6 text-xl font-bold ${won ? "text-[#c8102e]" : "text-neutral-900"}`}>
+              {result ? t(`result.${result}.name`) : t("error")}
+            </p>
+            {result ? (
+              <p className="omikuji-rise mt-2 max-w-[17rem] text-sm leading-relaxed text-neutral-600">
+                {t(`result.${result}.message`)}
+              </p>
+            ) : null}
+            {won ? (
+              <p className="omikuji-rise mt-4 max-w-[17rem] rounded-xl bg-[#c8102e]/[0.08] px-4 py-3 text-sm font-medium text-[#c8102e]">
+                🎁 {t("prizeNote")}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={onContinue}
+              className="mt-10 w-full max-w-xs rounded-full border border-[var(--color-accent)] bg-white/60 py-4 text-base font-semibold text-[var(--color-accent)] transition active:scale-[0.98]"
+            >
+              {t("continue")}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
