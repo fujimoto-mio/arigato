@@ -911,44 +911,18 @@ const SPARKLES = [
   { top: "52%", left: "88%", delay: "0.09s", cls: "text-xl" },
 ];
 
-/** Omikuji box (みくじ筒) recreated after the reference: a bright flat-red
- *  hexagonal canister with a thin gold outline, a slot, and white brush おみくじ.
- *  The 30° tilt and the bob/shake motion are applied by the wrappers around it. */
+/** The reference omikuji box artwork (public/omikuji/box.png). The 30° tilt and
+ *  the bob/shake motion are applied by the wrappers around it. */
 function MikujiBox() {
   return (
-    <div className="relative h-52 w-36" aria-hidden="true">
-      <svg
-        viewBox="0 0 150 208"
-        className="absolute inset-0 h-full w-full drop-shadow-[0_16px_22px_rgba(124,10,28,0.34)]"
-      >
-        {/* Body — flat bright red with a slightly darker right facet */}
-        <rect x="30" y="44" width="90" height="150" rx="6" fill="#ec1c24" />
-        <rect x="104" y="50" width="16" height="138" fill="#cf1620" />
-        {/* Thin gold rims top & bottom */}
-        <rect x="30" y="44" width="90" height="5" fill="#e6b877" />
-        <rect x="30" y="186" width="90" height="8" rx="2" fill="#e6b877" />
-        {/* Hexagonal lid with a gold outline */}
-        <polygon
-          points="30,44 48,26 102,26 120,44 102,54 48,54"
-          fill="#c8151c"
-          stroke="#e6b877"
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
-        {/* Ticket slot */}
-        <rect x="60" y="32" width="30" height="6" rx="3" fill="#7a0d14" />
-      </svg>
-
-      {/* White brush おみくじ down the front (single column) */}
-      <div className="absolute inset-x-0 bottom-[12%] top-[32%] z-10 flex items-center justify-center">
-        <span
-          className="font-black leading-none tracking-[0.08em] text-white drop-shadow-[0_2px_3px_rgba(90,7,19,0.5)]"
-          style={{ writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: "1.7rem" }}
-        >
-          おみくじ
-        </span>
-      </div>
-    </div>
+    <Image
+      src="/omikuji/box.png"
+      alt="おみくじ"
+      width={322}
+      height={644}
+      priority
+      className="h-52 w-auto drop-shadow-[0_16px_22px_rgba(124,10,28,0.3)]"
+    />
   );
 }
 
