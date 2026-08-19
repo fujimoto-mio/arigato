@@ -26,7 +26,7 @@ import {
   isOmikujiTier,
   omikujiWinsPrize,
 } from "@/lib/omikuji";
-import { FORTUNES, OMIKUJI_LABEL_EN, pickFortuneText } from "@/lib/omikuji-fortunes";
+import { FORTUNES, OMIKUJI_LABEL_EN } from "@/lib/omikuji-fortunes";
 import { CARD_MIN_AMOUNT, TIP_MAX, TIP_STEP } from "@/lib/tip";
 
 export type StorySlideContent = { title: LocaleText; body: LocaleText; imageUrl: string | null };
@@ -736,13 +736,13 @@ const TIER_KANJI: Record<OmikujiTier, string> = {
   kichi: "吉",
   suekichi: "末吉",
 };
-// The five reading categories on each fortune slip.
-const FORTUNE_CATS = [
-  { key: "love", icon: "❤️", field: "love" },
-  { key: "money", icon: "💰", field: "money" },
-  { key: "work", icon: "💼", field: "work" },
-  { key: "travel", icon: "✈️", field: "travel" },
-  { key: "snack", icon: "🍬", field: "snack" },
+// The five readings, with the JP/EN labels and the PDF's category colours.
+const CAT_META = [
+  { field: "love", ja: "恋愛", en: "Love", color: "#e50914" },
+  { field: "money", ja: "金運", en: "Money", color: "#e0a100" },
+  { field: "work", ja: "仕事", en: "Work", color: "#2ca24c" },
+  { field: "travel", ja: "旅行", en: "Travel", color: "#1ba0e2" },
+  { field: "snack", ja: "ラッキーお菓子", en: "Lucky Snacks", color: "#9b30c9" },
 ] as const;
 const PETAL_COLORS = [
   "text-pink-300",
@@ -968,11 +968,106 @@ function MikujiBox() {
   );
 }
 
+/** Small omikuji charm shown between the split kanji in the slip header. */
+function MiniBox() {
+  return (
+    <span
+      className="inline-flex h-16 w-11 items-center justify-center rounded-md shadow-sm"
+      style={{ background: "linear-gradient(90deg,#b3122b,#ec1c24 50%,#b3122b)" }}
+      aria-hidden="true"
+    >
+      <span
+        className="rounded-sm bg-white/95 px-1 py-1.5 text-[10px] font-bold text-[#ec1c24]"
+        style={{ writingMode: "vertical-rl" }}
+      >
+        おみくじ
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Full fortune slip reproducing the client's design (omikujibox.com): split
+ * kanji + charm + English stamp, the vertical Japanese poem & readings over an
+ * OMIKUJI BOX watermark, a colour-coded English block, and a rainbow footer.
+ */
+function FortuneSlip({ tier, fortune }: { tier: OmikujiTier; fortune: number }) {
+  const list = FORTUNES[tier];
+  const f = list[fortune] ?? list[0];
+  const head = TIER_KANJI[tier].slice(0, -1); // "大"/"中"/"小"/"末"/"" (all end in 吉)
+
+  return (
+    <div className="omikuji-slip w-full max-w-sm overflow-hidden rounded-2xl border-2 border-[#e50914] bg-white text-left shadow-[0_20px_46px_rgba(0,0,0,0.18)]">
+      {/* Header: split kanji + charm + tilted English stamp */}
+      <div className="relative flex items-center justify-center gap-3 px-4 pb-4 pt-6">
+        {head ? <span className="text-5xl font-black text-neutral-900">{head}</span> : null}
+        <MiniBox />
+        <span className="text-5xl font-black text-neutral-900">吉</span>
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 rotate-[-7deg] rounded-md border-2 border-[#e50914] bg-white px-2.5 py-0.5 text-sm font-bold text-[#e50914] shadow-sm">
+          {OMIKUJI_LABEL_EN[tier]}
+        </span>
+      </div>
+
+      {/* Japanese vertical block over the OMIKUJI BOX watermark */}
+      <div className="relative px-4 pb-3 pt-2">
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-4xl font-black italic text-[#e50914]/10">
+          OMIKUJI BOX
+        </span>
+        <div className="relative flex flex-row-reverse justify-center gap-1.5" style={{ height: "13rem" }}>
+          <p className="h-full text-[13px] leading-[1.55] text-neutral-800" style={{ writingMode: "vertical-rl" }}>
+            {f.poem.ja}
+          </p>
+          {CAT_META.map((c) => (
+            <p
+              key={c.field}
+              className="h-full text-[11px] leading-[1.5] text-neutral-700"
+              style={{ writingMode: "vertical-rl" }}
+            >
+              <span style={{ color: c.color }} className="font-bold">
+                {c.ja}
+              </span>
+              　{f[c.field].ja}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-4 border-t border-dashed border-neutral-300" />
+
+      {/* English block — poem + colour-coded readings */}
+      <div className="px-5 py-4 text-center">
+        <p className="text-[13px] font-bold leading-snug text-neutral-800">{f.poem.en}</p>
+        <dl className="mt-3 space-y-1.5 text-[13px]">
+          {CAT_META.map((c) => (
+            <div key={c.field}>
+              <dt className="font-bold" style={{ color: c.color }}>
+                {c.en}
+              </dt>
+              <dd className="leading-snug text-neutral-700">{f[c.field].en}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      {/* Rainbow "Welcome to Japan!!" footer */}
+      <div
+        className="flex flex-col items-center gap-0.5 py-3 text-center text-white"
+        style={{ background: "linear-gradient(90deg,#e50914,#ff7a00,#ffd400,#2ca24c,#1ba0e2,#3b4cca,#9b30c9)" }}
+      >
+        <span className="text-lg">🗻 ✈️</span>
+        <span className="text-base font-bold tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]">
+          Welcome to Japan!!
+        </span>
+        <span className="text-sm font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)]">ようこそ日本へ!!</span>
+      </div>
+    </div>
+  );
+}
+
 // Shown after a qualifying tip. The result comes from the server (recorded once,
 // no re-roll); a short suspense makes the reveal feel like a draw, not a fetch.
 function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void }) {
   const t = useTranslations("omikuji");
-  const { locale } = useLocaleSwitcher();
   const [phase, setPhase] = useState<"idle" | "drawing" | "revealing" | "done">("idle");
   const [result, setResult] = useState<OmikujiTier | null>(null);
   const [fortune, setFortune] = useState(0);
@@ -1097,53 +1192,11 @@ function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void 
           </>
         ) : (
           <>
-            {/* Fortune slip (御神籤) — tier, blessing, poem, and the 5 readings */}
-            {(() => {
-              const f = result ? FORTUNES[result][fortune] : null;
-              return (
-                <div
-                  className={`omikuji-slip w-full max-w-xs rounded-xl border-2 bg-white px-5 py-4 text-left shadow-[0_18px_44px_rgba(0,0,0,0.16)] ${
-                    won ? "border-[#c8102e]" : "border-[#d8ccb4]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-                    <span
-                      className={`font-bold leading-none ${won ? "text-[#c8102e]" : "text-neutral-900"}`}
-                      style={{ fontSize: "2.75rem" }}
-                    >
-                      {result ? TIER_KANJI[result] : "—"}
-                    </span>
-                    <div className="text-right">
-                      <p className={`text-sm font-bold ${won ? "text-[#c8102e]" : "text-neutral-700"}`}>
-                        {result ? OMIKUJI_LABEL_EN[result] : ""}
-                      </p>
-                      <span className="text-[10px] font-bold tracking-[0.3em] text-[#c8102e]">おみくじ</span>
-                    </div>
-                  </div>
-                  {f ? (
-                    <>
-                      <p className="mt-3 text-[13px] leading-relaxed text-neutral-700">
-                        {pickFortuneText(f.poem, locale)}
-                      </p>
-                      <dl className="mt-3 space-y-2 text-[13px]">
-                        {FORTUNE_CATS.map((c) => (
-                          <div key={c.key} className="flex gap-2">
-                            <dt className="w-24 shrink-0 font-semibold text-neutral-500">
-                              {c.icon} {t(`cat.${c.key}`)}
-                            </dt>
-                            <dd className="flex-1 leading-snug text-neutral-800">
-                              {pickFortuneText(f[c.field], locale)}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </>
-                  ) : (
-                    <p className="mt-3 text-sm text-neutral-500">{t("error")}</p>
-                  )}
-                </div>
-              );
-            })()}
+            {result ? (
+              <FortuneSlip tier={result} fortune={fortune} />
+            ) : (
+              <p className="mt-6 text-sm text-neutral-500">{t("error")}</p>
+            )}
             {won ? (
               <p className="omikuji-rise mt-4 w-full max-w-xs rounded-xl bg-[#c8102e]/[0.08] px-4 py-3 text-center text-sm font-medium text-[#c8102e]">
                 🎁 {t("prizeNote")}
