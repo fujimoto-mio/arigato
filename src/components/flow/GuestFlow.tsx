@@ -444,8 +444,9 @@ function Landing({
           alt={store.name}
           fill
           sizes="(max-width: 448px) 100vw, 448px"
-          className="object-cover"
+          className="select-none object-cover"
           priority
+          draggable={false}
         />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
@@ -488,7 +489,8 @@ function Landing({
                 alt={slide.title}
                 fill
                 sizes="(max-width: 448px) 100vw, 448px"
-                className="object-cover"
+                className="select-none object-cover"
+                draggable={false}
               />
               <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[var(--color-accent)] shadow-md backdrop-blur">
                 {String(i + 1).padStart(2, "0")}
@@ -921,7 +923,8 @@ function MikujiBox() {
       width={322}
       height={644}
       priority
-      className="h-52 w-auto drop-shadow-[0_16px_22px_rgba(124,10,28,0.3)]"
+      draggable={false}
+      className="h-52 w-auto select-none drop-shadow-[0_16px_22px_rgba(124,10,28,0.3)]"
     />
   );
 }
@@ -940,7 +943,8 @@ function FortuneSlip({ tier, fortune }: { tier: OmikujiTier; fortune: number }) 
         width={758}
         height={2128}
         priority
-        className="h-auto w-full rounded-xl shadow-[0_20px_46px_rgba(0,0,0,0.18)]"
+        draggable={false}
+        className="h-auto w-full select-none rounded-xl shadow-[0_20px_46px_rgba(0,0,0,0.18)]"
       />
     </div>
   );
