@@ -4,6 +4,7 @@ import { useFormik } from "formik";
 import { useState } from "react";
 import * as Yup from "yup";
 import { ConsentCheckboxes } from "@/components/ConsentCheckboxes";
+import { Spinner } from "@/components/flow/Spinner";
 import { PLAN } from "@/lib/subscription";
 
 const schema = Yup.object({
@@ -135,8 +136,9 @@ export function SubscribeForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+        className="flex items-center justify-center gap-2 rounded-full bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
+        {isSubmitting ? <Spinner /> : null}
         {isSubmitting ? "手続きページへ移動中…" : "購読を申し込む（初月無料）"}
       </button>
       <p className="text-center text-xs text-neutral-400">

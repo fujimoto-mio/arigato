@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { LogoBadge } from "@/components/flow/brand";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
+import { Spinner } from "@/components/flow/Spinner";
 import { stripePromise } from "@/lib/stripeClient";
 
 function PaymentInner({
@@ -153,8 +154,9 @@ function PaymentInner({
           <button
             type="submit"
             disabled={!stripe || isSubmitting}
-            className="w-full rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] py-4 text-center font-semibold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:cursor-not-allowed disabled:opacity-50"
           >
+            {isSubmitting ? <Spinner /> : null}
             {isSubmitting ? t("processing") : hasFailed ? t("retryButton") : t("payButton")}
           </button>
         </>

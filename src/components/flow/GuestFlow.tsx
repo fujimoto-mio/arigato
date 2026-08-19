@@ -17,6 +17,7 @@ import {
 } from "@/components/flow/brand";
 import { CardPayment } from "@/components/flow/CardPayment";
 import { LanguageMenu } from "@/components/flow/LanguageMenu";
+import { Spinner } from "@/components/flow/Spinner";
 import { useLocaleSwitcher } from "@/i18n/LocaleProvider";
 import { downscaleImage } from "@/lib/image-resize";
 import { type LocaleText, pickLocaleText } from "@/lib/story";
@@ -107,18 +108,21 @@ function AccentButton({
   children,
   onClick,
   disabled,
+  loading,
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
-      className="w-full rounded-2xl bg-[var(--color-accent)] py-4 text-center font-bold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:opacity-40"
+      disabled={disabled || loading}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-accent)] py-4 text-center font-bold text-white transition-colors hover:bg-[var(--color-accent-dark)] disabled:cursor-not-allowed disabled:opacity-50"
     >
+      {loading ? <Spinner /> : null}
       {children}
     </button>
   );
@@ -704,8 +708,8 @@ function Support({
       {hasError ? <p className="mt-6 px-6 text-center text-sm text-red-600">{t("errorGeneric")}</p> : null}
 
       <div className="mt-8 px-6">
-        <AccentButton onClick={onNext} disabled={!canSubmit}>
-          {isSubmitting ? "…" : t("next")}
+        <AccentButton onClick={onNext} disabled={!canSubmit} loading={isSubmitting}>
+          {t("next")}
         </AccentButton>
         <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-neutral-400">
           <svg
@@ -1071,8 +1075,9 @@ function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void 
               type="button"
               onClick={draw}
               disabled={drawing || revealing}
-              className="mt-5 w-full max-w-xs rounded-full bg-[var(--color-logo)] py-4 text-base font-bold tracking-wide text-white shadow-md transition active:scale-[0.98] disabled:opacity-60"
+              className="mt-5 flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-[var(--color-logo)] py-4 text-base font-bold tracking-wide text-white shadow-md transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {drawing || revealing ? <Spinner /> : null}
               {phase === "idle" ? t("drawButton") : t("drawing")}
             </button>
           </>
