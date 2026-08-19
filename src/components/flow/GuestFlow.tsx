@@ -59,8 +59,10 @@ const STEP_ORDER: Step[] = ["landing", "support", "payment", "omikuji", "thankyo
 // Stock imagery stands in for per-store story photos until stores upload their own.
 const STORY_IMAGES = ["/lp/izakaya-interior.jpg", "/lp/restaurant-lanterns.jpg", "/lp/phone-payment.jpg"];
 
-function googleMapsUrl(placeId: string) {
-  return `https://www.google.com/maps/place/?q=place_id:${placeId}`;
+/** Opens Google's "write a review" dialog for the place (not the Maps listing,
+ *  which only shows the reviews panel). Used for every rating. */
+function googleWriteReviewUrl(placeId: string) {
+  return `https://search.google.com/local/writereview?placeid=${placeId}`;
 }
 
 /* ---------- Header + shared controls ---------- */
@@ -1255,7 +1257,9 @@ function FollowMenu({
   className?: string;
 }) {
   const t = useTranslations("connect");
-  const googleHref = reviewUrl ?? (store.googlePlaceId ? googleMapsUrl(store.googlePlaceId) : null);
+  // Always the write-review dialog, built from the Place ID — so it works for
+  // every rating, even when the API didn't return a reviewUrl (no star rating).
+  const googleHref = store.googlePlaceId ? googleWriteReviewUrl(store.googlePlaceId) : reviewUrl;
   const links = [
     store.instagramUrl
       ? { key: "instagram", label: t("instagram"), href: store.instagramUrl, icon: <InstagramIcon size={30} /> }
