@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePlatformAdminApi, requireStoreAccessApi } from "@/lib/admin/auth";
+import { parseGooglePlaceId } from "@/lib/google-place";
 import { prisma } from "@/lib/prisma";
 import { supabaseServiceClient } from "@/lib/supabase/server";
+
+// Accepts a bare Place ID or a Maps URL containing one; stores the clean ID.
+const googlePlaceIdField = z
+  .string()
+  .trim()
+  .max(300)
+  .transform((value) => (value.length === 0 ? null : (parseGooglePlaceId(value) ?? value)))
+  .nullable()
+  .optional()
+  .refine((value) => value == null || parseGooglePlaceId(value) !== null, "invalid_place_id");
 
 // Empty string clears an optional field back to null.
 const emptyToNull = (max: number) =>
@@ -41,7 +52,7 @@ const patchSchema = z.object({
     .max(50)
     .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "invalid_slug")
     .optional(),
-  googlePlaceId: emptyToNull(200),
+  googlePlaceId: googlePlaceIdField,
   instagramUrl: urlOrEmpty,
   facebookUrl: urlOrEmpty,
   // Registration contact details, editable after registration.

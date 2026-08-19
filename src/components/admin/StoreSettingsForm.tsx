@@ -7,6 +7,7 @@ import { useRef, useState } from "react";
 import * as Yup from "yup";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { uploadStoreImage } from "@/components/admin/StorySlidesField";
+import { isValidGooglePlaceInput, parseGooglePlaceId } from "@/lib/google-place";
 import { nameToSlug } from "@/lib/slug";
 
 const urlTest = (v: string | undefined) => !v || /^https?:\/\//.test(v);
@@ -18,7 +19,14 @@ const schema = Yup.object({
     .max(50, "50文字以内で入力してください")
     .matches(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, "半角の英小文字・数字・ハイフンのみ使用できます（例：sushi-hana）")
     .required("店舗URLを入力してください"),
-  googlePlaceId: Yup.string().trim().max(200, "200文字以内で入力してください"),
+  googlePlaceId: Yup.string()
+    .trim()
+    .max(300, "300文字以内で入力してください")
+    .test(
+      "placeid",
+      "Google Place ID、またはPlace IDを含むGoogleマップのURLを入力してください",
+      (v) => !v || isValidGooglePlaceInput(v),
+    ),
   instagramUrl: Yup.string().trim().max(300).test("url", "URLの形式が正しくありません（https://…）", urlTest),
   facebookUrl: Yup.string().trim().max(300).test("url", "URLの形式が正しくありません（https://…）", urlTest),
   companyName: Yup.string().trim().max(120, "120文字以内で入力してください"),
@@ -179,7 +187,8 @@ export function StoreSettingsForm({
         body: JSON.stringify({
           name: (v.name ?? "").trim(),
           slug: (v.slug ?? "").trim(),
-          googlePlaceId: (v.googlePlaceId ?? "").trim(),
+          // Store the bare Place ID even if a full Maps URL was pasted.
+          googlePlaceId: parseGooglePlaceId(v.googlePlaceId ?? "") ?? "",
           instagramUrl: (v.instagramUrl ?? "").trim(),
           facebookUrl: (v.facebookUrl ?? "").trim(),
           companyName: (v.companyName ?? "").trim(),
@@ -203,6 +212,11 @@ export function StoreSettingsForm({
           return fieldError("slug", "この店舗URLは既に使われています。別のURLを入力してください。");
         if (e === "invalid_slug")
           return fieldError("slug", "半角の英小文字・数字・ハイフンのみ使用できます（例：sushi-hana）。");
+        if (e === "invalid_place_id")
+          return fieldError(
+            "googlePlaceId",
+            "Google Place ID、またはPlace IDを含むGoogleマップのURLを入力してください。",
+          );
         if (e === "invalid_email") return fieldError("email", "メールアドレスの形式が正しくありません。");
         if (e === "email_required") return fieldError("email", "メールアドレスは必須です（ログインIDのため）。");
         if (e === "email_taken")
@@ -222,7 +236,11 @@ export function StoreSettingsForm({
       setCoverRemoved(false);
       setConfirmOpen(false);
       setStatus("saved");
-      onSaved?.({ name: savedName, slug: newSlug, googlePlaceId: (v.googlePlaceId ?? "").trim() });
+      onSaved?.({
+        name: savedName,
+        slug: newSlug,
+        googlePlaceId: parseGooglePlaceId(v.googlePlaceId ?? "") ?? "",
+      });
       router.refresh();
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err) {
@@ -289,7 +307,13 @@ export function StoreSettingsForm({
 
       <label className="block text-sm font-medium text-neutral-700">
         Google Place ID
-        <input name="googlePlaceId" value={values.googlePlaceId} onChange={handleChange} onBlur={handleBlur} placeholder="ChIJ..." className="mt-1 w-full rounded-lg border border-neutral-300 p-3 font-mono text-sm" />
+        <input name="googlePlaceId" value={values.googlePlaceId} onChange={handleChange} onBlur={handleBlur} placeholder="ChIJ... または Place IDを含むGoogleマップのURL" className="mt-1 w-full rounded-lg border border-neutral-300 p-3 font-mono text-sm" />
+        <span className="mt-1 block text-xs font-normal text-neutral-500">
+          口コミページの誘導先です。Place ID（例: ChIJ...）か、Place IDを含むGoogleマップのURLを貼り付けてください。
+          <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="ml-1 underline">
+            Place IDを調べる
+          </a>
+        </span>
         {err("googlePlaceId")}
       </label>
 
