@@ -127,6 +127,13 @@
         "message": "好运相伴，感谢您的心意！"
       }
     },
-    "tapToDraw": "点击签筒抽签"
+    "tapToDraw": "点击签筒抽签",
+    "cat": {
+      "love": "恋爱",
+      "money": "财运",
+      "work": "工作",
+      "travel": "旅行",
+      "snack": "幸运零食"
+    }
   }
 }
