@@ -28,7 +28,9 @@ type TipRow = {
 const OMIKUJI_LABEL: Record<string, string> = {
   daikichi: "大吉",
   chukichi: "中吉",
+  shokichi: "小吉",
   kichi: "吉",
+  suekichi: "末吉",
 };
 
 function parsePage(value: string | undefined): number {

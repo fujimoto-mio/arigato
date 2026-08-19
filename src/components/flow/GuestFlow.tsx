@@ -444,8 +444,9 @@ function Landing({
           alt={store.name}
           fill
           sizes="(max-width: 448px) 100vw, 448px"
-          className="object-cover"
+          className="select-none object-cover"
           priority
+          draggable={false}
         />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/25 to-transparent" />
       </div>
@@ -488,7 +489,8 @@ function Landing({
                 alt={slide.title}
                 fill
                 sizes="(max-width: 448px) 100vw, 448px"
-                className="object-cover"
+                className="select-none object-cover"
+                draggable={false}
               />
               <span className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-[var(--color-accent)] shadow-md backdrop-blur">
                 {String(i + 1).padStart(2, "0")}
@@ -728,11 +730,6 @@ function Support({
 
 /* ---------- Screen 4: Omikuji (fortune draw) ---------- */
 
-const TIER_KANJI: Record<OmikujiTier, string> = {
-  daikichi: "大吉",
-  chukichi: "中吉",
-  kichi: "吉",
-};
 const PETAL_COLORS = [
   "text-pink-300",
   "text-pink-200",
@@ -916,43 +913,39 @@ const SPARKLES = [
   { top: "52%", left: "88%", delay: "0.09s", cls: "text-xl" },
 ];
 
-/** Omikuji box (みくじ筒) recreated after the reference: a bright flat-red
- *  hexagonal canister with a thin gold outline, a slot, and white brush おみくじ.
- *  The 30° tilt and the bob/shake motion are applied by the wrappers around it. */
+/** The reference omikuji box artwork (public/omikuji/box.png). The 30° tilt and
+ *  the bob/shake motion are applied by the wrappers around it. */
 function MikujiBox() {
   return (
-    <div className="relative h-52 w-36" aria-hidden="true">
-      <svg
-        viewBox="0 0 150 208"
-        className="absolute inset-0 h-full w-full drop-shadow-[0_16px_22px_rgba(124,10,28,0.34)]"
-      >
-        {/* Body — flat bright red with a slightly darker right facet */}
-        <rect x="30" y="44" width="90" height="150" rx="6" fill="#ec1c24" />
-        <rect x="104" y="50" width="16" height="138" fill="#cf1620" />
-        {/* Thin gold rims top & bottom */}
-        <rect x="30" y="44" width="90" height="5" fill="#e6b877" />
-        <rect x="30" y="186" width="90" height="8" rx="2" fill="#e6b877" />
-        {/* Hexagonal lid with a gold outline */}
-        <polygon
-          points="30,44 48,26 102,26 120,44 102,54 48,54"
-          fill="#c8151c"
-          stroke="#e6b877"
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
-        {/* Ticket slot */}
-        <rect x="60" y="32" width="30" height="6" rx="3" fill="#7a0d14" />
-      </svg>
+    <Image
+      src="/omikuji/box.png"
+      alt="おみくじ"
+      width={322}
+      height={644}
+      priority
+      draggable={false}
+      className="h-52 w-auto select-none drop-shadow-[0_16px_22px_rgba(124,10,28,0.3)]"
+    />
+  );
+}
 
-      {/* White brush おみくじ down the front (single column) */}
-      <div className="absolute inset-x-0 bottom-[12%] top-[32%] z-10 flex items-center justify-center">
-        <span
-          className="font-black leading-none tracking-[0.08em] text-white drop-shadow-[0_2px_3px_rgba(90,7,19,0.5)]"
-          style={{ writingMode: "vertical-rl", whiteSpace: "nowrap", fontSize: "1.7rem" }}
-        >
-          おみくじ
-        </span>
-      </div>
+/**
+ * The client's actual fortune slip — the exact artwork from their 15-slip set
+ * (public/omikuji/<tier>-<variation>.png), shown after the draw like the
+ * reference omikujibox.com page (which serves a pre-rendered slip image).
+ */
+function FortuneSlip({ tier, fortune }: { tier: OmikujiTier; fortune: number }) {
+  return (
+    <div className="omikuji-slip w-full max-w-[19rem]">
+      <Image
+        src={`/omikuji/${tier}-${fortune}.png`}
+        alt="おみくじ"
+        width={758}
+        height={2128}
+        priority
+        draggable={false}
+        className="h-auto w-full select-none rounded-xl shadow-[0_20px_46px_rgba(0,0,0,0.18)]"
+      />
     </div>
   );
 }
@@ -963,6 +956,7 @@ function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void 
   const t = useTranslations("omikuji");
   const [phase, setPhase] = useState<"idle" | "drawing" | "revealing" | "done">("idle");
   const [result, setResult] = useState<OmikujiTier | null>(null);
+  const [fortune, setFortune] = useState(0);
 
   async function draw() {
     setPhase("drawing");
@@ -976,8 +970,11 @@ function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void 
         // Suspense so the box shakes before the lot ejects.
         new Promise((r) => setTimeout(r, 1400)),
       ]);
-      const data = (await res.json()) as { result?: string };
-      if (isOmikujiTier(data.result)) setResult(data.result);
+      const data = (await res.json()) as { result?: string; fortune?: number };
+      if (isOmikujiTier(data.result)) {
+        setResult(data.result);
+        setFortune(typeof data.fortune === "number" ? data.fortune : 0);
+      }
     } catch {
       // Best effort — the tip is recorded regardless; let them continue.
     }
@@ -1081,38 +1078,20 @@ function Omikuji({ tipId, onContinue }: { tipId: string; onContinue: () => void 
           </>
         ) : (
           <>
-            {/* Paper fortune slip (御神籤) */}
-            <div
-              className={`omikuji-slip relative mt-9 flex h-60 w-40 flex-col items-center rounded-lg border-2 bg-white px-3 py-5 shadow-[0_18px_44px_rgba(0,0,0,0.16)] ${
-                won ? "border-[#c8102e]" : "border-[#d8ccb4]"
-              }`}
-            >
-              <span className="text-[11px] font-bold tracking-[0.35em] text-[#c8102e]">おみくじ</span>
-              <span
-                className={`my-auto font-bold leading-none ${won ? "text-[#c8102e]" : "text-neutral-900"}`}
-                style={{ writingMode: "vertical-rl", fontSize: "3.9rem" }}
-              >
-                {result ? TIER_KANJI[result] : "—"}
-              </span>
-              <Sakura className={`h-5 w-5 ${won ? "text-[#c8102e]" : "text-[#d8ccb4]"}`} />
-            </div>
-            <p className={`omikuji-rise mt-6 text-xl font-bold ${won ? "text-[#c8102e]" : "text-neutral-900"}`}>
-              {result ? t(`result.${result}.name`) : t("error")}
-            </p>
             {result ? (
-              <p className="omikuji-rise mt-2 max-w-[17rem] text-sm leading-relaxed text-neutral-600">
-                {t(`result.${result}.message`)}
-              </p>
-            ) : null}
+              <FortuneSlip tier={result} fortune={fortune} />
+            ) : (
+              <p className="mt-6 text-sm text-neutral-500">{t("error")}</p>
+            )}
             {won ? (
-              <p className="omikuji-rise mt-4 max-w-[17rem] rounded-xl bg-[#c8102e]/[0.08] px-4 py-3 text-sm font-medium text-[#c8102e]">
+              <p className="omikuji-rise mt-4 w-full max-w-xs rounded-xl bg-[#c8102e]/[0.08] px-4 py-3 text-center text-sm font-medium text-[#c8102e]">
                 🎁 {t("prizeNote")}
               </p>
             ) : null}
             <button
               type="button"
               onClick={onContinue}
-              className="mt-10 w-full max-w-xs rounded-full border border-[var(--color-accent)] bg-white/60 py-4 text-base font-semibold text-[var(--color-accent)] transition active:scale-[0.98]"
+              className="mt-6 w-full max-w-xs rounded-full border border-[var(--color-accent)] bg-white/60 py-4 text-base font-semibold text-[var(--color-accent)] transition active:scale-[0.98]"
             >
               {t("continue")}
             </button>

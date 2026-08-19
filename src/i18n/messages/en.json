@@ -127,6 +127,13 @@
         "message": "Good fortune is with you. Thank you for your kindness!"
       }
     },
-    "tapToDraw": "Tap the box to draw"
+    "tapToDraw": "Tap the box to draw",
+    "cat": {
+      "love": "Love",
+      "money": "Money",
+      "work": "Work",
+      "travel": "Travel",
+      "snack": "Lucky Snacks"
+    }
   }
 }

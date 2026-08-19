@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { drawOmikuji, isOmikujiEligible } from "@/lib/omikuji";
+import { drawOmikuji, fortuneIndex, isOmikujiEligible, isOmikujiTier } from "@/lib/omikuji";
+import { FORTUNES } from "@/lib/omikuji-fortunes";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+
+// The variation is derived from the tip id (stable), so both the fresh draw and
+// a re-fetch return the same fortune without persisting an extra column.
+function fortuneFor(tipId: string, result: string): number {
+  return isOmikujiTier(result) ? fortuneIndex(tipId, FORTUNES[result].length) : 0;
+}
 
 const bodySchema = z.object({ tipId: z.string().min(1) });
 
@@ -25,7 +32,7 @@ export async function POST(request: Request) {
   }
   // Already drawn — return the recorded result (idempotent).
   if (tip.omikujiResult) {
-    return NextResponse.json({ result: tip.omikujiResult });
+    return NextResponse.json({ result: tip.omikujiResult, fortune: fortuneFor(tip.id, tip.omikujiResult) });
   }
 
   // Card tips must have actually succeeded. The webhook may lag, so self-heal by
@@ -55,5 +62,6 @@ export async function POST(request: Request) {
     select: { omikujiResult: true },
   });
 
-  return NextResponse.json({ result: saved?.omikujiResult ?? result });
+  const finalResult = saved?.omikujiResult ?? result;
+  return NextResponse.json({ result: finalResult, fortune: fortuneFor(tip.id, finalResult) });
 }
